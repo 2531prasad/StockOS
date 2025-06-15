@@ -22,7 +22,7 @@ import { Terminal, HelpCircle, Info } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
-  const [iterations, setIterations] = useState(10000);
+  const [iterations, setIterations] = useState(100000); // Changed default to 100000
   const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState("");
   const [submittedIterations, setSubmittedIterations] = useState(0);
@@ -122,7 +122,7 @@ export default function MCCalculator() {
               <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-xl">How This Calculator Works</AlertDialogTitle>
-                  <div className="text-sm text-muted-foreground text-left max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+                   <div className="text-sm text-muted-foreground text-left max-h-[70vh] overflow-y-auto pr-2 space-y-4">
                     <div>
                       <h3 className="font-semibold text-base mb-1">🚀 What This Calculator Does</h3>
                       <p>Unlike normal calculators, this tool allows you to:</p>
@@ -140,6 +140,9 @@ export default function MCCalculator() {
                       <div className="space-y-1">
                         <p><strong>Fixed number:</strong> As usual (e.g., <code>5 + 10</code>)</p>
                         <p><strong>Uncertain/range value:</strong> Use ~ between min and max (e.g., <code>5~10</code>, <code>-2~3.5</code>)</p>
+                        <p><strong>Percentage range (implicit):</strong> <code>(10-20%)</code> or <code>(10~20%)</code> becomes <code>(10%~20%)</code></p>
+                        <p><strong>Percentage range (explicit):</strong> <code>10% - 20%</code> becomes <code>10% ~ 20%</code></p>
+                        <p><strong>Applying a % range:</strong> <code>500 (10%~20%)</code> becomes <code>500 * (1.1~1.2)</code></p>
                         <p><strong>Round values:</strong> Use round(...) (e.g., <code>round(1~6)</code>)</p>
                         <p><strong>Multiplication:</strong> Use * or implicit like 5(2~3) (e.g., <code>2 * (3~5)</code>, or <code>5(1~6)</code>)</p>
                         <p><strong>Area of circle:</strong> pi * r^2 (e.g., <code>pi * (4~6)^2</code>)</p>
@@ -152,9 +155,9 @@ export default function MCCalculator() {
 
                     <div>
                       <h3 className="font-semibold text-base mb-1">📈 Interpreting the Results</h3>
-                      <p>After simulation (default 10,000 iterations), you’ll get:</p>
+                      <p>After simulation (default 100,000 iterations), you’ll get:</p>
                       <ul className="list-disc list-inside ml-4">
-                        <li><strong>True Analytical Range:</strong> The exact mathematical min-max possible.</li>
+                        <li><strong>True Analytical Range:</strong> The exact mathematical min-max possible based on input range combinations. May be an approximation for very complex expressions (many ranges).</li>
                         <li><strong>Simulated Range:</strong> The min-max from the Monte Carlo samples.</li>
                         <li><strong>Mean:</strong> Average outcome</li>
                         <li><strong>Std Dev:</strong> Statistical spread (variability)</li>
@@ -168,9 +171,9 @@ export default function MCCalculator() {
                       <h3 className="font-semibold text-base mb-1">🎨 Histogram Features</h3>
                       <p>Bar colors reflect standard deviation zones:</p>
                       <ul className="list-disc list-inside ml-4">
-                        <li>🟦 Center (±1σ) — most likely values</li>
-                        <li>🟩 ±2σ — less likely</li>
-                        <li>🟨 ±3σ — rare outcomes</li>
+                        <li><span style={{color: 'hsl(180, 70%, 50%)'}}>█</span> Center (±1σ) — most likely values</li>
+                        <li><span style={{color: 'hsl(120, 60%, 50%)'}}>█</span> ±2σ — less likely</li>
+                        <li><span style={{color: 'hsl(55, 85%, 50%)'}}>█</span> ±3σ — rare outcomes</li>
                       </ul>
                       <p className="mt-1">X-axis labels show the center value of each bin.</p>
                       <p className="mt-1">Vertical lines show:</p>
@@ -223,7 +226,7 @@ export default function MCCalculator() {
                 id="iterations-input"
                 type="number"
                 value={iterations}
-                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 10000))}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))} // Ensure fallback uses 100000
                 className="w-full sm:w-32 text-base"
                 placeholder="Iterations"
                 aria-label="Number of Iterations"
@@ -272,3 +275,5 @@ export default function MCCalculator() {
     </div>
   );
 }
+
+    
