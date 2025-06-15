@@ -112,6 +112,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN;
     const calculatedMean = getMean(finalValidResults);
     const calculatedStdDev = getStandardDeviation(finalValidResults);
+    const calculatedP50 = getPercentile(finalValidResults, 50);
 
     setData({
       results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [],
@@ -121,7 +122,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
       p10: getPercentile(finalValidResults, 10),
-      p50: getPercentile(finalValidResults, 50), 
+      p50: calculatedP50, 
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
       histogram: getHistogram(finalValidResults, histogramBinCount),

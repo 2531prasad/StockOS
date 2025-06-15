@@ -32,6 +32,7 @@ export default function MCCalculator() {
   
   const handleCalculate = () => {
     if (!expression.trim()) {
+        // Optionally, show a toast or message if expression is empty
         return;
     }
     setSubmittedExpression(expression);
@@ -66,12 +67,13 @@ export default function MCCalculator() {
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
+      {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
         <div className="mt-4 h-[450px] w-full">
           <Histogram 
             data={calcResult.histogram} 
-            title="Outcome Distribution (Probability)"
+            title="Outcome Distribution"
             meanValue={calcResult.mean}
+            medianValue={calcResult.p50} // p50 is the median
             stdDevValue={calcResult.stdDev}
           />
         </div>
@@ -84,10 +86,10 @@ export default function MCCalculator() {
 
   return (
     <div className="container mx-auto p-4 md:p-8 font-body">
-      <Card className="w-full max-w-4xl mx-auto shadow-xl"> {/* Increased max-width for wider chart */}
+      <Card className="w-full max-w-4xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl">Monte Carlo Calculator</CardTitle>
-          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean (μ) and Standard Deviations (σ).</CardDescription>
+          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean, Median, and Standard Deviations (σ).</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
