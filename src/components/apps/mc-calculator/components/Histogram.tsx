@@ -9,18 +9,17 @@ import {
   LinearScale,
   Tooltip,
   Title,
-  type ChartOptions // Import ChartOptions
+  type ChartOptions,
+  type ChartData
 } from "chart.js";
 import annotationPlugin from 'chartjs-plugin-annotation';
-import type { SigmaCategory } from '../utils/stats';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
 interface HistogramEntry {
-  label: string; // Bin range label e.g., "100-120"
-  value: number; // PDF value for that bin
-  sigmaCategory: SigmaCategory;
-  lowerBound: number;
+  label: string; 
+  probability: number; 
+  lowerBound: number; // Still useful for context if needed, though not directly for bar value
   upperBound: number;
 }
 
@@ -28,53 +27,30 @@ interface Props {
   data: HistogramEntry[];
   title?: string;
   meanValue?: number;
-  medianValue?: number;
-  yScaleMin?: number;
-  yScaleMax?: number;
+  stdDevValue?: number; // Changed from medianValue
 }
 
 export default function Histogram({ 
   data, 
   title = "Distribution", 
-  meanValue, 
-  medianValue,
-  yScaleMin,
-  yScaleMax 
+  meanValue,
+  stdDevValue 
 }: Props) {
 
-  const getSigmaStyle = (category: SigmaCategory) => {
-    switch (category) {
-      case '1':
-        return { bg: 'hsl(var(--sigma-1-bg))', border: 'hsl(var(--sigma-1-border))' };
-      case '2':
-        return { bg: 'hsl(var(--sigma-2-bg))', border: 'hsl(var(--sigma-2-border))' };
-      case '3':
-        return { bg: 'hsl(var(--sigma-3-bg))', border: 'hsl(var(--sigma-3-border))' };
-      case 'other':
-      default:
-        return { bg: 'hsl(var(--sigma-other-bg))', border: 'hsl(var(--sigma-other-border))' };
-    }
-  };
-  
   const formatNumberForLabel = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
-    return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    // Show more precision for mean/std dev lines
+    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-
-  const chartData = {
-    // Labels are not directly used for y-axis scale with linear type, but good for context
-    // labels: data.map(d => d.label), 
+  const chartData: ChartData<'bar'> = {
+    labels: data.map(d => d.label), 
     datasets: [{
-      label: "Probability Density", 
-      data: data.map(entry => ({
-        x: entry.value, // PDF value for bar length (horizontal axis)
-        y: [entry.lowerBound, entry.upperBound] as [number, number] // Floating bar for Y-axis (vertical axis for values)
-      })),
-      backgroundColor: data.map(d => getSigmaStyle(d.sigmaCategory).bg),
-      borderColor: data.map(d => getSigmaStyle(d.sigmaCategory).border),
+      label: "Probability", 
+      data: data.map(entry => entry.probability),
+      backgroundColor: 'hsl(var(--primary))',
+      borderColor: 'hsl(var(--primary-foreground))',
       borderWidth: 1,
-      borderSkipped: false, // Important for floating bars to render full borders
     }]
   };
 
@@ -82,114 +58,122 @@ export default function Histogram({
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
     annotationsConfig.meanLine = {
       type: 'line',
-      scaleID: 'y', // Annotation on the Y-axis (Value axis)
+      scaleID: 'x', 
       value: meanValue,
-      borderColor: 'hsl(var(--primary))',
+      borderColor: 'hsl(var(--accent))', // Using accent for mean line
       borderWidth: 2,
-      borderDash: [5, 5],
       label: {
         enabled: true,
-        content: `Mean: ${formatNumberForLabel(meanValue)}`,
-        position: 'end',
+        content: `μ: ${formatNumberForLabel(meanValue)}`,
+        position: 'top',
         backgroundColor: 'hsla(var(--background), 0.75)',
-        color: 'hsl(var(--primary-foreground))', // Using primary-foreground for text on primary line's label
-         font: {
-          weight: 'bold'
-        },
-        padding: 3,
-        yAdjust: -10, // Adjust label position relative to the line
+        color: 'hsl(var(--accent-foreground))',
+        font: { weight: 'bold' },
+        yAdjust: -5,
       }
     };
-  }
-  if (typeof medianValue === 'number' && !isNaN(medianValue)) {
-    annotationsConfig.medianLine = {
-      type: 'line',
-      scaleID: 'y', // Annotation on the Y-axis (Value axis)
-      value: medianValue,
-      borderColor: 'hsl(var(--accent))',
-      borderWidth: 2,
-      borderDash: [5, 5],
-      label: {
-        enabled: true,
-        content: `Median: ${formatNumberForLabel(medianValue)}`,
-        position: 'start', // Position label at the start of the line
-        backgroundColor: 'hsla(var(--background), 0.75)',
-        color: 'hsl(var(--accent-foreground))', // Using accent-foreground for text on accent line's label
-         font: {
-          weight: 'bold'
-        },
-        padding: 3,
-        yAdjust: 10, // Adjust label position relative to the line
-      }
-    };
-  }
 
-  const options: ChartOptions<'bar'> = { // Explicitly type ChartOptions
-    indexAxis: 'y' as const, // Horizontal bar chart: Y-axis for categories (our value bins), X-axis for values (PDF)
+    if (typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
+      const sigmas = [-3, -2, -1, 1, 2, 3];
+      // Using a more distinct set of colors for sigma lines, can be themed later
+      const sigmaLineColors = [
+        '#FF6384', // -3σ (Reddish)
+        '#FF9F40', // -2σ (Orange)
+        '#FFCD56', // -1σ (Yellow)
+        '#4BC0C0', // +1σ (Teal)
+        '#36A2EB', // +2σ (Blue)
+        '#9966FF', // +3σ (Purple)
+      ];
+
+      sigmas.forEach((s, index) => {
+        const sigmaVal = meanValue + s * stdDevValue;
+        annotationsConfig[`sigmaLine${s}`] = {
+          type: 'line',
+          scaleID: 'x',
+          value: sigmaVal,
+          borderColor: sigmaLineColors[index],
+          borderWidth: 1,
+          borderDash: [5, 5],
+          label: {
+            enabled: true,
+            content: `${s > 0 ? '+' : ''}${s}σ`,
+            position: s < 0 ? 'bottom' : 'top',
+            backgroundColor: 'hsla(var(--background), 0.6)',
+            color: sigmaLineColors[index],
+            font: { size: 10, weight: 'normal' },
+            yAdjust: s < 0 ? 5 : -5,
+            xAdjust: s === -3 ? 10 : (s === 3 ? -10 : 0) // Prevent label overlap at edges
+          }
+        };
+      });
+    }
+  }
+  
+  const options: ChartOptions<'bar'> = { 
+    indexAxis: 'x' as const, // Vertical bar chart
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      x: { // This is the horizontal axis (bar length)
-        beginAtZero: true, 
+      x: { 
         title: {
           display: true,
-          text: 'Probability Density' // Label for the X-axis
+          text: 'Value Bins' 
         },
         grid: {
           color: 'hsl(var(--border))',
         },
         ticks: {
           color: 'hsl(var(--foreground))',
-           callback: function(value: string | number) { // Ensure type safety for value
-            if (typeof value === 'number') {
-              return value.toPrecision(2); // Format PDF values
-            }
-            return value;
-          }
+          maxRotation: 45,
+          minRotation: 30,
+          autoSkip: true,
+          maxTicksLimit: data.length > 20 ? Math.floor(data.length / 2) : data.length, // Reduce ticks if too many bins
         },
       },
-      y: { // This is the vertical axis (categories, i.e., our value bins/ranges)
-        type: 'linear', // Y-axis is now linear for floating bars and annotations
-        min: typeof yScaleMin === 'number' && !isNaN(yScaleMin) ? yScaleMin : undefined,
-        max: typeof yScaleMax === 'number' && !isNaN(yScaleMax) ? yScaleMax : undefined,
+      y: { 
+        beginAtZero: true,
         title: {
           display: true,
-          text: 'Value' // Label for the Y-axis
+          text: 'Probability' 
         },
         grid: {
-          display: false, // Hide grid lines on Y-axis for cleaner look with floating bars
+          color: 'hsl(var(--border))',
         },
         ticks: {
           color: 'hsl(var(--foreground))',
-          // Consider adding a callback here if you want to format y-axis numbers (e.g. large numbers)
+           callback: function(value: string | number) {
+            if (typeof value === 'number') {
+              return (value * 100).toFixed(0) + '%'; // Format probability as percentage
+            }
+            return value;
+          }
         },
       }
     },
     plugins: {
       annotation: {
-        annotations: annotationsConfig
+        annotations: annotationsConfig,
+        drawTime: 'afterDatasetsDraw' // Draw annotations on top of bars
       },
       tooltip: {
         mode: 'index' as const,
         intersect: false,
         callbacks: {
             title: function(tooltipItems: any) {
-              // For floating bars, tooltipItems[0].label is usually the parsed y value or range.
-              // We can use dataIndex to get our original bin label.
               const dataIndex = tooltipItems[0]?.dataIndex;
               if (dataIndex !== undefined && data[dataIndex]) {
-                return data[dataIndex].label; // Bin range e.g. "100-120"
+                return `Bin: ${data[dataIndex].label}`; 
               }
               return '';
             },
             label: function(context: any) {
-                let label = context.dataset.label || ''; // "Probability Density"
+                let label = context.dataset.label || ''; 
                 if (label) {
                     label += ': ';
                 }
-                if (context.parsed.x !== null) { // context.parsed.x is the PDF value
-                    const val = context.parsed.x;
-                    label += typeof val === 'number' ? val.toPrecision(4) : val; 
+                if (context.parsed.y !== null) { 
+                    const probability = context.parsed.y;
+                    label += (probability * 100).toFixed(2) + '%';
                 }
                 return label;
             }
@@ -200,7 +184,7 @@ export default function Histogram({
         text: title,
         padding: {
           top: 10,
-          bottom: 30 // Added more padding to avoid overlap with annotation labels
+          bottom: 20 
         },
         font: {
             size: 16
@@ -211,10 +195,8 @@ export default function Histogram({
   };
   
   return (
-    <div style={{ height: '400px', width: '100%' }}> 
-      {/* Ensure data has loaded before rendering chart to prevent errors with empty/undefined structures */}
-      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p>Loading chart data...</p>}
+    <div style={{ height: '450px', width: '100%' }}> 
+      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
     </div>
   );
 }
-

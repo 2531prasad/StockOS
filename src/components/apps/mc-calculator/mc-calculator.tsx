@@ -16,25 +16,22 @@ export default function MCCalculator() {
   const [iterations, setIterations] = useState(10000);
   const [histogramBins, setHistogramBins] = useState(23); 
   const [submittedExpression, setSubmittedExpression] = useState(""); 
-  const [submittedIterations, setSubmittedIterations] = useState(0); // Initialize with 0 to prevent initial calc with default iterations
+  const [submittedIterations, setSubmittedIterations] = useState(0); 
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // No initial calculation on load. User must click "Calculate".
   }, []); 
   
   const result = useCalculator(
     submittedExpression, 
-    submittedIterations > 0 ? submittedIterations : 10000, // Ensure at least 1 iteration if submitted, or default for hook
+    submittedIterations > 0 ? submittedIterations : 10000, 
     submittedHistogramBins
   );
   
   const handleCalculate = () => {
     if (!expression.trim()) {
-        // Optionally, show a toast or an inline message if the expression is empty
-        // For now, just return to prevent calculation with empty input.
         return;
     }
     setSubmittedExpression(expression);
@@ -57,8 +54,8 @@ export default function MCCalculator() {
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2">
         <p><strong>Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
-        <p><strong>Mean:</strong> {formatNumber(calcResult.mean)}</p>
-        <p><strong>Std Dev:</strong> {formatNumber(calcResult.stdDev)}</p>
+        <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
+        <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
         <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
       </div>
 
@@ -69,31 +66,28 @@ export default function MCCalculator() {
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.p50) ? (
-        <div className="mt-4 h-[400px] w-full">
+      {calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
+        <div className="mt-4 h-[450px] w-full">
           <Histogram 
             data={calcResult.histogram} 
-            title="Outcome Distribution (Probability Density)"
+            title="Outcome Distribution (Probability)"
             meanValue={calcResult.mean}
-            medianValue={calcResult.p50}
-            yScaleMin={calcResult.min} // Pass overall min for Y-axis scaling
-            yScaleMax={calcResult.max} // Pass overall max for Y-axis scaling
+            stdDevValue={calcResult.stdDev}
           />
         </div>
       ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null }
     </>
   );
 
-  // Determine when to show results or initial message
   const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showInitialMessage = !submittedExpression && !result.error;
 
   return (
     <div className="container mx-auto p-4 md:p-8 font-body">
-      <Card className="w-full max-w-3xl mx-auto shadow-xl">
+      <Card className="w-full max-w-4xl mx-auto shadow-xl"> {/* Increased max-width for wider chart */}
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl">Monte Carlo Calculator</CardTitle>
-          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.</CardDescription>
+          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean (μ) and Standard Deviations (σ).</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
@@ -138,7 +132,6 @@ export default function MCCalculator() {
             />
           </div>
 
-
           {result.error && (
              <Alert variant="destructive" className="mb-4">
               <Terminal className="h-4 w-4" />
@@ -160,4 +153,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
