@@ -12,14 +12,12 @@ import {
   type ChartOptions,
   type ChartData,
   type PluginOptionsByType,
-  type ScaleOptionsByType,
-  type BarControllerChartOptions
 } from "chart.js";
 import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions } from 'chartjs-plugin-annotation';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
-interface HistogramEntry {
+export interface HistogramEntry {
   binStart: number;
   label: string; 
   probability: number; 
@@ -64,10 +62,10 @@ export default function Histogram({
   };
 
   const chartData: ChartData<'bar'> = {
-    labels: data.map(d => d.label), // X-axis uses bin labels
+    labels: data.map(d => d.label), 
     datasets: [{
       label: "Probability", 
-      data: data.map(entry => entry.probability), // Y-axis shows probability
+      data: data.map(entry => entry.probability), 
       backgroundColor: `hsl(var(--primary))`,
       borderColor: `hsl(var(--primary-foreground))`,
       borderWidth: 1,
@@ -83,16 +81,16 @@ export default function Histogram({
     if (meanBinIndex !== -1) {
       annotationsConfig.meanLine = {
         type: 'line',
-        scaleID: 'x', // Vertical line on X-axis (categorical)
-        value: meanBinIndex, // Index of the bin
-        borderColor: 'red', 
+        scaleID: 'x', 
+        value: meanBinIndex, 
+        borderColor: `hsl(var(--destructive))`, 
         borderWidth: 2,
         label: {
           enabled: true,
           content: `Mean: ${formatNumberForLabel(meanValue)}`,
           position: 'top',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          color: 'red',
+          backgroundColor: 'hsla(var(--card), 0.8)',
+          color: `hsl(var(--destructive-foreground))`,
           font: { weight: 'bold' },
           yAdjust: -5,
         }
@@ -107,15 +105,15 @@ export default function Histogram({
         type: 'line',
         scaleID: 'x',
         value: medianBinIndex,
-        borderColor: 'blue',
+        borderColor: `hsl(var(--chart-2))`, // Using a chart-specific color
         borderWidth: 2,
         borderDash: [6, 6],
         label: {
           enabled: true,
           content: `Median: ${formatNumberForLabel(medianValue)}`,
           position: 'bottom',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          color: 'blue',
+          backgroundColor: 'hsla(var(--card), 0.8)',
+          color: `hsl(var(--chart-2))`,
           font: { weight: 'bold' },
           yAdjust: 5,
         }
@@ -125,9 +123,10 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    const sigmaColors = ['#D3D3D3', '#A9A9A9', '#808080', '#808080', '#A9A9A9', '#D3D3D3']; // Shades of gray
+    // Use a muted foreground for sigma lines, or define specific chart sigma colors
+    const sigmaLineColor = `hsl(var(--muted-foreground))`;
 
-    sigmas.forEach((s, index) => {
+    sigmas.forEach((s) => {
       const sigmaVal = meanValue + s * stdDevValue;
       const sigmaBinIndex = findBinIndexForValue(sigmaVal, data);
       if (sigmaBinIndex !== -1) {
@@ -135,15 +134,15 @@ export default function Histogram({
           type: 'line',
           scaleID: 'x',
           value: sigmaBinIndex,
-          borderColor: sigmaColors[index],
+          borderColor: sigmaLineColor,
           borderWidth: 1,
           borderDash: [2, 2],
           label: {
             enabled: true,
             content: `${s > 0 ? '+' : ''}${s}σ`,
             position: s < 0 ? 'start' : 'end',
-            backgroundColor: 'rgba(255,255,255,0.7)',
-            color: sigmaColors[index],
+            backgroundColor: 'hsla(var(--card), 0.7)',
+            color: sigmaLineColor,
             font: { size: 10, weight: 'normal' },
             rotation: s < 0 ? -90 : 90,
             yAdjust: s < 0 ? -10 : 10,
@@ -159,7 +158,7 @@ export default function Histogram({
     maintainAspectRatio: false,
     scales: {
       x: { 
-        type: 'category', // X-axis is categorical (bin labels)
+        type: 'category', 
         title: {
           display: true,
           text: 'Value Bins',
@@ -167,7 +166,7 @@ export default function Histogram({
         },
         grid: {
           color: `hsl(var(--border))`,
-          display: false, // Often cleaner for histograms
+          display: false, 
         },
         ticks: {
           color: `hsl(var(--foreground))`,
@@ -178,7 +177,7 @@ export default function Histogram({
         },
       },
       y: { 
-        type: 'linear', // Y-axis is linear (probability)
+        type: 'linear', 
         beginAtZero: true,
         title: {
           display: true,
@@ -203,7 +202,7 @@ export default function Histogram({
       annotation: {
         annotations: annotationsConfig,
         drawTime: 'afterDatasetsDraw' 
-      } as AnnotationPluginOptions, // Cast to satisfy stricter type
+      } as AnnotationPluginOptions, 
       tooltip: {
         mode: 'index' as const,
         intersect: false,
@@ -252,3 +251,4 @@ export default function Histogram({
     </div>
   );
 }
+
