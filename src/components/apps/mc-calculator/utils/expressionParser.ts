@@ -7,24 +7,23 @@ export interface ProcessedExpression {
   error?: string | null;
 }
 
-function applyCommonSubstitutions(expr: string): string {
-  let processedExpr = expr.replace(/,/g, ''); // 1. Remove all commas
+export interface ExtractedRangeInfo {
+  placeholder: string;
+  minVal: number;
+  maxVal: number;
+}
 
-  // 2. Normalize incomplete percentage ranges: (N1 op N2%) -> (N1% op N2%)
-  // This targets " ( N1 op N2% ) " where N1 is NOT already a percentage.
-  // Example: (10 - 20%) becomes (10% - 20%), (10 ~ 20%) becomes (10% ~ 20%)
+
+function applyCommonSubstitutions(expr: string): string {
+  let processedExpr = expr.replace(/,/g, ''); 
+
   const incompletePercentRangePattern = /\(\s*(-?\d+(?:\.\d+)?(?!\s*%))\s*([~-])\s*(-?\d+(?:\.\d+)?)%\s*\)/g;
   processedExpr = processedExpr.replace(incompletePercentRangePattern, (_match, n1, operator, n2) => {
     return `(${n1}% ${operator} ${n2}%)`;
   });
-
-  // 3. Handle Number (P1% - P2%) and Number (P1% ~ P2%) to Number * ( (1+P1/100) ~ (1+P2/100) )
-  // This pattern signifies applying a percentage range (as growth/shrinkage) to a preceding number.
-  // Example: 500 (10% ~ 20%) becomes 500 * (1.1~1.2)
-  // Example: 500 (10% - 20%) also becomes 500 * (1.1~1.2) after step 2 makes it 500 (10% - 20%)
+  
   const numPercentRangePattern = /\b(-?\d+(?:\.\d+)?)\s*\(\s*(-?\d+(?:\.\d+)?)%\s*(~|-)\s*(-?\d+(?:\.\d+)?)%\s*\)/g;
   processedExpr = processedExpr.replace(numPercentRangePattern, (match, numStr, p1Str, _operatorSymbol, p2Str) => {
-    // _operatorSymbol is captured but the output for the numeric range factor always uses '~'.
     try {
       const num = parseFloat(numStr);
       const p1 = parseFloat(p1Str);
@@ -33,7 +32,6 @@ function applyCommonSubstitutions(expr: string): string {
         console.warn(`[expressionParser] Invalid number in Number (P% [~|-] P%) pattern: "${match}"`);
         return match; 
       }
-      // These represent factors, e.g., 10% becomes 1.1, -10% becomes 0.9
       const val1 = 1 + p1 / 100;
       const val2 = 1 + p2 / 100;
       return `${num} * (${Math.min(val1, val2)}~${Math.max(val1, val2)})`;
@@ -42,13 +40,9 @@ function applyCommonSubstitutions(expr: string): string {
       return match;
     }
   });
-  
-  // 4. General P1% - P2% to P1% ~ P2% (if not already part of the above patterns)
-  // This handles standalone percentage ranges.
-  // Example: 10% - 20% becomes 10% ~ 20%
+    
   processedExpr = processedExpr.replace(/(-?\d+(?:\.\d+)?)%\s*-\s*(-?\d+(?:\.\d+)?)%/g, '$1% ~ $2%');
-
-  // 5. Standard substitutions
+  
   processedExpr = processedExpr.replace(/x|X/gi, '*');
   processedExpr = processedExpr.replace(/(\d(?:\.\d+)?)\s*\(/g, '$1*('); 
   processedExpr = processedExpr.replace(/\)\s*\(/g, ')*('); 
@@ -58,47 +52,60 @@ function applyCommonSubstitutions(expr: string): string {
   return processedExpr;
 }
 
-export function buildMinMaxExpressions(rawUserExpr: string): { minExpr: string, maxExpr: string } {
+
+export function substituteRangesWithPlaceholders(
+  rawUserExpr: string
+): { commonSubstitutedExpr: string, exprWithPlaceholders: string; ranges: ExtractedRangeInfo[], error?: string | null } {
   const commonSubstitutedExpr = applyCommonSubstitutions(rawUserExpr);
-  
+  const ranges: ExtractedRangeInfo[] = [];
+  let placeholderIndex = 0;
+  let substitutionError: string | null = null;
+
   const rangeRegex = /(-?\d+(?:\.\d+)?)(%)?\s*~\s*(-?\d+(?:\.\d+)?)(%)?/g;
 
-  let minReplaced = commonSubstitutedExpr.replace(rangeRegex, (match, minPart, minPercent, _maxPart, _maxPercent) => {
+  const exprWithPlaceholders = commonSubstitutedExpr.replace(rangeRegex, (match, minPart, minPercent, maxPart, maxPercent) => {
+    const placeholder = `__RANGE_${placeholderIndex++}__`;
     let numMin = parseFloat(minPart);
-    if (isNaN(numMin)) {
-      console.warn(`[expressionParser] Invalid min value in range for minExpr: "${match}" -> "${minPart}"`);
-      return "NaN"; 
-    }
-    if (minPercent) numMin /= 100;
-    return String(numMin);
-  });
-
-  let maxReplaced = commonSubstitutedExpr.replace(rangeRegex, (match, _minPart, _minPercent, maxPart, maxPercent) => {
     let numMax = parseFloat(maxPart);
-    if (isNaN(numMax)) {
-      console.warn(`[expressionParser] Invalid max value in range for maxExpr: "${match}" -> "${maxPart}"`);
-      return "NaN";
-    }
-    if (maxPercent) numMax /= 100;
-    return String(numMax);
-  });
-  
-  const percentGlobalRegex = /(-?\d+(?:\.\d+)?)%/g;
-  minReplaced = minReplaced.replace(percentGlobalRegex, '($1/100)');
-  maxReplaced = maxReplaced.replace(percentGlobalRegex, '($1/100)');
 
-  return {
-    minExpr: minReplaced,
-    maxExpr: maxReplaced,
-  };
+    if (isNaN(numMin) || isNaN(numMax)) {
+        const errMsg = `Invalid numeric value in range: "${match}" (parsed as min: ${minPart}, max: ${maxPart}).`;
+        if (!substitutionError) substitutionError = errMsg;
+        console.warn(`[expressionParser] ${errMsg}`);
+        // Push NaN to keep array length consistent, error will be handled upstream
+        ranges.push({ placeholder, minVal: NaN, maxVal: NaN }); 
+        return placeholder; // Still return placeholder to avoid breaking expression structure
+    }
+    
+    if (minPercent) numMin /= 100;
+    if (maxPercent) numMax /= 100;
+    
+    if (numMin > numMax) {
+      console.warn(`[expressionParser] Min was greater than Max in range "${match}". Swapped to ${numMax}~${numMin}.`);
+      [numMin, numMax] = [numMax, numMin]; 
+    }
+
+    ranges.push({
+      placeholder,
+      minVal: numMin,
+      maxVal: numMax,
+    });
+    return placeholder;
+  });
+
+  // Math.js handles standalone percentages like '10%' automatically.
+  // So, no need for global percentage replacement for analytical part if math.js handles it.
+
+  return { commonSubstitutedExpr, exprWithPlaceholders, ranges, error: substitutionError };
 }
+
 
 export function preprocessForMonteCarlo(rawUserExpr: string): ProcessedExpression {
   console.log('[expressionParser] Raw input expression for Monte Carlo:', JSON.stringify(rawUserExpr));
   
   let error: string | null = null;
   let commonSubstitutedExpr = applyCommonSubstitutions(rawUserExpr);
-  console.log('[expressionParser] Expression after common substitutions:', JSON.stringify(commonSubstitutedExpr));
+  console.log('[expressionParser] Expression after common substitutions for MC:', JSON.stringify(commonSubstitutedExpr));
 
   const rangePattern = /(-?\d+(?:\.\d+)?)(%)?\s*~\s*(-?\d+(?:\.\d+)?)(%)?/g;
   let isProbabilistic = false;
@@ -109,7 +116,7 @@ export function preprocessForMonteCarlo(rawUserExpr: string): ProcessedExpressio
     let numMax = parseFloat(maxPart);
 
     if (isNaN(numMin) || isNaN(numMax)) {
-      const errMsg = `Invalid numeric value in range: "${match}" (parsed as min: ${minPart}, max: ${maxPart}).`;
+      const errMsg = `Invalid numeric value in range for MC: "${match}" (parsed as min: ${minPart}, max: ${maxPart}).`;
       if (!error) error = errMsg; 
       console.warn(`[expressionParser] ${errMsg}`);
       return "sample(range(NaN, NaN))"; 
@@ -119,15 +126,24 @@ export function preprocessForMonteCarlo(rawUserExpr: string): ProcessedExpressio
     if (maxPercent) numMax /= 100;
     
     if (numMin > numMax) {
-      [numMin, numMax] = [numMax, numMin];
-      console.warn(`[expressionParser] Min was greater than Max in range "${match}". Swapped to ${numMin}~${numMax}.`);
+      // For Monte Carlo, swapping is fine and usually desired if user mistyped.
+      // For analytical, we also swapped above when creating ExtractedRangeInfo.
+      console.warn(`[expressionParser] Min was greater than Max in MC range "${match}". Swapped to ${numMin}~${numMax}.`);
+       [numMin, numMax] = [numMax, numMin];
     }
     return `sample(range(${numMin}, ${numMax}))`;
   });
 
+  // This ensures standalone percentages like "50 + 10%" become "50 + (10/100)" for MC simulation
+  // if math.js custom functions `sample` and `range` don't inherently process the '%'
+  // However, math.evaluate itself handles '%' fine, so this might only be needed if the expression
+  // passed to `math.compile` for simulation *must* have percentages pre-converted.
+  // Given math.js evaluates '10%' to 0.1, this step is likely redundant if the expression is evaluated directly.
+  // But since simulation uses compiled expressions, it's safer to pre-convert.
   const percentGlobalRegex = /(-?\d+(?:\.\d+)?)%/g;
-  mcProcessedExpr = mcProcessedExpr.replace(percentGlobalRegex, '($1/100)');
+  mcProcessedExpr = mcProcessedExpr.replace(percentGlobalRegex, (_match, val) => `(${val}/100)`);
   
+  // Re-check if probabilistic after all transformations
   isProbabilistic = mcProcessedExpr.includes('sample(range(');
 
   console.log('[expressionParser] Final Monte Carlo preprocessed expression:', JSON.stringify(mcProcessedExpr));
@@ -139,4 +155,3 @@ export function preprocessForMonteCarlo(rawUserExpr: string): ProcessedExpressio
     error, 
   };
 }
-

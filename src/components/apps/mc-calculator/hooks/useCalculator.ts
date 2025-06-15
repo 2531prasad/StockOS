@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { preprocessForMonteCarlo, buildMinMaxExpressions, type ProcessedExpression } from "../utils/expressionParser";
+import { substituteRangesWithPlaceholders, preprocessForMonteCarlo, type ProcessedExpression, type ExtractedRangeInfo } from "../utils/expressionParser";
 import { runSimulation, evaluateDeterministic } from "../utils/monteCarlo";
 import { getPercentile, getHistogram, getStandardDeviation, getMean, type HistogramDataEntry as StatsHistogramDataEntry } from "../utils/stats";
 
@@ -23,7 +23,7 @@ export interface CalculatorResults {
   expressionUsed: string;
   analyticalMin: number;
   analyticalMax: number;
-  analyticalError: string | null; // Specific error/note for analytical range calculation
+  analyticalError: string | null; 
 }
 
 const defaultInitialResults: CalculatorResults = {
@@ -46,6 +46,8 @@ const defaultInitialResults: CalculatorResults = {
   analyticalError: null,
 };
 
+const MAX_ANALYTICAL_COMBINATIONS = 8; // 2^8 = 256 evaluations
+
 export function useCalculator(submittedExpression: string, iterations: number = 10000, histogramBinCount: number = 23): CalculatorResults {
   const [data, setData] = useState<CalculatorResults>(defaultInitialResults);
   const [isClient, setIsClient] = useState(false);
@@ -56,15 +58,18 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
   useEffect(() => {
     if (!isClient) {
-      setData(prevData => JSON.stringify(prevData) !== JSON.stringify(defaultInitialResults) ? defaultInitialResults : prevData);
+      if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
+        setData(defaultInitialResults);
+      }
       return;
     }
     
     if (!submittedExpression) {
-        setData(prevData => JSON.stringify(prevData) !== JSON.stringify(defaultInitialResults) ? defaultInitialResults : prevData);
+        if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
+          setData(defaultInitialResults);
+        }
         return;
     }
-
 
     let currentResults: number[] = [];
     let generalError: string | null = null;
@@ -75,43 +80,103 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     let currentAnalyticalMax: number = NaN;
     let currentAnalyticalError: string | null = null;
 
-    let valForMinInputs: number = NaN;
-    let valForMaxInputs: number = NaN;
-    let minExprEvalError: string | null = null;
-    let maxExprEvalError: string | null = null;
-
     try {
       // --- Analytical Min/Max Calculation ---
-      const { minExpr, maxExpr } = buildMinMaxExpressions(submittedExpression);
+      const { commonSubstitutedExpr, exprWithPlaceholders, ranges, error: substitutionError } = substituteRangesWithPlaceholders(submittedExpression);
       
-      const evalMinResult = evaluateDeterministic(minExpr);
-      if (typeof evalMinResult === 'string') {
-        minExprEvalError = `Min-expression (${minExpr}) evaluation error: ${evalMinResult}`;
-      } else if (isNaN(evalMinResult) || !isFinite(evalMinResult)) {
-        minExprEvalError = `Min-expression (${minExpr}) resulted in non-finite value: ${evalMinResult}.`;
-      } else {
-        valForMinInputs = evalMinResult;
+      if (substitutionError) {
+        currentAnalyticalError = `Error parsing ranges for analytical calculation: ${substitutionError}`;
       }
 
-      const evalMaxResult = evaluateDeterministic(maxExpr);
-      if (typeof evalMaxResult === 'string') {
-        maxExprEvalError = `Max-expression (${maxExpr}) evaluation error: ${evalMaxResult}`;
-      } else if (isNaN(evalMaxResult) || !isFinite(evalMaxResult)) {
-         maxExprEvalError = `Max-expression (${maxExpr}) resulted in non-finite value: ${evalMaxResult}.`;
-      } else {
-        valForMaxInputs = evalMaxResult;
-      }
+      const numRanges = ranges.length;
 
-      if (minExprEvalError || maxExprEvalError) {
-        currentAnalyticalError = [minExprEvalError, maxExprEvalError].filter(Boolean).join('. ');
-      } else if (!isNaN(valForMinInputs) && !isNaN(valForMaxInputs)) { // Ensure both are valid numbers before comparison
-        if (valForMinInputs > valForMaxInputs) {
-          currentAnalyticalError = "Note: The expression's structure causes the 'all-min-inputs' case to yield a higher value than the 'all-max-inputs' case (e.g., due to subtraction or division by a range). The displayed analytical range reflects the true overall minimum and maximum possible outcomes.";
+      if (!currentAnalyticalError) { // Proceed if no initial parsing error
+        if (numRanges === 0) { // Deterministic case for analytical
+          const evalResult = evaluateDeterministic(commonSubstitutedExpr); // Use commonSubstitutedExpr
+          if (typeof evalResult === 'number' && isFinite(evalResult)) {
+            currentAnalyticalMin = evalResult;
+            currentAnalyticalMax = evalResult;
+          } else if (typeof evalResult === 'string') {
+            currentAnalyticalError = `Analytical evaluation error: ${evalResult}`;
+          } else {
+            currentAnalyticalError = `Analytical evaluation resulted in non-finite value: ${evalResult}.`;
+          }
+        } else if (numRanges > 0 && numRanges <= MAX_ANALYTICAL_COMBINATIONS) {
+          const analyticalResults: number[] = [];
+          const numCombinations = 1 << numRanges; // 2^numRanges
+
+          for (let i = 0; i < numCombinations; i++) {
+            let tempExpr = exprWithPlaceholders;
+            let combinationHasNaNRange = false;
+            for (let j = 0; j < numRanges; j++) {
+              if (isNaN(ranges[j].minVal) || isNaN(ranges[j].maxVal)) {
+                combinationHasNaNRange = true;
+                break; 
+              }
+              const valToSub = (i >> j) & 1 ? ranges[j].maxVal : ranges[j].minVal;
+              tempExpr = tempExpr.replace(ranges[j].placeholder, String(valToSub));
+            }
+
+            if (combinationHasNaNRange) {
+                 analyticalResults.push(NaN); // Propagate error from range parsing
+                 console.warn(`[useCalculator] Skipping analytical combination due to NaN in range definition for: ${exprWithPlaceholders}`);
+                 continue;
+            }
+
+            const evalResult = evaluateDeterministic(tempExpr);
+            if (typeof evalResult === 'number') {
+              analyticalResults.push(evalResult);
+            } else {
+              analyticalResults.push(NaN); // Error or non-finite from this specific combination
+              console.warn(`[useCalculator] Analytical combination "${tempExpr}" resulted in error/NaN: ${evalResult}`);
+            }
+          }
+          
+          const validAnalyticalResults = analyticalResults.filter(r => !isNaN(r) && isFinite(r));
+          if (validAnalyticalResults.length > 0) {
+            currentAnalyticalMin = validAnalyticalResults.reduce((min, val) => Math.min(min, val), Infinity);
+            currentAnalyticalMax = validAnalyticalResults.reduce((max, val) => Math.max(max, val), -Infinity);
+          } else {
+            currentAnalyticalError = (currentAnalyticalError ? currentAnalyticalError + ". " : "") + "All analytical combinations resulted in errors or non-finite values.";
+          }
+
+        } else { // numRanges > MAX_ANALYTICAL_COMBINATIONS (fallback to 2-scenario heuristic)
+          currentAnalyticalError = `Note: True analytical range is approximated due to many (${numRanges}) range combinations. `;
+          let minOnlyExpr = exprWithPlaceholders;
+          let maxOnlyExpr = exprWithPlaceholders;
+          let heuristicHasNaNRange = false;
+
+          for (let j = 0; j < numRanges; j++) {
+             if (isNaN(ranges[j].minVal) || isNaN(ranges[j].maxVal)) {
+                heuristicHasNaNRange = true;
+                break; 
+              }
+            minOnlyExpr = minOnlyExpr.replace(ranges[j].placeholder, String(ranges[j].minVal));
+            maxOnlyExpr = maxOnlyExpr.replace(ranges[j].placeholder, String(ranges[j].maxVal));
+          }
+
+          if (heuristicHasNaNRange) {
+            currentAnalyticalError += "Additionally, some range definitions were invalid.";
+            // min/max will remain NaN
+          } else {
+            const evalMinHeuristic = evaluateDeterministic(minOnlyExpr);
+            const evalMaxHeuristic = evaluateDeterministic(maxOnlyExpr);
+
+            const validHeuristicResults: number[] = [];
+            if (typeof evalMinHeuristic === 'number' && isFinite(evalMinHeuristic)) validHeuristicResults.push(evalMinHeuristic);
+            if (typeof evalMaxHeuristic === 'number' && isFinite(evalMaxHeuristic)) validHeuristicResults.push(evalMaxHeuristic);
+            
+            if (validHeuristicResults.length > 0) {
+                 currentAnalyticalMin = validHeuristicResults.reduce((min, val) => Math.min(min, val), Infinity);
+                 currentAnalyticalMax = validHeuristicResults.reduce((max, val) => Math.max(max, val), -Infinity);
+                  if ( (typeof evalMinHeuristic !== 'number' || !isFinite(evalMinHeuristic) ) || (typeof evalMaxHeuristic !== 'number' || !isFinite(evalMaxHeuristic) ) ) {
+                     currentAnalyticalError += "Some heuristic evaluations failed. ";
+                  }
+            } else {
+                 currentAnalyticalError += "Both heuristic evaluations (all-min, all-max) failed or yielded non-finite results.";
+            }
+          }
         }
-        currentAnalyticalMin = Math.min(valForMinInputs, valForMaxInputs);
-        currentAnalyticalMax = Math.max(valForMinInputs, valForMaxInputs);
-      } else {
-        currentAnalyticalError = (currentAnalyticalError || "") + " Could not determine analytical range due to non-finite results from min/max expressions.";
       }
 
 
@@ -119,30 +184,36 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       processedMonteCarloData = preprocessForMonteCarlo(submittedExpression);
 
       if (processedMonteCarloData.error) {
-        generalError = processedMonteCarloData.error;
-      } else {
+        generalError = (generalError ? generalError + ". " : "") + processedMonteCarloData.error;
+      }
+      
+      if (!generalError && processedMonteCarloData.expression) {
         isDeterministicCalculation = !processedMonteCarloData.isProbabilistic;
 
         if (isDeterministicCalculation) {
-            const evalResult = evaluateDeterministic(processedMonteCarloData.expression);
+            // Use commonSubstitutedExpr for deterministic MC as well, since it's already processed for evaluation
+            const evalResult = evaluateDeterministic(commonSubstitutedExpr); 
             if (typeof evalResult === 'number' && isFinite(evalResult)) {
               currentResults = [evalResult];
             } else if (typeof evalResult === 'number' && !isFinite(evalResult) ) {
-              generalError = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
+              generalError = (generalError ? generalError + ". " : "") + `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
               currentResults = [NaN];
             } else if (typeof evalResult === 'string') {
-              generalError = evalResult; // Error message from evaluateDeterministic
+              generalError = (generalError ? generalError + ". " : "") + evalResult;
               currentResults = [NaN];
             }
         } else {
             currentResults = runSimulation(processedMonteCarloData.expression, iterations);
         }
+      } else if (!processedMonteCarloData.expression && !generalError) {
+         generalError = "Failed to prepare expression for Monte Carlo simulation.";
       }
+
 
       if (!generalError && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
-               generalError = `Simulation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
+               generalError = (generalError ? generalError + ". " : "") + `Simulation resulted in errors for all ${iterations} iterations. Check ranges and expression validity.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
              console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations were filtered out before statistical analysis.`);
           }
@@ -151,11 +222,11 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       const validResultsForStats = currentResults.filter(r => !isNaN(r) && isFinite(r));
 
       if (!generalError && validResultsForStats.length === 0 && submittedExpression && (iterations > 0 || isDeterministicCalculation) && !processedMonteCarloData?.error) {
-          generalError = `No valid numerical results obtained from simulation. Expression: "${submittedExpression}". Please check ranges and operators.`;
+          generalError = (generalError ? generalError + ". " : "") + `No valid numerical results obtained from simulation. Expression: "${submittedExpression}".`;
       }
 
     } catch (e: any) {
-      generalError = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
+      generalError = (generalError ? generalError + ". " : "") + `Calculation setup error: ${e.message || "Unknown error"}`;
       currentResults = []; 
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
@@ -169,7 +240,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     const calculatedP50 = getPercentile(finalValidResults, 50);
 
     setData({
-      results: finalValidResults.length > 0 ? finalValidResults : (processedMonteCarloData?.error || generalError) ? [NaN] : [],
+      results: finalValidResults.length > 0 ? finalValidResults : (processedMonteCarloData?.error || generalError || substitutionError) ? [NaN] : [],
       min: calculatedSimMin,
       max: calculatedSimMax,
       mean: calculatedMean,
@@ -188,7 +259,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       analyticalError: currentAnalyticalError,
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient]); // Removed `data` from dependency array
+  }, [submittedExpression, iterations, histogramBinCount, isClient]);
 
   return data;
 }
