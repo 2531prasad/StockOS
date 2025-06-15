@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -17,15 +18,20 @@ export default function FloatCalcPage() {
 
   const { toast } = useToast();
 
-  const [position, setPosition] = useState(() => {
-    if (typeof window !== "undefined") {
-      return { x: window.innerWidth / 2 - 160, y: window.innerHeight / 2 - 250 }; // Center roughly
-    }
-    return { x: 100, y: 100 };
-  });
+  // Initialize with a default position for server-side rendering and initial client render
+  const [position, setPosition] = useState({ x: 100, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const calculatorRef = useRef<HTMLDivElement>(null);
+
+  // Effect to set the initial position on the client-side after hydration
+  useEffect(() => {
+    setPosition({
+      x: window.innerWidth / 2 - 160, // Center roughly
+      y: window.innerHeight / 2 - 250,
+    });
+  }, []); // Empty dependency array ensures this runs once on mount (client-side)
+
 
   const formatDisplayValue = (value: string | number | null): string => {
     if (value === null) return "0";
@@ -92,7 +98,7 @@ export default function FloatCalcPage() {
     setOperation(null);
     setPreviousOperand(null);
     setOverwrite(true);
-  }, [operation, previousOperand, currentOperand, errorState]);
+  }, [operation, previousOperand, currentOperand, errorState, performCalculation]);
 
 
   const chooseOperation = useCallback((op: string) => {
@@ -118,7 +124,7 @@ export default function FloatCalcPage() {
     setOperation(op);
     setOverwrite(true);
     setErrorState(null);
-  }, [currentOperand, previousOperand, operation, errorState, clear, overwrite]);
+  }, [currentOperand, previousOperand, operation, errorState, clear, overwrite, performCalculation]);
 
 
   const appendDigit = useCallback((digit: string) => {
@@ -161,7 +167,6 @@ export default function FloatCalcPage() {
     } else if (event.key === 'Escape' || event.key.toLowerCase() === 'c') {
       clear();
     } else if (event.key === 'Backspace') {
-      // Optional: implement backspace
       if (errorState) {
         clear();
       } else if (!overwrite && currentOperand.length > 0) {
@@ -187,7 +192,6 @@ export default function FloatCalcPage() {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     };
-    // Prevent text selection while dragging
     e.preventDefault();
   };
 
@@ -216,9 +220,7 @@ export default function FloatCalcPage() {
   }, [isDragging]);
   
   useEffect(() => {
-    // This effect handles displaying errors from external sources if needed,
-    // or reacting to internal error states for more complex UI.
-    if (errorState && errorState !== "Div by Zero" && errorState !== "Error") { // "Div by Zero" and "Error" are displayed directly
+    if (errorState && errorState !== "Div by Zero" && errorState !== "Error") {
       toast({
         title: "Calculator Error",
         description: errorState,
@@ -236,8 +238,8 @@ export default function FloatCalcPage() {
         style={{ 
           top: position.y, 
           left: position.x, 
-          cursor: isDragging ? 'grabbing' : 'default', // Default cursor for card, grab for header
-          touchAction: 'none' // Prevent page scroll on touch devices while dragging
+          cursor: isDragging ? 'grabbing' : 'default',
+          touchAction: 'none'
         }}
         role="dialog"
         aria-modal="true"
@@ -248,7 +250,7 @@ export default function FloatCalcPage() {
           style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
           onMouseDown={onMouseDownDraggable}
           aria-roledescription="Draggable calculator header. Press and hold to move."
-          tabIndex={0} // Make it focusable for accessibility
+          tabIndex={0}
         >
           <h2 className="text-sm font-semibold text-muted-foreground select-none">FloatCalc</h2>
           <MoveIcon className="w-4 h-4 text-muted-foreground select-none" aria-hidden="true" />
@@ -264,7 +266,6 @@ export default function FloatCalcPage() {
           />
         </CardContent>
       </Card>
-       {/* Instruction Text */}
        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-card/80 rounded-md shadow-md text-center text-sm text-foreground/80">
         <p className="font-semibold">Welcome to FloatCalc!</p>
         <p>Drag the title bar to move. Use your keyboard or click buttons.</p>
