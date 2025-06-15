@@ -45,18 +45,21 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
   useEffect(() => {
     setIsClient(true);
-    if (!submittedExpression) {
-        setData(defaultInitialResults); 
-    }
+    // Removed initial calculation on load
+    // if (!submittedExpression) {
+    //     setData(defaultInitialResults); 
+    // }
   }, []);
 
 
   useEffect(() => {
-    if (!isClient) { 
-      return;
-    }
-    if (!submittedExpression) {
-      setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed})); 
+    if (!isClient || !submittedExpression) { 
+      // If not client-side or no expression submitted, do nothing or reset to default (excluding expressionUsed)
+      if (!submittedExpression && data.expressionUsed) { // only reset if there's no expression and we had results before
+         setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed}));
+      } else if (!submittedExpression) {
+        setData(defaultInitialResults);
+      }
       return;
     }
 
@@ -64,37 +67,42 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     let error: string | null = null;
     let isDeterministicCalculation = false;
     let processedData: ProcessedExpression | null = null;
-    let finalExpressionForMathJS = "";
+    
 
     try {
       processedData = preprocessExpression(submittedExpression);
-      finalExpressionForMathJS = processedData.expression;
-      isDeterministicCalculation = !processedData.isProbabilistic;
+      
+      if (processedData.error) {
+        error = processedData.error;
+      } else {
+        isDeterministicCalculation = !processedData.isProbabilistic;
 
-
-      if (isDeterministicCalculation) {
-          const evalResult = evaluateDeterministic(finalExpressionForMathJS);
-          if (typeof evalResult === 'number') {
-            currentResults = [evalResult];
-          } else { 
-            error = evalResult; 
-            currentResults = [NaN]; 
-          }
-      } else { 
-          currentResults = runSimulation(finalExpressionForMathJS, iterations);
+        if (isDeterministicCalculation) {
+            const evalResult = evaluateDeterministic(processedData.expression);
+            if (typeof evalResult === 'number') {
+              currentResults = [evalResult];
+            } else { 
+              error = evalResult; 
+              currentResults = [NaN]; 
+            }
+        } else { 
+            currentResults = runSimulation(processedData.expression, iterations);
+        }
       }
+
 
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
                error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
+            // Partial errors occurred, this is handled by filtering NaNs later
           }
       }
       
       const validResultsForStats = currentResults.filter(r => !isNaN(r));
 
-      if (!error && validResultsForStats.length === 0 && submittedExpression && iterations > 0 && !isDeterministicCalculation) {
+      if (!error && validResultsForStats.length === 0 && submittedExpression && iterations > 0 && !isDeterministicCalculation && !processedData?.error) {
           error = `No valid results from simulation after ${iterations} iterations. All iterations may have led to errors. Check browser console for details.`;
       }
 
@@ -109,9 +117,9 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
 
     setData({
-      results: currentResults.length > 0 ? currentResults : [NaN], 
-      min: finalValidResults.length > 0 ? Math.min(...finalValidResults) : NaN,
-      max: finalValidResults.length > 0 ? Math.max(...finalValidResults) : NaN,
+      results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [], 
+      min: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.min(a, b), Infinity) : NaN,
+      max: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN,
       mean: getMean(finalValidResults),
       stdDev: getStandardDeviation(finalValidResults),
       p5: getPercentile(finalValidResults, 5),
@@ -125,7 +133,8 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       expressionUsed: submittedExpression 
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient]); 
+  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); // Added data.expressionUsed
 
   return data;
 }
+
