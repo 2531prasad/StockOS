@@ -20,7 +20,7 @@ import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
 export interface HistogramEntry {
-  label: string; // e.g., "100.0-110.0" OR now the binCenter string
+  label: string; 
   probability: number;
   lowerBound: number;
   upperBound: number;
@@ -81,12 +81,11 @@ export default function Histogram({
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 80%)'; 
     const sigmaCategory = data[index]?.sigmaCategory;
     
-    // DIAGNOSTIC: Using hardcoded comma-separated HSL values
     switch (sigmaCategory) {
-      case '1': return 'hsl(180, 70%, 50%)'; // Cyan-like (e.g., theme's --sigma-1-bg)
-      case '2': return 'hsl(120, 60%, 50%)'; // Green-like (e.g., theme's --sigma-2-bg)
-      case '3': return 'hsl(55, 85%, 50%)';  // Yellow-like (e.g., theme's --sigma-3-bg)
-      default: return 'hsl(0, 0%, 88%)';    // Light Gray for 'other' (e.g., theme's --sigma-other-bg)
+      case '1': return 'hsl(180, 70%, 50%)'; 
+      case '2': return 'hsl(120, 60%, 50%)'; 
+      case '3': return 'hsl(55, 85%, 50%)';  
+      default: return 'hsl(0, 0%, 88%)';    
     }
   };
 
@@ -95,7 +94,6 @@ export default function Histogram({
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 70%)';
     const sigmaCategory = data[index]?.sigmaCategory;
 
-    // DIAGNOSTIC: Using hardcoded comma-separated HSL values
     switch (sigmaCategory) {
       case '1': return 'hsl(180, 70%, 40%)';
       case '2': return 'hsl(120, 60%, 40%)';
@@ -112,15 +110,12 @@ export default function Histogram({
       backgroundColor: getBarColor, 
       borderColor: getBorderColor, 
       borderWidth: 1,
-      barThickness: 20, // Added to make bars thinner
-      // barPercentage: 1.0, // barThickness overrides this
-      // categoryPercentage: 1.0, // barThickness overrides this
+      barThickness: 20, 
     }]
   };
 
   const annotationsConfig: Record<string, AnnotationOptions> = {};
 
-  // DIAGNOSTIC: Using hardcoded simple colors for annotations
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
     const meanBinIndex = findBinIndexForValue(meanValue, data);
     if (meanBinIndex !== -1) {
@@ -168,7 +163,7 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    const sigmaLineColors = ['#A9A9A9', '#808080', '#D3D3D3', '#D3D3D3', '#808080', '#A9A9A9']; // DarkGrey, Grey, LightGrey repeated
+    const sigmaLineColors = ['#A9A9A9', '#808080', '#D3D3D3', '#D3D3D3', '#808080', '#A9A9A9']; 
 
     sigmas.forEach((s, idx) => {
       const sigmaVal = meanValue + s * stdDevValue;
@@ -203,6 +198,7 @@ export default function Histogram({
     scales: {
       x: {
         type: 'category', 
+        grouped: true, // Explicitly set grouped to true
         title: {
           display: true,
           text: 'Value Bins (Center)',
