@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCalculator, type CalculatorResults } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
 import { Input } from "@/components/ui/input";
@@ -12,16 +12,21 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [submittedExpression, setSubmittedExpression] = useState(""); // Initialize as empty
+  const [submittedExpression, setSubmittedExpression] = useState(""); // Initialize as empty for server and client initial render
   const [submittedIterations, setSubmittedIterations] = useState(iterations);
+  const [isClient, setIsClient] = useState(false);
 
-  // Trigger initial calculation if expression is pre-filled, only on client
-  useState(() => {
-    if (typeof window !== 'undefined' && expression) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Effect to trigger initial calculation if expression is pre-filled, only on client after mount
+  useEffect(() => {
+    if (isClient && expression && !submittedExpression) {
       setSubmittedExpression(expression);
+      setSubmittedIterations(iterations);
     }
-    return undefined;
-  });
+  }, [isClient, expression, iterations, submittedExpression]);
   
   const result = useCalculator(submittedExpression, submittedIterations);
   

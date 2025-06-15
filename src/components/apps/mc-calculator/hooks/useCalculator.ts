@@ -13,6 +13,7 @@ export interface CalculatorResults {
   p5: number;
   p10: number;
   p50: number; // Median
+  p90: number; // Added p90 for completeness if desired, align with mc-calculator.tsx
   p95: number;
   histogram: { bin: number; count: number }[];
   error: string | null;
@@ -45,10 +46,12 @@ export function useCalculator(expression: string, iterations: number = 10000): C
   }, []);
 
   useEffect(() => {
-    if (!isClient || !expression) {
-      if (isClient && !expression) {
-        setData(defaultInitialResults);
-      }
+    if (!isClient) { // Only run on client
+      return;
+    }
+    
+    if (!expression) { // If expression is empty, reset to default and don't calculate
+      setData(defaultInitialResults);
       return;
     }
 
@@ -59,18 +62,19 @@ export function useCalculator(expression: string, iterations: number = 10000): C
     try {
       const preprocessed = preprocessExpression(expression);
       
-      if (!expression.includes("~")) {
-          const math = require('mathjs');
+      if (!expression.includes("~")) { // Deterministic calculation
+          const math = require('mathjs'); // Local require to ensure it's only used when needed
           let singleResultValue: number | undefined;
           try {
             const evalResult = math.evaluate(preprocessed);
             if (typeof evalResult === 'number' && isFinite(evalResult)) {
                 singleResultValue = evalResult;
             } else if (typeof evalResult === 'object' && evalResult !== null && evalResult.hasOwnProperty('value') && typeof evalResult.value === 'number' && isFinite(evalResult.value) ) {
+                // Handle cases where mathjs might return an object with a 'value' property (e.g. units)
                 singleResultValue = Number(evalResult.value);
             } else {
                 error = "Invalid expression or non-numeric result.";
-                currentResults = [NaN]; 
+                currentResults = [NaN]; // Set to NaN array to indicate error state
             }
           } catch (e: any) {
             error = e.message || "Invalid deterministic expression.";
@@ -80,33 +84,36 @@ export function useCalculator(expression: string, iterations: number = 10000): C
           if (singleResultValue !== undefined) {
             currentResults = [singleResultValue];
             isDeterministic = true;
-          } else if (!error) { 
+          } else if (!error) { // If no specific error but also no result, provide a generic one.
             error = "Expression could not be resolved to a number.";
             currentResults = [NaN];
           }
-      } else {
+      } else { // Probabilistic calculation
           currentResults = runSimulation(preprocessed, iterations);
           isDeterministic = false;
       }
       
+      // Check for NaN results from simulation or deterministic path
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
-          if (nanCount === currentResults.length) {
+          if (nanCount === currentResults.length) { // All results are NaN
                error = "Calculation resulted in errors for all iterations.";
           }
+          // Filter out NaNs for statistical calculations, but keep error if it exists
           currentResults = currentResults.filter(r => !isNaN(r)); 
       }
 
-      if (!error && currentResults.length === 0) {
+      if (!error && currentResults.length === 0) { // If filtering NaNs left no results
           error = "No valid results from simulation.";
-          currentResults = [NaN]; 
+          currentResults = [NaN]; // Ensure stats functions get at least one NaN
       }
 
     } catch (e: any) {
       error = e.message || "Calculation error";
-      currentResults = [NaN];
+      currentResults = [NaN]; // Ensure stats functions get at least one NaN
     }
     
+    // Ensure there's always an array for stats, even if it's just [NaN] in case of errors
     const finalResults = currentResults.length > 0 ? currentResults : [NaN]; 
 
     setData({
@@ -120,12 +127,12 @@ export function useCalculator(expression: string, iterations: number = 10000): C
       p50: getPercentile(finalResults, 50),
       p90: getPercentile(finalResults, 90),
       p95: getPercentile(finalResults, 95),
-      histogram: getHistogram(finalResults),
+      histogram: getHistogram(finalResults), // getHistogram should also handle empty/NaN data gracefully
       error,
       isDeterministic
     });
 
-  }, [expression, iterations, isClient]);
+  }, [expression, iterations, isClient]); // Rerun when expression, iterations, or isClient status changes
 
   return data;
 }
