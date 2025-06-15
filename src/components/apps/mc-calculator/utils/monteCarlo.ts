@@ -1,66 +1,61 @@
 
 import { create, all, MathJsStatic } from "mathjs";
-// Import the actual Range class, not just the type, because we need to instantiate it.
-import { Range } from "./range";
+import type { PreprocessedExpression } from "./expressionParser"; // Import the interface
+
+// No need for custom Range class or math.import for sample/range here anymore
+// as sampling happens before evaluation.
 
 const math: MathJsStatic = create(all);
 
-math.import({
-  // The 'range' function creates an instance of our custom Range class.
-  range: (min: number, max: number): Range => new Range(min, max),
-  // The 'sample' function takes a Range instance and returns a sampled number.
-  // It's also made robust to handle direct numbers if an expression like sample(5) was manually written,
-  // though current preprocessing focuses on sample(range(min,max)).
-  sample: (r: Range | number): number => {
-    if (r instanceof Range) {
-      return r.sample();
-    }
-    if (typeof r === 'number') { // If sample() is called on a plain number
-      return r;
-    }
-    // This path should ideally not be hit with the current preprocessing logic.
-    throw new Error('Invalid argument for sample function: Expected Range object or number.');
+// Helper to sample a single range
+function sampleRange(min: number, max: number): number {
+  if (min > max) {
+    // This case should ideally be caught earlier or handled,
+    // but as a fallback, return NaN or throw error.
+    // For now, to prevent Math.random issues with inverted ranges:
+    return NaN; 
   }
-}, {
-  override: true // Allows overriding if 'range' or 'sample' were predefined by mathjs (unlikely for these custom names)
-});
+  return Math.random() * (max - min) + min;
+}
 
-export function runSimulation(expr: string, iterations = 10000): number[] {
+export function runSimulation(
+  processedData: PreprocessedExpression,
+  iterations = 10000
+): number[] {
   const results: number[] = [];
-  
-  // Intentionally bypassing math.compile() for now to debug calculation issues.
-  // Evaluating the raw string in each iteration.
-  // let compiled;
-  // try {
-  //   compiled = math.compile(expr);
-  // } catch (error) {
-  //   console.error("Error compiling expression:", error); // Added console log for compilation error
-  //   return Array(iterations).fill(NaN);
-  // }
+  if (!processedData.expression) {
+    return Array(iterations).fill(NaN);
+  }
+
+  let compiled;
+  try {
+    compiled = math.compile(processedData.expression);
+  } catch (error) {
+    console.error("Error compiling expression:", error);
+    return Array(iterations).fill(NaN);
+  }
 
   for (let i = 0; i < iterations; i++) {
-    const scope = {}; 
-    
+    const scope: { [key: string]: number } = {};
+    processedData.ranges.forEach((range, index) => {
+      scope[`VAR${index}`] = sampleRange(range.min, range.max);
+    });
+
     let evaluatedValue;
     try {
-      // Evaluate the raw expression string in each iteration instead of a compiled version
-      evaluatedValue = math.evaluate(expr, scope);
+      evaluatedValue = compiled.evaluate(scope);
       
       if (typeof evaluatedValue === 'object' && evaluatedValue !== null && typeof (evaluatedValue as any).toNumber === 'function') {
         results.push((evaluatedValue as any).toNumber());
-      } else if (typeof evaluatedValue === 'number') {
+      } else if (typeof evaluatedValue === 'number' && isFinite(evaluatedValue)) {
         results.push(evaluatedValue);
       } else {
-        results.push(NaN);
+        results.push(NaN); // Non-finite numbers or unexpected types
       }
     } catch (error) {
-      // This catch handles errors during the evaluation of the expression,
-      // e.g., division by zero if the sampled values lead to it, or other math errors.
-      // console.error("Error evaluating expression in simulation iteration:", error); // Log available if needed
+      // console.error("Error evaluating expression in simulation iteration:", error);
       results.push(NaN); 
     }
   }
-
   return results;
 }
-

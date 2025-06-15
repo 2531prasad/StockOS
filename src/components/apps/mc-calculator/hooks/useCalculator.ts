@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { preprocessExpression } from "../utils/expressionParser";
+import { preprocessExpression, type PreprocessedExpression } from "../utils/expressionParser";
 import { runSimulation } from "../utils/monteCarlo";
 import { getPercentile, getHistogram, getStandardDeviation, getMean } from "../utils/stats";
 
@@ -13,7 +13,7 @@ export interface CalculatorResults {
   p5: number;
   p10: number;
   p50: number; // Median
-  p90: number; // Added p90 for completeness if desired, align with mc-calculator.tsx
+  p90: number; 
   p95: number;
   histogram: { bin: number; count: number }[];
   error: string | null;
@@ -46,11 +46,11 @@ export function useCalculator(expression: string, iterations: number = 10000): C
   }, []);
 
   useEffect(() => {
-    if (!isClient) { // Only run on client
-      return;
+    if (!isClient) { 
+      return; 
     }
     
-    if (!expression) { // If expression is empty, reset to default and don't calculate
+    if (!expression) { 
       setData(defaultInitialResults);
       return;
     }
@@ -60,66 +60,66 @@ export function useCalculator(expression: string, iterations: number = 10000): C
     let isDeterministic = false;
 
     try {
-      const preprocessed = preprocessExpression(expression);
+      const preprocessedData = preprocessExpression(expression);
       
-      if (!expression.includes("~")) { // Deterministic calculation
-          const math = require('mathjs'); // Local require to ensure it's only used when needed
+      if (preprocessedData.ranges.length === 0) { // Deterministic calculation if no ranges found
+          const math = require('mathjs'); // Local require for mathjs
           let singleResultValue: number | undefined;
           try {
-            const evalResult = math.evaluate(preprocessed);
+            // For deterministic, preprocessedData.expression is the original cleaned expression
+            const evalResult = math.evaluate(preprocessedData.expression); 
             if (typeof evalResult === 'number' && isFinite(evalResult)) {
                 singleResultValue = evalResult;
-            } else if (typeof evalResult === 'object' && evalResult !== null && evalResult.hasOwnProperty('value') && typeof evalResult.value === 'number' && isFinite(evalResult.value) ) {
-                // Handle cases where mathjs might return an object with a 'value' property (e.g. units)
-                singleResultValue = Number(evalResult.value);
+            } else if (typeof evalResult === 'object' && evalResult !== null && typeof (evalResult as any).toNumber === 'function') {
+                const numVal = (evalResult as any).toNumber();
+                if (isFinite(numVal)) singleResultValue = numVal;
+                else error = "Deterministic expression resulted in a non-finite number.";
             } else {
-                error = "Invalid expression or non-numeric result.";
-                currentResults = [NaN]; // Set to NaN array to indicate error state
+                error = "Invalid expression or non-numeric result for deterministic calculation.";
             }
           } catch (e: any) {
             error = e.message || "Invalid deterministic expression.";
-            currentResults = [NaN];
           }
 
           if (singleResultValue !== undefined) {
             currentResults = [singleResultValue];
             isDeterministic = true;
-          } else if (!error) { // If no specific error but also no result, provide a generic one.
+          } else if (!error) { 
             error = "Expression could not be resolved to a number.";
-            currentResults = [NaN];
           }
-      } else { // Probabilistic calculation
-          currentResults = runSimulation(preprocessed, iterations);
+          if (error) currentResults = [NaN]; // Ensure error state has NaN array
+
+      } else { // Probabilistic calculation using new runSimulation
+          currentResults = runSimulation(preprocessedData, iterations);
           isDeterministic = false;
       }
       
-      // Check for NaN results from simulation or deterministic path
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
-          if (nanCount === currentResults.length) { // All results are NaN
+          if (nanCount === currentResults.length && currentResults.length > 0) { 
                error = "Calculation resulted in errors for all iterations.";
+          } else if (nanCount > 0) {
+            // Partial errors, might want to inform user or just proceed with valid results
           }
-          // Filter out NaNs for statistical calculations, but keep error if it exists
           currentResults = currentResults.filter(r => !isNaN(r)); 
       }
 
-      if (!error && currentResults.length === 0) { // If filtering NaNs left no results
-          error = "No valid results from simulation.";
-          currentResults = [NaN]; // Ensure stats functions get at least one NaN
+      if (!error && currentResults.length === 0) {
+          error = "No valid results from simulation or calculation.";
+          // currentResults remains empty, stats functions should handle this
       }
 
     } catch (e: any) {
       error = e.message || "Calculation error";
-      currentResults = [NaN]; // Ensure stats functions get at least one NaN
+      currentResults = []; // On critical error, reset results
     }
     
-    // Ensure there's always an array for stats, even if it's just [NaN] in case of errors
-    const finalResults = currentResults.length > 0 ? currentResults : [NaN]; 
+    const finalResults = currentResults.length > 0 ? currentResults : [NaN]; // Ensure stats functions get at least one NaN if empty
 
     setData({
       results: finalResults,
-      min: finalResults.length && finalResults.every(n => !isNaN(n)) ? Math.min(...finalResults) : NaN,
-      max: finalResults.length && finalResults.every(n => !isNaN(n)) ? Math.max(...finalResults) : NaN,
+      min: finalResults.length && finalResults.every(n => !isNaN(n)) && finalResults.length > 0 ? Math.min(...finalResults) : NaN,
+      max: finalResults.length && finalResults.every(n => !isNaN(n)) && finalResults.length > 0 ? Math.max(...finalResults) : NaN,
       mean: getMean(finalResults),
       stdDev: getStandardDeviation(finalResults),
       p5: getPercentile(finalResults, 5),
@@ -127,12 +127,12 @@ export function useCalculator(expression: string, iterations: number = 10000): C
       p50: getPercentile(finalResults, 50),
       p90: getPercentile(finalResults, 90),
       p95: getPercentile(finalResults, 95),
-      histogram: getHistogram(finalResults), // getHistogram should also handle empty/NaN data gracefully
+      histogram: getHistogram(finalResults), 
       error,
       isDeterministic
     });
 
-  }, [expression, iterations, isClient]); // Rerun when expression, iterations, or isClient status changes
+  }, [expression, iterations, isClient]);
 
   return data;
 }
