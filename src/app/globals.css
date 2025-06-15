@@ -51,6 +51,16 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Sigma colors for distribution chart */
+    --sigma-1-bg: 180 70% 60%; /* Cyan-like */
+    --sigma-1-border: 180 70% 45%;
+    --sigma-2-bg: 120 60% 55%; /* Green-like */
+    --sigma-2-border: 120 60% 40%;
+    --sigma-3-bg: 55 85% 60%;  /* Yellow-like */
+    --sigma-3-border: 55 85% 45%;
+    --sigma-other-bg: 0 0% 88%; /* Light gray for tails */
+    --sigma-other-border: 0 0% 75%;
   }
 
   .dark {
@@ -88,6 +98,16 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Dark theme Sigma colors */
+    --sigma-1-bg: 180 60% 40%;
+    --sigma-1-border: 180 60% 25%;
+    --sigma-2-bg: 120 50% 35%;
+    --sigma-2-border: 120 50% 20%;
+    --sigma-3-bg: 55 70% 40%;
+    --sigma-3-border: 55 70% 25%;
+    --sigma-other-bg: 0 0% 20%;
+    --sigma-other-border: 0 0% 30%;
   }
 }
 

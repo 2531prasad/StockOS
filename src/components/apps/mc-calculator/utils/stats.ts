@@ -16,21 +16,33 @@ export function getPercentile(data: number[], percentile: number): number {
   const valC = sorted[c];
 
   if (valF === undefined || valC === undefined) {
-    return sorted[Math.max(0, Math.min(sorted.length - 1, f))];
+    // Fallback if k is exactly sorted.length - 1 or 0 due to percentile calculation
+    return sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(k)))];
   }
   
   return valF + (valC - valF) * (k - f);
 }
 
 const formatNumberForBin = (num: number): string => {
+    if (isNaN(num)) return "N/A";
     return num.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1});
 }
+
+export type SigmaCategory = '1' | '2' | '3' | 'other';
+
+export interface HistogramDataEntry {
+  label: string;
+  value: number; // This will be PDF value
+  sigmaCategory: SigmaCategory;
+}
+
 
 export function getHistogram(
   data: number[],
   numBins: number,
-  mean: number
-): { label: string; value: number; isMeanProximal: boolean }[] {
+  mean: number,
+  stdDev: number
+): HistogramDataEntry[] {
   const validData = data.filter(d => !isNaN(d) && isFinite(d));
   if (!validData.length || numBins <= 0) return [];
 
@@ -38,78 +50,107 @@ export function getHistogram(
   const maxVal = Math.max(...validData);
 
   if (minVal === maxVal) {
-    // Handle cases where all data points are the same
+    let sigmaCat: SigmaCategory = 'other';
+    if (!isNaN(mean) && !isNaN(stdDev) && stdDev > 0) {
+        const zScore = (minVal - mean) / stdDev;
+        if (Math.abs(zScore) <= 1) sigmaCat = '1';
+        else if (Math.abs(zScore) <= 2) sigmaCat = '2';
+        else if (Math.abs(zScore) <= 3) sigmaCat = '3';
+    } else if (!isNaN(mean) && minVal === mean) {
+        // If stdDev is 0 or NaN, but all values are the mean
+        sigmaCat = '1';
+    }
     return [{
         label: `${formatNumberForBin(minVal)}`,
-        value: validData.length,
-        isMeanProximal: true // If all values are the same, the mean is that value
+        value: 1, // PDF for a single point is tricky, conventionally 1 if it's the only point.
+        sigmaCategory: sigmaCat 
     }];
   }
 
   const binWidth = (maxVal - minVal) / numBins;
-  const bins: { label: string; value: number; isMeanProximal: boolean, lowerBound: number, upperBound: number }[] = [];
+  if (binWidth <= 0) return []; // Avoid division by zero or infinite loops
+
+  const bins: { 
+    label: string; 
+    frequency: number; 
+    lowerBound: number; 
+    upperBound: number;
+    binCenter: number;
+    sigmaCategory: SigmaCategory;
+    pdfValue: number;
+  }[] = [];
 
   for (let i = 0; i < numBins; i++) {
     const lowerBound = minVal + i * binWidth;
     const upperBound = minVal + (i + 1) * binWidth;
     bins.push({
       label: `${formatNumberForBin(lowerBound)} - ${formatNumberForBin(upperBound)}`,
-      value: 0,
-      isMeanProximal: false,
+      frequency: 0,
       lowerBound,
-      upperBound
+      upperBound,
+      binCenter: (lowerBound + upperBound) / 2,
+      sigmaCategory: 'other',
+      pdfValue: 0,
     });
   }
-
-  // Ensure the last bin's upper bound correctly captures the maxVal
+  
   if (bins.length > 0) {
-      bins[bins.length -1].upperBound = maxVal;
+      bins[bins.length -1].upperBound = maxVal; // Ensure last bin includes maxVal
+      bins[bins.length -1].binCenter = (bins[bins.length-1].lowerBound + bins[bins.length-1].upperBound) / 2;
   }
-
 
   for (const item of validData) {
     let binIndex = Math.floor((item - minVal) / binWidth);
-    // Special handling for the maxVal to ensure it falls into the last bin
     if (item === maxVal) {
       binIndex = numBins - 1;
     }
-    // Clamp index to be within bounds
     binIndex = Math.max(0, Math.min(numBins - 1, binIndex)); 
     
     if (bins[binIndex]) {
-      bins[binIndex].value++;
+      bins[binIndex].frequency++;
     }
   }
   
-  if (!isNaN(mean)) {
-    bins.forEach(bin => {
-        // A bin is mean-proximal if the mean falls within its range.
-        // For the last bin, make sure the upper bound comparison is inclusive.
-        if (mean >= bin.lowerBound && mean <= bin.upperBound) {
-             bin.isMeanProximal = true;
-        }
-    });
-  }
+  const totalDataPoints = validData.length;
+
+  bins.forEach(bin => {
+    // Calculate PDF value
+    if (totalDataPoints > 0 && binWidth > 0) {
+        bin.pdfValue = bin.frequency / (totalDataPoints * binWidth);
+    } else {
+        bin.pdfValue = 0;
+    }
+
+    // Determine sigma category
+    if (!isNaN(mean) && !isNaN(stdDev) && stdDev > 0) {
+        const zScore = (bin.binCenter - mean) / stdDev;
+        if (Math.abs(zScore) <= 1) bin.sigmaCategory = '1';
+        else if (Math.abs(zScore) <= 2) bin.sigmaCategory = '2';
+        else if (Math.abs(zScore) <= 3) bin.sigmaCategory = '3';
+        else bin.sigmaCategory = 'other';
+    } else if (!isNaN(mean) && bin.binCenter >= mean && bin.binCenter <= mean && stdDev === 0) {
+        // Handle case where all data points are the same (stdDev is 0)
+        bin.sigmaCategory = '1';
+    } else {
+        bin.sigmaCategory = 'other';
+    }
+  });
   
-  // Sort by bin's lower bound for typical histogram display (lowest bin at bottom if horizontal)
-  // Or for chart.js, it might just use the order provided.
-  // For horizontal bars (indexAxis: 'y'), higher frequency might be desired at top visually.
-  // Let's return them in bin order and let chart.js sort or display as is.
-  // If we want higher frequency bars on top for y-axis index:
-  // bins.sort((a, b) => b.value - a.value); 
-  // Or keep them sorted by bin range
   bins.sort((a, b) => a.lowerBound - b.lowerBound);
 
-
-  return bins.map(b => ({ label: b.label, value: b.value, isMeanProximal: b.isMeanProximal }));
+  return bins.map(b => ({ 
+    label: b.label, 
+    value: b.pdfValue, 
+    sigmaCategory: b.sigmaCategory 
+  }));
 }
 
 
 export function getStandardDeviation(data: number[]): number {
   const validData = data.filter(d => !isNaN(d) && isFinite(d));
-  if (validData.length < 2) return NaN; 
+  if (validData.length < 2) return 0; // Return 0 instead of NaN for stdDev if not enough data
   const meanValue = getMean(validData);
-  if (isNaN(meanValue)) return NaN;
+  if (isNaN(meanValue)) return NaN; // Should not happen if validData has items
   const variance = validData.reduce((acc, val) => acc + Math.pow(val - meanValue, 2), 0) / (validData.length -1); // Sample variance
   return Math.sqrt(variance);
 }

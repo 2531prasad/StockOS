@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { preprocessExpression, type ProcessedExpression } from "../utils/expressionParser";
 import { runSimulation, evaluateDeterministic } from "../utils/monteCarlo";
-import { getPercentile, getHistogram, getStandardDeviation, getMean } from "../utils/stats";
+import { getPercentile, getHistogram, getStandardDeviation, getMean, type HistogramDataEntry } from "../utils/stats";
 
 export interface CalculatorResults {
   results: number[];
@@ -15,7 +15,7 @@ export interface CalculatorResults {
   p50: number; // Median
   p90: number;
   p95: number;
-  histogram: { label: string; value: number; originalPercentile: number; isMeanProximal: boolean }[];
+  histogram: HistogramDataEntry[];
   error: string | null;
   isDeterministic: boolean;
   expressionUsed: string;
@@ -94,6 +94,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
                error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
             // Partial errors occurred, these are handled by filtering NaNs later
+            // console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations.`);
           }
       }
       
@@ -113,25 +114,26 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     const finalValidResults = currentResults.filter(n => !isNaN(n) && isFinite(n));
 
     const calculatedMean = getMean(finalValidResults);
+    const calculatedStdDev = getStandardDeviation(finalValidResults);
 
     setData({
       results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [], 
       min: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.min(a, b), Infinity) : NaN,
       max: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN,
       mean: calculatedMean,
-      stdDev: getStandardDeviation(finalValidResults),
+      stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
       p10: getPercentile(finalValidResults, 10),
       p50: getPercentile(finalValidResults, 50), 
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
-      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean), 
+      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev), 
       error,
       isDeterministic: isDeterministicCalculation,
       expressionUsed: submittedExpression 
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]);
+  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); // Added data.expressionUsed to ensure reset logic works correctly
 
   return data;
 }
