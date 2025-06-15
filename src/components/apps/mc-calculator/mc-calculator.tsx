@@ -20,12 +20,8 @@ export default function MCCalculator() {
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
-    if (isClient && expression && !submittedExpression) {
-      setSubmittedExpression(expression);
-      setSubmittedIterations(iterations);
-    }
-  }, [isClient, expression, iterations, submittedExpression]);
+  // Removed useEffect that triggered initial calculation on load
+  // Calculations will now only happen via handleCalculate
   
   const result = useCalculator(submittedExpression, submittedIterations);
   
