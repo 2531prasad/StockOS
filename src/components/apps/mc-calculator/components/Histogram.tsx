@@ -13,55 +13,70 @@ import {
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title);
 
+interface HistogramEntry {
+  label: string;
+  value: number;
+  originalPercentile: number;
+  isMeanProximal: boolean;
+}
+
 interface Props {
-  data: { bin: number; count: number }[];
+  data: HistogramEntry[];
   title?: string;
 }
 
-export default function Histogram({ data, title = "Frequency Distribution" }: Props) {
-  const labels = data.map(d => d.bin.toString());
-  const counts = data.map(d => d.count);
+export default function Histogram({ data, title = "Distribution" }: Props) {
+  const chartLabels = data.map(d => d.label);
+  const chartValues = data.map(d => d.value);
+  const backgroundColors = data.map(d => d.isMeanProximal ? 'hsl(var(--accent))' : 'hsl(var(--primary))');
+  const borderColors = data.map(d => d.isMeanProximal ? 'hsl(var(--accent-foreground))' : 'hsl(var(--primary-foreground))');
+
 
   const chartData = {
-    labels,
+    labels: chartLabels,
     datasets: [{
-      label: "Frequency",
-      data: counts,
-      backgroundColor: "hsl(var(--primary))",
-      borderColor: "hsl(var(--primary-foreground))",
+      label: "Value at Percentile", // Updated dataset label
+      data: chartValues,
+      backgroundColor: backgroundColors,
+      borderColor: borderColors,
       borderWidth: 1
     }]
   };
 
   const options = {
-    indexAxis: 'y' as const, // Make the chart horizontal
+    indexAxis: 'y' as const, 
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      x: { // X-axis now represents Frequency Count
-        beginAtZero: true,
+      x: { 
+        beginAtZero: false, // Values can be negative, so don't force start at zero
         title: {
           display: true,
-          text: 'Frequency Count' // Swapped title
+          text: 'Value' // X-axis represents the actual calculated values
         },
         grid: {
           color: 'hsl(var(--border))',
         },
         ticks: {
           color: 'hsl(var(--foreground))',
+          callback: function(value: any) { // Format ticks for better readability if large numbers
+            if (typeof value === 'number') {
+              return value.toLocaleString();
+            }
+            return value;
+          }
         },
       },
-      y: { // Y-axis now represents Value Bins
+      y: { 
         title: {
           display: true,
-          text: 'Value Bins' // Swapped title
+          text: 'Percentiles' // Y-axis lists the percentile labels
         },
         grid: {
           display: false,
         },
         ticks: {
           color: 'hsl(var(--foreground))',
-          // No rotation needed for y-axis labels in horizontal typically
         },
       }
     },
@@ -70,14 +85,18 @@ export default function Histogram({ data, title = "Frequency Distribution" }: Pr
         mode: 'index' as const,
         intersect: false,
         callbacks: {
+            title: function(tooltipItems: any) {
+              // tooltipItems[0].label is already formatted "P% | V"
+              // We can just return that or extract parts if needed
+              return tooltipItems[0]?.label || '';
+            },
             label: function(context: any) {
-                let label = context.dataset.label || '';
+                let label = context.dataset.label || ''; // "Value at Percentile"
                 if (label) {
                     label += ': ';
                 }
-                // For horizontal bar, parsed value is on x
                 if (context.parsed.x !== null) { 
-                    label += context.parsed.x;
+                    label += typeof context.parsed.x === 'number' ? context.parsed.x.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:2}) : context.parsed.x;
                 }
                 return label;
             }
@@ -99,7 +118,7 @@ export default function Histogram({ data, title = "Frequency Distribution" }: Pr
   };
 
   return (
-    <div style={{ height: '300px', width: '100%' }}> 
+    <div style={{ height: '400px', width: '100%' }}> {/* Increased height for more bars */}
       <Bar data={chartData} options={options} />
     </div>
   );

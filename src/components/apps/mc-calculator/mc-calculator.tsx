@@ -14,9 +14,9 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(23);
+  const [histogramBins, setHistogramBins] = useState(21); // Default changed as per user request example
   const [submittedExpression, setSubmittedExpression] = useState(""); 
-  const [submittedIterations, setSubmittedIterations] = useState(iterations);
+  const [submittedIterations, setSubmittedIterations] = useState(0); // Initialize to 0 so no calc on load
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
@@ -24,11 +24,21 @@ export default function MCCalculator() {
     setIsClient(true);
   }, []);
   
-  const result = useCalculator(submittedExpression, submittedIterations, submittedHistogramBins);
+  // Only calculate if submittedExpression is present
+  const result = useCalculator(
+    submittedExpression, 
+    submittedIterations > 0 ? submittedIterations : 10000, // ensure positive iterations
+    submittedHistogramBins
+  );
   
   const handleCalculate = () => {
+    if (!expression.trim()) {
+        // Optionally, show a toast or alert if expression is empty
+        // For now, just don't submit.
+        return;
+    }
     setSubmittedExpression(expression);
-    setSubmittedIterations(iterations);
+    setSubmittedIterations(iterations); // Use the current state of iterations
     setSubmittedHistogramBins(histogramBins);
   };
 
@@ -38,32 +48,32 @@ export default function MCCalculator() {
   };
   
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
-    <div className="text-2xl font-bold text-primary">
+    <div className="text-2xl font-bold text-primary py-4">
         Output: {formatNumber(calcResult.results[0])}
     </div>
   );
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2">
         <p><strong>Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean:</strong> {formatNumber(calcResult.mean)}</p>
         <p><strong>Std Dev:</strong> {formatNumber(calcResult.stdDev)}</p>
-        <p><strong>Median (50th %):</strong> {formatNumber(calcResult.p50)}</p>
+        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-4">
-        <p><strong>5th %:</strong> {formatNumber(calcResult.p5)}</p>
-        <p><strong>10th %:</strong> {formatNumber(calcResult.p10)}</p>
-        <p><strong>90th %:</strong> {formatNumber(calcResult.p90)}</p>
-        <p><strong>95th %:</strong> {formatNumber(calcResult.p95)}</p>
+        <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
+        <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
+        <p><strong>P90:</strong> {formatNumber(calcResult.p90)}</p>
+        <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {calcResult.histogram && calcResult.histogram.length > 0 && calcResult.histogram.some(bin => bin.count > 0) ? (
-        <div className="mt-4 h-[300px] w-full">
-          <Histogram data={calcResult.histogram} title="Outcome Distribution"/>
+      {calcResult.histogram && calcResult.histogram.length > 0 ? (
+        <div className="mt-4 h-[400px] w-full"> {/* Adjusted height if needed */}
+          <Histogram data={calcResult.histogram} title="Percentile Values"/>
         </div>
-      ) : <p className="text-muted-foreground">Histogram data is not available.</p>}
+      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Percentile chart data is not available. Results might be too uniform or an error occurred.</p> : null }
     </>
   );
 
@@ -85,6 +95,7 @@ export default function MCCalculator() {
               className="flex-grow text-base"
               placeholder="e.g., 50~60 * 10 + (100~120)/2"
               aria-label="Expression Input"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
             />
             <div className="flex flex-col space-y-1">
               <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
@@ -97,6 +108,7 @@ export default function MCCalculator() {
                 placeholder="Iterations"
                 aria-label="Number of Iterations"
                 min="100"
+                step="1000"
               />
             </div>
              <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
@@ -104,7 +116,7 @@ export default function MCCalculator() {
           
           <div className="mb-6">
             <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Histogram Bins: {histogramBins}
+              Chart Bars (Percentiles): {histogramBins}
             </Label>
             <Slider
               id="histogram-bins-slider"
@@ -128,7 +140,7 @@ export default function MCCalculator() {
           )}
 
           <div className="space-y-2 text-sm md:text-base">
-            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate.</p>}
+            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and percentile chart.</p>}
             {showResults && result.isDeterministic && renderDeterministicOutput(result)}
             {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
           </div>
