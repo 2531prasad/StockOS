@@ -15,7 +15,7 @@ export interface CalculatorResults {
   p50: number; // Median
   p90: number;
   p95: number;
-  histogram: HistogramDataEntry[];
+  histogram: HistogramDataEntry[]; // This now uses the refined HistogramDataEntry from stats.ts
   error: string | null;
   isDeterministic: boolean;
   expressionUsed: string;
@@ -51,8 +51,10 @@ export function useCalculator(submittedExpression: string, iterations: number = 
   useEffect(() => {
     if (!isClient || !submittedExpression) { 
       if (!submittedExpression && data.expressionUsed) {
+         // Clear results but keep expressionUsed if clearing input after a calculation
          setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed}));
       } else if (!submittedExpression) {
+        // Truly initial state or expression explicitly cleared before any calculation
         setData(defaultInitialResults);
       }
       return;
@@ -78,35 +80,40 @@ export function useCalculator(submittedExpression: string, iterations: number = 
               currentResults = [evalResult];
             } else if (typeof evalResult === 'number' && !isFinite(evalResult) ) {
               error = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
-              currentResults = [NaN];
-            } else if (typeof evalResult === 'string') { 
+              currentResults = [NaN]; // Push NaN to indicate error state for results
+            } else if (typeof evalResult === 'string') { // evaluateDeterministic can return error string
               error = evalResult; 
-              currentResults = [NaN]; 
+              currentResults = [NaN]; // Push NaN
             }
         } else { 
             currentResults = runSimulation(processedData.expression, iterations);
         }
       }
 
+      // Check for NaN results from simulation/evaluation
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
+               // All results are NaN from a simulation
                error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
+             // Some NaNs in simulation, they will be filtered for stats
              console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations were filtered out before statistical analysis.`);
           }
+          // If deterministic and result is NaN, it was already set as an error or will be caught below
       }
       
       const validResultsForStats = currentResults.filter(r => !isNaN(r) && isFinite(r));
 
       if (!error && validResultsForStats.length === 0 && submittedExpression && (iterations > 0 || isDeterministicCalculation) && !processedData?.error) {
+          // This can happen if simulation yields all NaNs or deterministic yields NaN without a specific error message yet
           error = `No valid numerical results obtained. Expression: "${submittedExpression}". Please check ranges and operators.`;
       }
 
 
-    } catch (e: any) { 
+    } catch (e: any) { // Catch errors from preprocessExpression or other synchronous setup
       error = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
-      currentResults = []; 
+      currentResults = []; // Ensure results are empty on critical setup error
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
 
@@ -118,23 +125,26 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     const calculatedStdDev = getStandardDeviation(finalValidResults);
 
     setData({
-      results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [], 
+      results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [], // Ensure results has at least one NaN if there was an error and no valid numbers
       min: calculatedMin,
       max: calculatedMax,
       mean: calculatedMean,
       stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
       p10: getPercentile(finalValidResults, 10),
-      p50: getPercentile(finalValidResults, 50), 
+      p50: getPercentile(finalValidResults, 50), // Median
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
-      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev), 
+      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev), // Pass mean and stdDev
       error,
       isDeterministic: isDeterministicCalculation,
-      expressionUsed: submittedExpression 
+      expressionUsed: submittedExpression // Keep track of the expression that produced these results
     });
 
+  // data.expressionUsed is included to re-evaluate if the input field is cleared after a calculation
+  // (to reset the UI from showing old results for an empty input).
   }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); 
 
   return data;
 }
+

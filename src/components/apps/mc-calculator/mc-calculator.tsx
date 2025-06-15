@@ -14,23 +14,20 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(23); // Default changed
+  const [histogramBins, setHistogramBins] = useState(23); 
   const [submittedExpression, setSubmittedExpression] = useState(""); 
-  const [submittedIterations, setSubmittedIterations] = useState(0);
+  const [submittedIterations, setSubmittedIterations] = useState(0); // Initialize with 0 to prevent initial calc with default iterations
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // Removed initial calculation trigger:
-    // if (expression && !submittedExpression) {
-    //   handleCalculate();
-    // }
-  }, []); // Removed expression, submittedExpression from deps for initial load
+    // No initial calculation on load. User must click "Calculate".
+  }, []); 
   
   const result = useCalculator(
     submittedExpression, 
-    submittedIterations > 0 ? submittedIterations : 10000, 
+    submittedIterations > 0 ? submittedIterations : 10000, // Ensure at least 1 iteration if submitted, or default for hook
     submittedHistogramBins
   );
   
@@ -79,14 +76,15 @@ export default function MCCalculator() {
             title="Outcome Distribution (Probability Density)"
             meanValue={calcResult.mean}
             medianValue={calcResult.p50}
-            yScaleMin={calcResult.min}
-            yScaleMax={calcResult.max}
+            yScaleMin={calcResult.min} // Pass overall min for Y-axis scaling
+            yScaleMax={calcResult.max} // Pass overall max for Y-axis scaling
           />
         </div>
       ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null }
     </>
   );
 
+  // Determine when to show results or initial message
   const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showInitialMessage = !submittedExpression && !result.error;
 
@@ -162,3 +160,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
