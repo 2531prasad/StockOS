@@ -13,7 +13,7 @@ export interface CalculatorResults {
   p5: number;
   p10: number;
   p50: number; // Median
-  p90: number; 
+  p90: number;
   p95: number;
   histogram: { bin: number; count: number }[];
   error: string | null;
@@ -40,17 +40,32 @@ const defaultInitialResults: CalculatorResults = {
 export function useCalculator(expression: string, iterations: number = 10000): CalculatorResults {
   const [data, setData] = useState<CalculatorResults>(defaultInitialResults);
   const [isClient, setIsClient] = useState(false);
+  const [submittedExpression, setSubmittedExpression] = useState(""); // Store the expression that was actually submitted
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Update submittedExpression only when the input expression actually changes
+  // This effect will run when `expression` (from input field) or `iterations` changes.
+  // It sets `submittedExpression` which then triggers the main calculation effect.
   useEffect(() => {
-    if (!isClient) { 
-      return; 
+    // This check ensures we only set submittedExpression if the component is mounted
+    // and `expression` is not empty, meaning user intends a calculation.
+    // For initial load, if `expression` prop is empty, `submittedExpression` also remains empty.
+    if (isClient) {
+        // Directly use the passed expression for calculation logic.
+        // The `MCCalculator` component will manage when to trigger calculations
+        // by updating the `expression` prop passed to this hook.
+        setSubmittedExpression(expression);
     }
-    
-    if (!expression) { 
+  }, [expression, isClient]);
+
+
+  useEffect(() => {
+    if (!isClient || !submittedExpression) {
+      // If not on client or no expression submitted (e.g. initial empty input), return default.
+      // This also prevents running calculations with an empty string if expression prop clears.
       setData(defaultInitialResults);
       return;
     }
@@ -60,14 +75,13 @@ export function useCalculator(expression: string, iterations: number = 10000): C
     let isDeterministic = false;
 
     try {
-      const preprocessedData = preprocessExpression(expression);
-      
-      if (preprocessedData.ranges.length === 0) { // Deterministic calculation if no ranges found
-          const math = require('mathjs'); // Local require for mathjs
+      const preprocessedData = preprocessExpression(submittedExpression);
+
+      if (preprocessedData.ranges.length === 0) { // Deterministic calculation
+          const math = require('mathjs');
           let singleResultValue: number | undefined;
           try {
-            // For deterministic, preprocessedData.expression is the original cleaned expression
-            const evalResult = math.evaluate(preprocessedData.expression); 
+            const evalResult = math.evaluate(preprocessedData.expression);
             if (typeof evalResult === 'number' && isFinite(evalResult)) {
                 singleResultValue = evalResult;
             } else if (typeof evalResult === 'object' && evalResult !== null && typeof (evalResult as any).toNumber === 'function') {
@@ -84,37 +98,38 @@ export function useCalculator(expression: string, iterations: number = 10000): C
           if (singleResultValue !== undefined) {
             currentResults = [singleResultValue];
             isDeterministic = true;
-          } else if (!error) { 
+          } else if (!error) {
             error = "Expression could not be resolved to a number.";
           }
-          if (error) currentResults = [NaN]; // Ensure error state has NaN array
+          if (error) currentResults = [NaN];
 
-      } else { // Probabilistic calculation using new runSimulation
+      } else { // Probabilistic calculation
           currentResults = runSimulation(preprocessedData, iterations);
           isDeterministic = false;
       }
-      
+
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
-          if (nanCount === currentResults.length && currentResults.length > 0) { 
-               error = "Calculation resulted in errors for all iterations.";
+          if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0) {
+               error = "Calculation resulted in errors for all iterations. Check console for details.";
           } else if (nanCount > 0) {
             // Partial errors, might want to inform user or just proceed with valid results
           }
-          currentResults = currentResults.filter(r => !isNaN(r)); 
+          currentResults = currentResults.filter(r => !isNaN(r));
       }
 
-      if (!error && currentResults.length === 0) {
-          error = "No valid results from simulation or calculation.";
-          // currentResults remains empty, stats functions should handle this
+      if (!error && currentResults.length === 0 && submittedExpression && iterations > 0 && preprocessedData.ranges.length > 0) {
+          // This condition implies a simulation was run, but yielded no valid (non-NaN) results.
+          error = "No valid results from simulation. All iterations may have led to errors (e.g., NaN).";
       }
+
 
     } catch (e: any) {
       error = e.message || "Calculation error";
-      currentResults = []; // On critical error, reset results
+      currentResults = [];
     }
-    
-    const finalResults = currentResults.length > 0 ? currentResults : [NaN]; // Ensure stats functions get at least one NaN if empty
+
+    const finalResults = currentResults.length > 0 ? currentResults : [NaN];
 
     setData({
       results: finalResults,
@@ -127,12 +142,12 @@ export function useCalculator(expression: string, iterations: number = 10000): C
       p50: getPercentile(finalResults, 50),
       p90: getPercentile(finalResults, 90),
       p95: getPercentile(finalResults, 95),
-      histogram: getHistogram(finalResults), 
+      histogram: getHistogram(finalResults),
       error,
       isDeterministic
     });
 
-  }, [expression, iterations, isClient]);
+  }, [submittedExpression, iterations, isClient]); // Rerun when submittedExpression or iterations change
 
   return data;
 }
