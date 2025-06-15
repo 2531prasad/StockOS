@@ -1,65 +1,49 @@
+// src/components/apps/mc-calculator/utils/expressionParser.ts
 
-export interface PreprocessedExpression {
-  expression: string; // Expression with placeholders like VAR0, VAR1
-  ranges: { min: number; max: number }[]; // Array of ranges corresponding to placeholders
+export interface ProcessedExpression {
+  expression: string; // The expression string ready for math.js
+  isProbabilistic: boolean; // True if 'sample' or 'range' functions are used
 }
 
-export function preprocessExpression(expr: string): PreprocessedExpression {
+export function preprocessExpression(expr: string): ProcessedExpression {
   console.log('[expressionParser] Raw input expression:', JSON.stringify(expr));
 
-  let processedExpr = expr.replace(/x|X/gi, '*');
-  processedExpr = processedExpr.replace(/\s+/g, ''); // Remove all whitespace
-  console.log('[expressionParser] After whitespace and "x" replacement:', JSON.stringify(processedExpr));
+  let processedExpr = expr.replace(/x|X/gi, '*'); // Handle 'x' or 'X' for multiplication
 
-  const ranges: { min: number; max: number }[] = [];
-  let varIndex = 0;
-  
-  // Regex to find number~number patterns.
-  // It captures the min and max parts.
-  const rangeRegex = /(-?\d+(?:\.\d+)?)~(-?\d+(?:\.\d+)?)/g;
-
-  const expressionWithPlaceholders = processedExpr.replace(rangeRegex, (match, minStr, maxStr) => {
-    // match is the full matched string, e.g., "600~700"
-    // minStr is the first captured group (min value string)
-    // maxStr is the second captured group (max value string)
-    
-    console.log(`[expressionParser] Iteration for varIndex ${varIndex}: Found range match: "${match}", minStr: "${minStr}", maxStr: "${maxStr}"`);
-
-    const min = parseFloat(minStr);
-    const max = parseFloat(maxStr);
-
-    if (isNaN(min) || isNaN(max)) {
-      console.warn(`[expressionParser] Failed to parse range from match: "${match}". Min string: "${minStr}", Max string: "${maxStr}". Replacing with an error-inducing placeholder.`);
-      // This placeholder will likely cause math.js to fail with an "Undefined symbol" error, which is informative.
-      return `_INVALID_RANGE_(${match})_`; 
+  // Replace "a~b" with "sample(range(a,b))"
+  // This regex correctly captures numbers (integer or decimal, positive or negative)
+  const rangePattern = /(-?\d+(?:\.\d+)?)\s*~\s*(-?\d+(?:\.\d+)?)/g;
+  processedExpr = processedExpr.replace(rangePattern, (match, min, max) => {
+    // Ensure min and max are valid numbers before creating the function call string
+    const numMin = parseFloat(min);
+    const numMax = parseFloat(max);
+    if (isNaN(numMin) || isNaN(numMax)) {
+      console.warn(`[expressionParser] Invalid range detected: "${match}". Skipping transformation for this part.`);
+      return match; // Return original match if parsing fails, will likely error later but cleaner than embedding "NaN"
     }
-    
-    ranges.push({ min, max });
-    const placeholder = `VAR${varIndex++}`;
-    console.log(`[expressionParser] Replacing "${match}" with "${placeholder}".`);
-    return placeholder;
+    return `sample(range(${numMin}, ${numMax}))`;
   });
-  
-  console.log('[expressionParser] Final expressionWithPlaceholders:', JSON.stringify(expressionWithPlaceholders));
-  console.log('[expressionParser] Collected ranges:', JSON.stringify(ranges));
 
-  // Check for the malformed pattern. This check happens *after* all replacements.
-  const malformedVarPattern = /VAR\d+VAR\d+/; 
-  if (malformedVarPattern.test(expressionWithPlaceholders)) {
-    const errorMessage = `[expressionParser] CRITICAL PARSER ERROR: Malformed VARnVARm pattern detected in expression: "${expressionWithPlaceholders}". This indicates operators between ranges were lost.`;
-    console.error(errorMessage);
-    // Depending on desired behavior, you might throw an error here
-    // or allow it to proceed and fail in math.js (which it currently does).
-  }
+  // Handle implicit multiplication:
+  // 1. Number before parenthesis: e.g., 5(x) -> 5*(x)
+  processedExpr = processedExpr.replace(/(\d(?:\.\d+)?)\s*\(/g, '$1*(');
+  // 2. Parenthesis before parenthesis: e.g., (x)(y) -> (x)*(y)
+  processedExpr = processedExpr.replace(/\)\s*\(/g, ')*(');
+  // 3. Number before a function/variable name (starts with letter or _): e.g., 5sample -> 5*sample
+  processedExpr = processedExpr.replace(/(\d(?:\.\d+)?)\s*([a-zA-Z_][a-zA-Z0-9_]*)/g, '$1*$2');
+  // 4. Parenthesis before a function/variable name: e.g., (x)sample -> (x)*sample
+  processedExpr = processedExpr.replace(/\)\s*([a-zA-Z_][a-zA-Z0-9_]*)/g, ')*$1');
   
-  // Check for our custom invalid range placeholder
-  if (expressionWithPlaceholders.includes("_INVALID_RANGE_")) {
-    const invalidRangeMessage = `[expressionParser] Expression contains parts that could not be parsed as valid ranges: "${expressionWithPlaceholders}"`;
-    console.error(invalidRangeMessage);
-  }
+  // Normalize multiple spaces to single spaces, then trim.
+  processedExpr = processedExpr.replace(/\s+/g, ' ').trim();
+
+  const isProbabilistic = processedExpr.includes('sample(') || processedExpr.includes('range(');
+
+  console.log('[expressionParser] Final preprocessed expression:', JSON.stringify(processedExpr));
+  console.log('[expressionParser] Is probabilistic:', isProbabilistic);
 
   return {
-    expression: expressionWithPlaceholders,
-    ranges: ranges,
+    expression: processedExpr,
+    isProbabilistic,
   };
 }
