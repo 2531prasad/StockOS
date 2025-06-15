@@ -14,9 +14,8 @@ import {
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title);
 
 interface HistogramEntry {
-  label: string;
-  value: number;
-  originalPercentile: number;
+  label: string; // Bin range label e.g., "100-120"
+  value: number; // Frequency count for that bin
   isMeanProximal: boolean;
 }
 
@@ -35,7 +34,7 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
   const chartData = {
     labels: chartLabels,
     datasets: [{
-      label: "Value at Percentile", // Updated dataset label
+      label: "Frequency", 
       data: chartValues,
       backgroundColor: backgroundColors,
       borderColor: borderColors,
@@ -49,28 +48,23 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
     maintainAspectRatio: false,
     scales: {
       x: { 
-        beginAtZero: false, // Values can be negative, so don't force start at zero
+        beginAtZero: true, 
         title: {
           display: true,
-          text: 'Value' // X-axis represents the actual calculated values
+          text: 'Frequency' 
         },
         grid: {
           color: 'hsl(var(--border))',
         },
         ticks: {
           color: 'hsl(var(--foreground))',
-          callback: function(value: any) { // Format ticks for better readability if large numbers
-            if (typeof value === 'number') {
-              return value.toLocaleString();
-            }
-            return value;
-          }
+          precision: 0 // Ensure frequency ticks are whole numbers
         },
       },
       y: { 
         title: {
           display: true,
-          text: 'Percentiles' // Y-axis lists the percentile labels
+          text: 'Value Bins' 
         },
         grid: {
           display: false,
@@ -86,17 +80,15 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
         intersect: false,
         callbacks: {
             title: function(tooltipItems: any) {
-              // tooltipItems[0].label is already formatted "P% | V"
-              // We can just return that or extract parts if needed
-              return tooltipItems[0]?.label || '';
+              return tooltipItems[0]?.label || ''; // Bin range e.g. "100-120"
             },
             label: function(context: any) {
-                let label = context.dataset.label || ''; // "Value at Percentile"
+                let label = context.dataset.label || ''; // "Frequency"
                 if (label) {
                     label += ': ';
                 }
                 if (context.parsed.x !== null) { 
-                    label += typeof context.parsed.x === 'number' ? context.parsed.x.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:2}) : context.parsed.x;
+                    label += typeof context.parsed.x === 'number' ? context.parsed.x.toLocaleString() : context.parsed.x;
                 }
                 return label;
             }
@@ -117,8 +109,12 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
     }
   };
 
+  // Sort data for display if indexAxis is 'y' to have higher frequencies potentially at top
+  // Or, if bins are naturally ordered, it might be better to keep them that way.
+  // The current stats.ts sorts by bin.lowerBound, so Y axis will be naturally ordered by value.
+  
   return (
-    <div style={{ height: '400px', width: '100%' }}> {/* Increased height for more bars */}
+    <div style={{ height: '400px', width: '100%' }}> 
       <Bar data={chartData} options={options} />
     </div>
   );

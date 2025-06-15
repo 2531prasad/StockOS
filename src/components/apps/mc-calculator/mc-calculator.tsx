@@ -14,9 +14,9 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(21); // Default changed as per user request example
+  const [histogramBins, setHistogramBins] = useState(21);
   const [submittedExpression, setSubmittedExpression] = useState(""); 
-  const [submittedIterations, setSubmittedIterations] = useState(0); // Initialize to 0 so no calc on load
+  const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
@@ -24,21 +24,18 @@ export default function MCCalculator() {
     setIsClient(true);
   }, []);
   
-  // Only calculate if submittedExpression is present
   const result = useCalculator(
     submittedExpression, 
-    submittedIterations > 0 ? submittedIterations : 10000, // ensure positive iterations
+    submittedIterations > 0 ? submittedIterations : 10000, 
     submittedHistogramBins
   );
   
   const handleCalculate = () => {
     if (!expression.trim()) {
-        // Optionally, show a toast or alert if expression is empty
-        // For now, just don't submit.
         return;
     }
     setSubmittedExpression(expression);
-    setSubmittedIterations(iterations); // Use the current state of iterations
+    setSubmittedIterations(iterations); 
     setSubmittedHistogramBins(histogramBins);
   };
 
@@ -70,10 +67,10 @@ export default function MCCalculator() {
       </div>
 
       {calcResult.histogram && calcResult.histogram.length > 0 ? (
-        <div className="mt-4 h-[400px] w-full"> {/* Adjusted height if needed */}
-          <Histogram data={calcResult.histogram} title="Percentile Values"/>
+        <div className="mt-4 h-[400px] w-full">
+          <Histogram data={calcResult.histogram} title="Outcome Distribution"/>
         </div>
-      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Percentile chart data is not available. Results might be too uniform or an error occurred.</p> : null }
+      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null }
     </>
   );
 
@@ -116,7 +113,7 @@ export default function MCCalculator() {
           
           <div className="mb-6">
             <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Chart Bars (Percentiles): {histogramBins}
+              Histogram Bins: {histogramBins}
             </Label>
             <Slider
               id="histogram-bins-slider"
@@ -140,7 +137,7 @@ export default function MCCalculator() {
           )}
 
           <div className="space-y-2 text-sm md:text-base">
-            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and percentile chart.</p>}
+            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and distribution chart.</p>}
             {showResults && result.isDeterministic && renderDeterministicOutput(result)}
             {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
           </div>

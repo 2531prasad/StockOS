@@ -4,97 +4,118 @@ export function getPercentile(data: number[], percentile: number): number {
   const sorted = data.filter(d => !isNaN(d)).sort((a, b) => a - b);
   if (!sorted.length) return NaN;
 
-  // Calculate the 0-based index k
   const k = (percentile / 100) * (sorted.length - 1);
-  const f = Math.floor(k); // Floor index
-  const c = Math.ceil(k);  // Ceil index
+  const f = Math.floor(k); 
+  const c = Math.ceil(k);  
 
   if (f === c) {
-    // If k is an integer, or array has 1 element, or percentile is 0 or 100
     return sorted[f];
   }
-
-  // Linear interpolation
-  // Ensure indices are within bounds, though for percentiles 0-100 and sorted.length > 1, they should be.
+  
   const valF = sorted[f];
   const valC = sorted[c];
 
   if (valF === undefined || valC === undefined) {
-    // Fallback for unexpected undefined values (should ideally not happen with proper checks)
-    // Return the value at the floored index if it's valid, clamped to array bounds
     return sorted[Math.max(0, Math.min(sorted.length - 1, f))];
   }
   
   return valF + (valC - valF) * (k - f);
 }
 
-export function getHistogram( // Name retained for simplicity, but now generates percentile chart data
-  data: number[],
-  numBars: number,
-  mean: number
-): { label: string; value: number; originalPercentile: number; isMeanProximal: boolean }[] {
-  const validData = data.filter(d => !isNaN(d));
-  if (!validData.length || numBars <= 0) return [];
-
-  // getPercentile sorts data internally, so no need to sort validData here.
-
-  const percentileChartEntries: { label: string; value: number; originalPercentile: number; isMeanProximal: boolean }[] = [];
-  
-  // Store temporary values to find the one closest to mean before formatting labels
-  let tempPercentileValues: { percentile: number, val: number }[] = [];
-
-  for (let i = 1; i <= numBars; i++) {
-    // Calculate percentile ranks to divide the distribution into numBars points
-    const p = (100 / (numBars + 1)) * i;
-    const valueAtP = getPercentile(validData, p); 
-    if (!isNaN(valueAtP)) {
-      tempPercentileValues.push({ percentile: p, val: valueAtP });
-    }
-  }
-
-  if (!tempPercentileValues.length) return [];
-
-  let closestBarIndex = -1;
-  let minMeanDiff = Infinity;
-
-  // Find the percentile value closest to the mean
-  if (!isNaN(mean)) {
-    tempPercentileValues.forEach((pv, index) => {
-      const diff = Math.abs(pv.val - mean);
-      if (diff < minMeanDiff) {
-        minMeanDiff = diff;
-        closestBarIndex = index;
-      }
-    });
-  }
-
-  // Format the final chart entries
-  tempPercentileValues.forEach((pv, index) => {
-    percentileChartEntries.push({
-      label: `${pv.percentile.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}% | ${pv.val.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1})}`,
-      value: pv.val,
-      originalPercentile: pv.percentile,
-      isMeanProximal: index === closestBarIndex,
-    });
-  });
-  
-  // Sort by percentile value (descending) for typical display (highest value at top)
-  percentileChartEntries.sort((a,b) => b.value - a.value);
-
-  return percentileChartEntries;
+const formatNumberForBin = (num: number): string => {
+    return num.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1});
 }
 
+export function getHistogram(
+  data: number[],
+  numBins: number,
+  mean: number
+): { label: string; value: number; isMeanProximal: boolean }[] {
+  const validData = data.filter(d => !isNaN(d) && isFinite(d));
+  if (!validData.length || numBins <= 0) return [];
+
+  const minVal = Math.min(...validData);
+  const maxVal = Math.max(...validData);
+
+  if (minVal === maxVal) {
+    // Handle cases where all data points are the same
+    return [{
+        label: `${formatNumberForBin(minVal)}`,
+        value: validData.length,
+        isMeanProximal: true // If all values are the same, the mean is that value
+    }];
+  }
+
+  const binWidth = (maxVal - minVal) / numBins;
+  const bins: { label: string; value: number; isMeanProximal: boolean, lowerBound: number, upperBound: number }[] = [];
+
+  for (let i = 0; i < numBins; i++) {
+    const lowerBound = minVal + i * binWidth;
+    const upperBound = minVal + (i + 1) * binWidth;
+    bins.push({
+      label: `${formatNumberForBin(lowerBound)} - ${formatNumberForBin(upperBound)}`,
+      value: 0,
+      isMeanProximal: false,
+      lowerBound,
+      upperBound
+    });
+  }
+
+  // Ensure the last bin's upper bound correctly captures the maxVal
+  if (bins.length > 0) {
+      bins[bins.length -1].upperBound = maxVal;
+  }
+
+
+  for (const item of validData) {
+    let binIndex = Math.floor((item - minVal) / binWidth);
+    // Special handling for the maxVal to ensure it falls into the last bin
+    if (item === maxVal) {
+      binIndex = numBins - 1;
+    }
+    // Clamp index to be within bounds
+    binIndex = Math.max(0, Math.min(numBins - 1, binIndex)); 
+    
+    if (bins[binIndex]) {
+      bins[binIndex].value++;
+    }
+  }
+  
+  if (!isNaN(mean)) {
+    bins.forEach(bin => {
+        // A bin is mean-proximal if the mean falls within its range.
+        // For the last bin, make sure the upper bound comparison is inclusive.
+        if (mean >= bin.lowerBound && mean <= bin.upperBound) {
+             bin.isMeanProximal = true;
+        }
+    });
+  }
+  
+  // Sort by bin's lower bound for typical histogram display (lowest bin at bottom if horizontal)
+  // Or for chart.js, it might just use the order provided.
+  // For horizontal bars (indexAxis: 'y'), higher frequency might be desired at top visually.
+  // Let's return them in bin order and let chart.js sort or display as is.
+  // If we want higher frequency bars on top for y-axis index:
+  // bins.sort((a, b) => b.value - a.value); 
+  // Or keep them sorted by bin range
+  bins.sort((a, b) => a.lowerBound - b.lowerBound);
+
+
+  return bins.map(b => ({ label: b.label, value: b.value, isMeanProximal: b.isMeanProximal }));
+}
+
+
 export function getStandardDeviation(data: number[]): number {
-  const validData = data.filter(d => !isNaN(d));
+  const validData = data.filter(d => !isNaN(d) && isFinite(d));
   if (validData.length < 2) return NaN; 
   const meanValue = getMean(validData);
   if (isNaN(meanValue)) return NaN;
-  const variance = validData.reduce((acc, val) => acc + Math.pow(val - meanValue, 2), 0) / (validData.length -1);
+  const variance = validData.reduce((acc, val) => acc + Math.pow(val - meanValue, 2), 0) / (validData.length -1); // Sample variance
   return Math.sqrt(variance);
 }
 
 export function getMean(data: number[]): number {
-  const validData = data.filter(d => !isNaN(d));
+  const validData = data.filter(d => !isNaN(d) && isFinite(d));
   if (!validData.length) return NaN;
   return validData.reduce((acc, val) => acc + val, 0) / validData.length;
 }
