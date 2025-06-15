@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, HelpCircle } from "lucide-react";
+import { Terminal, HelpCircle, Info } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
@@ -35,12 +35,13 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1,
+    submittedIterations > 0 ? submittedIterations : 1, // Ensure iterations is at least 1
     submittedHistogramBins
   );
 
   const handleCalculate = () => {
     if (!expression.trim()) {
+      // Optionally, show an alert or toast for empty expression
       return;
     }
     setSubmittedExpression(expression);
@@ -61,8 +62,20 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
+      {(!isNaN(calcResult.analyticalMin) || !isNaN(calcResult.analyticalMax)) && (
+        <div className="mb-2 pt-2">
+          <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
+           {calcResult.analyticalError && (
+             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center">
+                <Info size={14} className="mr-1 shrink-0" />
+                <span>Note on Analytical Range: {calcResult.analyticalError}</span>
+            </p>
+           )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2">
-        <p><strong>Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
+        <p><strong>Simulated Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
         <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
         <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
@@ -88,9 +101,10 @@ export default function MCCalculator() {
       ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </>
   );
-
+  
   const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showInitialMessage = !submittedExpression && !result.error;
+
 
   return (
     <div className="container mx-auto p-4 md:p-8 font-body">
@@ -108,7 +122,6 @@ export default function MCCalculator() {
               <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-xl">How This Calculator Works</AlertDialogTitle>
-                  {/* Replaced AlertDialogDescription with a div for complex content */}
                   <div className="text-sm text-muted-foreground text-left max-h-[70vh] overflow-y-auto pr-2 space-y-4">
                     <div>
                       <h3 className="font-semibold text-base mb-1">🚀 What This Calculator Does</h3>
@@ -116,6 +129,7 @@ export default function MCCalculator() {
                       <ul className="list-disc list-inside ml-4">
                         <li>Use ranges (uncertainty) in inputs (e.g. 5~10)</li>
                         <li>Simulate thousands of random outcomes using Monte Carlo</li>
+                        <li>Calculate a True Analytical Range (exact min/max bounds)</li>
                         <li>Visualize result distributions via a histogram</li>
                         <li>Understand risk and variability through percentiles</li>
                       </ul>
@@ -140,7 +154,8 @@ export default function MCCalculator() {
                       <h3 className="font-semibold text-base mb-1">📈 Interpreting the Results</h3>
                       <p>After simulation (default 10,000 iterations), you’ll get:</p>
                       <ul className="list-disc list-inside ml-4">
-                        <li><strong>Range:</strong> The full simulated result range (min-max)</li>
+                        <li><strong>True Analytical Range:</strong> The exact mathematical min-max possible.</li>
+                        <li><strong>Simulated Range:</strong> The min-max from the Monte Carlo samples.</li>
                         <li><strong>Mean:</strong> Average outcome</li>
                         <li><strong>Std Dev:</strong> Statistical spread (variability)</li>
                         <li><strong>Median (P50):</strong> 50th percentile (center of data)</li>
@@ -157,7 +172,7 @@ export default function MCCalculator() {
                         <li>🟩 ±2σ — less likely</li>
                         <li>🟨 ±3σ — rare outcomes</li>
                       </ul>
-                      <p className="mt-1">Labels can display values at key percentiles (based on bin count).</p>
+                      <p className="mt-1">X-axis labels show the center value of each bin.</p>
                       <p className="mt-1">Vertical lines show:</p>
                       <ul className="list-disc list-inside ml-4">
                         <li>Mean (μ)</li>
@@ -221,7 +236,7 @@ export default function MCCalculator() {
 
           <div className="mb-6">
             <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Histogram Detail (Number of Bars): {histogramBins}
+              Chart Detail (Number of Points/Bars): {histogramBins}
             </Label>
             <Slider
               id="histogram-bins-slider"
@@ -257,4 +272,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-    

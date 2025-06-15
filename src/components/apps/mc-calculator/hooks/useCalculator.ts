@@ -1,16 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { preprocessExpression, type ProcessedExpression } from "../utils/expressionParser";
+import { preprocessForMonteCarlo, buildMinMaxExpressions, type ProcessedExpression } from "../utils/expressionParser";
 import { runSimulation, evaluateDeterministic } from "../utils/monteCarlo";
 import { getPercentile, getHistogram, getStandardDeviation, getMean, type HistogramDataEntry as StatsHistogramDataEntry } from "../utils/stats";
 
-// This is the type coming from stats.ts
 export type HistogramDataEntry = StatsHistogramDataEntry;
 
 export interface CalculatorResults {
   results: number[];
-  min: number;
-  max: number;
+  min: number; // Min from simulation
+  max: number; // Max from simulation
   mean: number;
   stdDev: number;
   p5: number;
@@ -19,9 +18,12 @@ export interface CalculatorResults {
   p90: number;
   p95: number;
   histogram: HistogramDataEntry[];
-  error: string | null;
+  error: string | null; // General calculation error
   isDeterministic: boolean;
   expressionUsed: string;
+  analyticalMin: number;
+  analyticalMax: number;
+  analyticalError: string | null; // Specific error for analytical range calculation
 }
 
 const defaultInitialResults: CalculatorResults = {
@@ -39,6 +41,9 @@ const defaultInitialResults: CalculatorResults = {
   error: null,
   isDeterministic: false,
   expressionUsed: "",
+  analyticalMin: NaN,
+  analyticalMax: NaN,
+  analyticalError: null,
 };
 
 export function useCalculator(submittedExpression: string, iterations: number = 10000, histogramBinCount: number = 23): CalculatorResults {
@@ -51,58 +56,82 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
   useEffect(() => {
     if (!isClient) {
-      // Server-side rendering or initial client render before setIsClient(true) from the first useEffect.
-      // Ensure we are using default data. Avoid unnecessary setData if already default.
       if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
         setData(defaultInitialResults);
       }
       return;
     }
 
-    // Client-side rendering (isClient is true)
     if (!submittedExpression) {
-      // No expression submitted yet. Reset to default.
-      // Avoid unnecessary setData if already default.
       if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
         setData(defaultInitialResults);
       }
       return;
     }
 
-    // Proceed with calculation: we are on the client and have an expression.
     let currentResults: number[] = [];
-    let error: string | null = null;
+    let generalError: string | null = null;
     let isDeterministicCalculation = false;
-    let processedData: ProcessedExpression | null = null;
+    let processedMonteCarloData: ProcessedExpression | null = null;
+    
+    let currentAnalyticalMin: number = NaN;
+    let currentAnalyticalMax: number = NaN;
+    let currentAnalyticalError: string | null = null;
 
     try {
-      processedData = preprocessExpression(submittedExpression);
-
-      if (processedData.error) {
-        error = processedData.error;
+      // --- Analytical Min/Max Calculation ---
+      const { minExpr, maxExpr } = buildMinMaxExpressions(submittedExpression);
+      
+      const evalMin = evaluateDeterministic(minExpr);
+      if (typeof evalMin === 'string') {
+        currentAnalyticalError = `Min calculation error: ${evalMin}`;
       } else {
-        isDeterministicCalculation = !processedData.isProbabilistic;
+        currentAnalyticalMin = evalMin;
+      }
+
+      const evalMax = evaluateDeterministic(maxExpr);
+      if (typeof evalMax === 'string') {
+        const maxErrorMsg = `Max calculation error: ${evalMax}`;
+        currentAnalyticalError = currentAnalyticalError ? `${currentAnalyticalError}. ${maxErrorMsg}` : maxErrorMsg;
+      } else {
+        currentAnalyticalMax = evalMax;
+      }
+      // Check if analytical min > max, which could be an error or valid if expression inverts
+      if (!isNaN(currentAnalyticalMin) && !isNaN(currentAnalyticalMax) && currentAnalyticalMin > currentAnalyticalMax) {
+          const inversionWarning = "Analytical min is greater than analytical max. This can happen with expressions involving subtraction or division of ranges (e.g., 10 - (1~5) or 10 / (1~5)).";
+          currentAnalyticalError = currentAnalyticalError ? `${currentAnalyticalError}. ${inversionWarning}` : inversionWarning;
+          // Optionally, swap them if strict min < max is always desired for display, but it's more informative to show as calculated.
+      }
+
+
+      // --- Monte Carlo Simulation Calculation ---
+      processedMonteCarloData = preprocessForMonteCarlo(submittedExpression);
+
+      if (processedMonteCarloData.error) {
+        generalError = processedMonteCarloData.error;
+      } else {
+        isDeterministicCalculation = !processedMonteCarloData.isProbabilistic;
 
         if (isDeterministicCalculation) {
-            const evalResult = evaluateDeterministic(processedData.expression);
+            const evalResult = evaluateDeterministic(processedMonteCarloData.expression);
             if (typeof evalResult === 'number' && isFinite(evalResult)) {
               currentResults = [evalResult];
             } else if (typeof evalResult === 'number' && !isFinite(evalResult) ) {
-              error = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
+              generalError = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
               currentResults = [NaN];
             } else if (typeof evalResult === 'string') {
-              error = evalResult;
+              generalError = evalResult; // Error message from evaluateDeterministic
               currentResults = [NaN];
             }
         } else {
-            currentResults = runSimulation(processedData.expression, iterations);
+            currentResults = runSimulation(processedMonteCarloData.expression, iterations);
         }
       }
 
-      if (!error && currentResults.some(isNaN)) {
+      if (!generalError && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
-               error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
+               generalError = `Simulation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
              console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations were filtered out before statistical analysis.`);
           }
@@ -110,28 +139,28 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
       const validResultsForStats = currentResults.filter(r => !isNaN(r) && isFinite(r));
 
-      if (!error && validResultsForStats.length === 0 && submittedExpression && (iterations > 0 || isDeterministicCalculation) && !processedData?.error) {
-          error = `No valid numerical results obtained. Expression: "${submittedExpression}". Please check ranges and operators.`;
+      if (!generalError && validResultsForStats.length === 0 && submittedExpression && (iterations > 0 || isDeterministicCalculation) && !processedMonteCarloData?.error) {
+          generalError = `No valid numerical results obtained from simulation. Expression: "${submittedExpression}". Please check ranges and operators.`;
       }
 
     } catch (e: any) {
-      error = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
-      currentResults = [];
+      generalError = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
+      currentResults = []; // Ensure results are empty on critical error
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
 
     const finalValidResults = currentResults.filter(n => !isNaN(n) && isFinite(n));
 
-    const calculatedMin = finalValidResults.length > 0 ? finalValidResults.reduce((min, val) => Math.min(min, val), Infinity) : NaN;
-    const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((max, val) => Math.max(max, val), -Infinity) : NaN;
+    const calculatedSimMin = finalValidResults.length > 0 ? finalValidResults.reduce((min, val) => Math.min(min, val), Infinity) : NaN;
+    const calculatedSimMax = finalValidResults.length > 0 ? finalValidResults.reduce((max, val) => Math.max(max, val), -Infinity) : NaN;
     const calculatedMean = getMean(finalValidResults);
     const calculatedStdDev = getStandardDeviation(finalValidResults);
     const calculatedP50 = getPercentile(finalValidResults, 50);
 
     setData({
-      results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [],
-      min: calculatedMin,
-      max: calculatedMax,
+      results: finalValidResults.length > 0 ? finalValidResults : (processedMonteCarloData?.error || generalError) ? [NaN] : [],
+      min: calculatedSimMin,
+      max: calculatedSimMax,
       mean: calculatedMean,
       stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
@@ -140,12 +169,15 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
       histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev),
-      error,
+      error: generalError,
       isDeterministic: isDeterministicCalculation,
-      expressionUsed: submittedExpression
+      expressionUsed: submittedExpression,
+      analyticalMin: currentAnalyticalMin,
+      analyticalMax: currentAnalyticalMax,
+      analyticalError: currentAnalyticalError,
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient]); // Simplified dependency array
+  }, [submittedExpression, iterations, histogramBinCount, isClient]);
 
   return data;
 }
