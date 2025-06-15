@@ -7,10 +7,11 @@ const math: MathJsStatic = create(all);
 // Helper to sample a single range
 function sampleRange(min: number, max: number): number {
   if (min > max) {
-    // This case should ideally be caught earlier or handled,
-    // but as a fallback, return NaN or throw error.
-    // For now, to prevent Math.random issues with inverted ranges:
-    return NaN;
+    // console.warn(`[monteCarlo] Invalid range encountered: min (${min}) > max (${max}). Sampling will produce NaN.`);
+    return NaN; // Return NaN if min > max, as sampling is ill-defined.
+  }
+  if (min === max) {
+    return min; // If min and max are equal, return that value directly.
   }
   return Math.random() * (max - min) + min;
 }
@@ -21,6 +22,7 @@ export function runSimulation(
 ): number[] {
   const results: number[] = [];
   if (!processedData.expression) {
+    console.warn("[monteCarlo] runSimulation called with empty processedData.expression.");
     return Array(iterations).fill(NaN);
   }
 
@@ -28,8 +30,14 @@ export function runSimulation(
   try {
     compiled = math.compile(processedData.expression);
   } catch (error) {
-    console.error("MonteCarlo Error: Failed to compile expression '", processedData.expression, "'. Error:", error);
-    return Array(iterations).fill(NaN); // If compile fails, all results are NaN
+    console.error(
+      "[monteCarlo] CRITICAL: Failed to compile expression '",
+      processedData.expression,
+      "'. Error:",
+      error
+    );
+    // If compilation fails, all results will be NaN, handled by the caller or stats functions.
+    return Array(iterations).fill(NaN); 
   }
 
   for (let i = 0; i < iterations; i++) {
@@ -43,20 +51,26 @@ export function runSimulation(
       evaluatedValue = compiled.evaluate(scope);
 
       if (typeof evaluatedValue === 'object' && evaluatedValue !== null && typeof (evaluatedValue as any).toNumber === 'function') {
-        const numVal = (evaluatedValue as any).toNumber();
+        // Handle mathjs specific types like BigNumber, Unit, etc.
+        const numVal = (evaluatedValue as any).toNumber(); // Attempt to convert to a standard number
         if (isFinite(numVal)) {
           results.push(numVal);
         } else {
-          results.push(NaN); // Handle BigNumbers that convert to non-finite standard numbers
+          // console.warn(`[monteCarlo] Iteration ${i}: Evaluated value (from object) is not finite: ${numVal}. Scope: ${JSON.stringify(scope)} Expression: ${processedData.expression}`);
+          results.push(NaN); 
         }
       } else if (typeof evaluatedValue === 'number' && isFinite(evaluatedValue)) {
         results.push(evaluatedValue);
       } else {
+        // console.warn(`[monteCarlo] Iteration ${i}: Evaluated value is not a finite number: ${evaluatedValue}. Type: ${typeof evaluatedValue}. Scope: ${JSON.stringify(scope)} Expression: ${processedData.expression}`);
         results.push(NaN); // Non-finite numbers or unexpected types from evaluation
       }
     } catch (error) {
-      console.error("MonteCarlo Error: Failed to evaluate expression '", processedData.expression, "' with scope ", JSON.stringify(scope), ". Error:", error);
-      results.push(NaN);
+      // Log detailed error for this specific iteration
+      console.error(
+        `[monteCarlo] Iteration ${i + 1}/${iterations}: Failed to evaluate expression '${processedData.expression}' with scope ${JSON.stringify(scope)}. Error:`, error
+      );
+      results.push(NaN); // Push NaN for this iteration's failure
     }
   }
   return results;

@@ -5,11 +5,16 @@ export interface PreprocessedExpression {
 }
 
 export function preprocessExpression(expr: string): PreprocessedExpression {
+  // Log the raw input expression for debugging
+  console.log('[expressionParser] Raw input expression:', JSON.stringify(expr));
+
   // 1. Replace 'x' or 'X' with '*' for multiplication (case-insensitive)
   let processedExpr = expr.replace(/x|X/gi, '*');
 
   // 2. Remove all whitespace characters.
   processedExpr = processedExpr.replace(/\s+/g, '');
+  console.log('[expressionParser] After whitespace and "x" replacement:', JSON.stringify(processedExpr));
+
 
   const ranges: { min: number; max: number }[] = [];
   let varIndex = 0;
@@ -28,15 +33,27 @@ export function preprocessExpression(expr: string): PreprocessedExpression {
       const max = parseFloat(maxStr);
 
       if (isNaN(min) || isNaN(max)) {
-        console.warn(`Failed to parse range from match: "${match}". Min string: "${minStr}", Max string: "${maxStr}"`);
-        return match; 
+        console.warn(`[expressionParser] Failed to parse range from match: "${match}". Min string: "${minStr}", Max string: "${maxStr}". Returning original match.`);
+        return match; // Return original match if parsing fails, which could cause mathjs errors later
       }
       
       ranges.push({ min, max });
       const placeholder = `VAR${varIndex++}`;
+      // console.log(`[expressionParser] Replacing "${match}" with "${placeholder}"`);
       return placeholder;
     }
   );
+  
+  console.log('[expressionParser] Final expressionWithPlaceholders:', JSON.stringify(expressionWithPlaceholders));
+  console.log('[expressionParser] Collected ranges:', JSON.stringify(ranges));
+
+  // Diagnostic check for merged VAR tokens
+  const malformedVarPattern = /VAR\d+VAR\d+/;
+  if (malformedVarPattern.test(expressionWithPlaceholders)) {
+    const errorMessage = `[expressionParser] CRITICAL PARSER ERROR: Malformed VARnVARm pattern detected in expression: "${expressionWithPlaceholders}". This indicates operators between ranges were lost.`;
+    console.error(errorMessage);
+    // throw new Error(errorMessage); // Optionally throw to halt further processing immediately
+  }
 
   return {
     expression: expressionWithPlaceholders,
