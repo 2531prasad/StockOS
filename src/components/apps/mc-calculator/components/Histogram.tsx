@@ -1,5 +1,5 @@
 
-"use client"; 
+"use client";
 import React from 'react';
 import { Bar } from "react-chartjs-2";
 import {
@@ -13,17 +13,17 @@ import {
   type ChartData,
   type PluginOptionsByType,
   type ScriptableContext,
-  type Tick, // For tick formatting
+  type Tick,
 } from "chart.js";
 import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions } from 'chartjs-plugin-annotation';
+import { getPercentile } from "../utils/stats"; // Import getPercentile
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
 export interface HistogramEntry {
-  binStart: number;
-  label: string; 
-  probability: number; 
-  lowerBound: number; 
+  label: string; // e.g., "100.0-110.0"
+  probability: number;
+  lowerBound: number;
   upperBound: number;
   binCenter: number;
   sigmaCategory: '1' | '2' | '3' | 'other';
@@ -31,180 +31,220 @@ export interface HistogramEntry {
 
 interface Props {
   data: HistogramEntry[];
+  simulationResults?: number[]; // Raw simulation data for percentile calculations
   title?: string;
   meanValue?: number;
   medianValue?: number;
-  stdDevValue?: number; 
+  stdDevValue?: number;
 }
 
-const findBinIndexForValue = (value: number, bins: HistogramEntry[]): number => {
-  if (bins.length === 0 || isNaN(value)) return -1;
-  for (let i = 0; i < bins.length; i++) {
-    if (value >= bins[i].lowerBound && value <= bins[i].upperBound) {
-      return i;
+// Helper function to generate percentile steps
+function getEvenPercentileSteps(binCount: number): number[] {
+  if (binCount <= 0) return [];
+  if (binCount === 1) return [50]; // Single bar, show median percentile
+
+  const startPercentile = 5;
+  const endPercentile = 95;
+  // For binCount items, there are binCount - 1 intervals.
+  const step = (endPercentile - startPercentile) / (binCount - 1);
+
+  return Array.from({ length: binCount }, (_, i) => {
+    const pVal = startPercentile + i * step;
+    return parseFloat(pVal.toFixed(2));
+  });
+}
+
+
+const findBinIndexForValue = (value: number, dataValues: number[]): number => {
+    if (!dataValues || dataValues.length === 0 || isNaN(value)) return -1;
+
+    let closestIndex = -1;
+    let minDiff = Infinity;
+
+    for (let i = 0; i < dataValues.length; i++) {
+        if (isNaN(dataValues[i])) continue;
+        const diff = Math.abs(dataValues[i] - value);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIndex = i;
+        }
     }
-  }
-  if (value < bins[0].lowerBound) return 0;
-  if (value > bins[bins.length - 1].upperBound) return bins.length - 1;
-  return -1; 
+    return closestIndex;
 };
 
 
-export default function Histogram({ 
-  data, 
-  title = "Distribution", 
+export default function Histogram({
+  data,
+  simulationResults,
+  title = "Distribution",
   meanValue,
   medianValue,
-  stdDevValue 
+  stdDevValue,
 }: Props) {
 
-  const formatNumberForLabel = (num: number | undefined): string => {
+  const formatNumberForLabel = (num: number | undefined, digits: number = 2): string => {
     if (num === undefined || isNaN(num)) return "N/A";
-    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   };
+
+  const numBars = data.length;
+  const percentilePoints = getEvenPercentileSteps(numBars);
+  
+  const safeSimulationResults = simulationResults && simulationResults.length > 0 ? simulationResults : [];
+
+  const xAxisDataPoints = percentilePoints.map(p => {
+    if (safeSimulationResults.length === 0) return p; // Fallback if no results, unlikely but safe
+    return parseFloat(getPercentile(safeSimulationResults, p).toFixed(2));
+  }).filter(v => !isNaN(v));
+  
+  // Ensure data for the dataset matches the number of actual x-axis points calculated
+  const probabilities = data.slice(0, xAxisDataPoints.length).map(entry => entry.probability);
+  const sigmaCategoriesForBars = data.slice(0, xAxisDataPoints.length).map(entry => entry.sigmaCategory);
+
 
   const getBarColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
-    const entry = data[index];
-    if (!entry || !entry.sigmaCategory) return 'hsl(0, 0%, 88%)'; // Default: Light Gray (Other)
+    const sigmaCategory = sigmaCategoriesForBars[index];
+    if (!sigmaCategory) return 'hsl(var(--sigma-other-bg))';
 
-    switch (entry.sigmaCategory) {
-      case '1': return 'hsl(180, 70%, 60%)';   // Sigma 1: Cyan-like
-      case '2': return 'hsl(120, 60%, 55%)';   // Sigma 2: Green-like
-      case '3': return 'hsl(55, 85%, 60%)';    // Sigma 3: Yellow-like
-      default: return 'hsl(0, 0%, 88%)';      // Other: Light Gray
+    switch (sigmaCategory) {
+      case '1': return 'hsl(var(--sigma-1-bg))';
+      case '2': return 'hsl(var(--sigma-2-bg))';
+      case '3': return 'hsl(var(--sigma-3-bg))';
+      default: return 'hsl(var(--sigma-other-bg))';
     }
   };
 
   const getBorderColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
-    const entry = data[index];
-    if (!entry || !entry.sigmaCategory) return 'hsl(0, 0%, 75%)'; // Default Border: Darker Gray (Other)
+    const sigmaCategory = sigmaCategoriesForBars[index];
+     if (!sigmaCategory) return 'hsl(var(--sigma-other-border))';
 
-    switch (entry.sigmaCategory) {
-      case '1': return 'hsl(180, 70%, 45%)';   // Sigma 1 Border
-      case '2': return 'hsl(120, 60%, 40%)';   // Sigma 2 Border
-      case '3': return 'hsl(55, 85%, 45%)';    // Sigma 3 Border
-      default: return 'hsl(0, 0%, 75%)';      // Other Border
+    switch (sigmaCategory) {
+      case '1': return 'hsl(var(--sigma-1-border))';
+      case '2': return 'hsl(var(--sigma-2-border))';
+      case '3': return 'hsl(var(--sigma-3-border))';
+      default: return 'hsl(var(--sigma-other-border))';
     }
   };
 
   const chartData: ChartData<'bar'> = {
-    labels: data.map(d => d.label), 
+    labels: xAxisDataPoints, // Numeric X-coordinates for a linear axis
     datasets: [{
-      label: "Probability", 
-      data: data.map(entry => entry.probability), 
+      label: "Probability",
+      data: probabilities, // Y-values (probabilities)
       backgroundColor: getBarColor,
       borderColor: getBorderColor,
       borderWidth: 1,
-      barPercentage: 1.0,
-      categoryPercentage: 1.0,
+      barPercentage: 1.0, // Adjust for potentially non-uniform spacing if needed
+      categoryPercentage: 1.0, // Adjust for potentially non-uniform spacing
     }]
   };
-  
+
   const annotationsConfig: Record<string, AnnotationOptions> = {};
 
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
-    const meanBinIndex = findBinIndexForValue(meanValue, data);
-    if (meanBinIndex !== -1) {
-      annotationsConfig.meanLine = {
-        type: 'line',
-        scaleID: 'x', 
-        value: meanBinIndex, 
-        borderColor: 'hsl(0, 100%, 50%)', // Hardcoded Red for mean line for now
-        borderWidth: 2,
-        label: {
-          enabled: true,
-          content: `Mean: ${formatNumberForLabel(meanValue)}`,
-          position: 'top',
-          backgroundColor: 'hsla(0, 0%, 100%, 0.8)', // Whiteish background for label
-          color: 'hsl(0, 0%, 0%)', // Black text
-          font: { weight: 'bold' },
-          yAdjust: -5,
-        }
-      };
-    }
+    annotationsConfig.meanLine = {
+      type: 'line',
+      scaleID: 'x',
+      value: meanValue,
+      borderColor: 'hsl(var(--destructive))', // Using destructive for high visibility
+      borderWidth: 2,
+      label: {
+        enabled: true,
+        content: `Mean: ${formatNumberForLabel(meanValue)}`,
+        position: 'top',
+        backgroundColor: 'hsla(var(--card), 0.7)',
+        color: 'hsl(var(--destructive-foreground))',
+        font: { weight: 'bold' },
+        yAdjust: -5,
+      }
+    };
   }
 
   if (typeof medianValue === 'number' && !isNaN(medianValue)) {
-    const medianBinIndex = findBinIndexForValue(medianValue, data);
-     if (medianBinIndex !== -1) {
-      annotationsConfig.medianLine = {
-        type: 'line',
-        scaleID: 'x',
-        value: medianBinIndex,
-        borderColor: 'hsl(240, 100%, 50%)', // Hardcoded Blue for median line
-        borderWidth: 2,
-        borderDash: [6, 6],
-        label: {
-          enabled: true,
-          content: `Median: ${formatNumberForLabel(medianValue)}`,
-          position: 'bottom',
-          backgroundColor: 'hsla(0, 0%, 100%, 0.8)',
-          color: 'hsl(0, 0%, 0%)',
-          font: { weight: 'bold' },
-          yAdjust: 5,
-        }
-      };
-    }
+    annotationsConfig.medianLine = {
+      type: 'line',
+      scaleID: 'x',
+      value: medianValue,
+      borderColor: 'hsl(var(--primary))', // Using primary for median
+      borderWidth: 2,
+      borderDash: [6, 6],
+      label: {
+        enabled: true,
+        content: `Median: ${formatNumberForLabel(medianValue)}`,
+        position: 'bottom',
+        backgroundColor: 'hsla(var(--card), 0.7)',
+        color: 'hsl(var(--primary-foreground))',
+        font: { weight: 'bold' },
+        yAdjust: 5,
+      }
+    };
   }
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    const sigmaLineColor = 'hsl(0, 0%, 50%)'; // Hardcoded Gray for sigma lines
+    // Using a muted color for sigma lines to avoid clutter
+    const sigmaLineColor = 'hsl(var(--muted-foreground))'; 
+    const sigmaLabelBackgroundColor = 'hsla(var(--background), 0.7)';
+
 
     sigmas.forEach((s) => {
       const sigmaVal = meanValue + s * stdDevValue;
-      const sigmaBinIndex = findBinIndexForValue(sigmaVal, data);
-      if (sigmaBinIndex !== -1) {
+      // For a linear X-axis, the value is directly sigmaVal
         annotationsConfig[`sigmaLine${s}`] = {
           type: 'line',
           scaleID: 'x',
-          value: sigmaBinIndex,
+          value: sigmaVal,
           borderColor: sigmaLineColor,
           borderWidth: 1,
           borderDash: [2, 2],
           label: {
             enabled: true,
-            content: `${s > 0 ? '+' : ''}${s}σ`,
+            content: `${s > 0 ? '+' : ''}${s}σ (${formatNumberForLabel(sigmaVal,1)})`,
             position: s < 0 ? 'start' : 'end',
-            backgroundColor: 'hsla(0, 0%, 100%, 0.7)',
+            rotation: 90,
+            backgroundColor: sigmaLabelBackgroundColor,
             color: sigmaLineColor,
-            font: { size: 10, weight: 'normal' },
-            rotation: s < 0 ? -90 : 90, // Rotate labels for better fit
-            yAdjust: s < 0 ? -10 : 10,
-            xAdjust: 0,
+            font: { size: 10 },
+            yAdjust: s < 0 ? -15 : 15, // Adjusted for vertical text
           }
         };
-      }
     });
   }
-  
-  const options: ChartOptions<'bar'> & PluginOptionsByType<'bar'> = { 
+
+  const options: ChartOptions<'bar'> & PluginOptionsByType<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      x: { 
-        type: 'category', 
+      x: {
+        type: 'linear', // X-axis is now linear
         title: {
           display: true,
-          text: 'Value Bins',
+          text: 'Value (at Percentiles)',
           color: `hsl(var(--foreground))`
         },
         grid: {
           color: `hsl(var(--border))`,
-          display: false, 
+          display: false,
         },
         ticks: {
           color: `hsl(var(--foreground))`,
           maxRotation: 45,
           minRotation: 30,
           autoSkip: true,
-          maxTicksLimit: data.length > 20 ? Math.floor(data.length / (data.length > 40 ? 3 : 2)) : data.length,
+          // Chart.js will auto-generate ticks on the linear scale.
+          // Bars are positioned at xAxisDataPoints, ticks might differ.
+          callback: function(value: string | number, index: number, ticks: Tick[]) {
+            if (typeof value === 'number') {
+              return formatNumberForLabel(value, 1);
+            }
+            return value;
+          }
         },
       },
-      y: { 
-        type: 'linear', 
+      y: {
+        type: 'linear',
         beginAtZero: true,
         title: {
           display: true,
@@ -216,9 +256,9 @@ export default function Histogram({
         },
         ticks: {
           color: `hsl(var(--foreground))`,
-           callback: function(value: string | number, index: number, ticks: Tick[]) {
+          callback: function(value: string | number, index: number, ticks: Tick[]) {
             if (typeof value === 'number') {
-              return (value * 100).toFixed(0) + '%'; 
+              return (value * 100).toFixed(0) + '%';
             }
             return value;
           }
@@ -228,33 +268,35 @@ export default function Histogram({
     plugins: {
       annotation: {
         annotations: annotationsConfig,
-        drawTime: 'afterDatasetsDraw' 
-      } as AnnotationPluginOptions, 
+        drawTime: 'afterDatasetsDraw'
+      } as AnnotationPluginOptions,
       tooltip: {
-        mode: 'index' as const,
+        mode: 'index' as const, // Might need 'nearest' with linear X for better UX
         intersect: false,
         backgroundColor: `hsl(var(--card))`,
         titleColor: `hsl(var(--card-foreground))`,
         bodyColor: `hsl(var(--card-foreground))`,
         callbacks: {
-            title: function(tooltipItems: any) {
-              const dataIndex = tooltipItems[0]?.dataIndex;
-              if (dataIndex !== undefined && data[dataIndex]) {
-                return `Bin: ${data[dataIndex].label}`; 
-              }
-              return '';
-            },
-            label: function(context: any) {
-                let label = context.dataset.label || ''; 
-                if (label) {
-                    label += ': ';
-                }
-                if (context.parsed.y !== null) { 
-                    const probability = context.parsed.y;
-                    label += (probability * 100).toFixed(2) + '%';
-                }
-                return label;
+          title: function(tooltipItems: any) {
+            const dataIndex = tooltipItems[0]?.dataIndex;
+            // Since X-axis is linear, tooltipItems[0].label might be the numeric x-value
+            // or we can use props.data[dataIndex].label for the original bin range.
+            if (dataIndex !== undefined && data[dataIndex]) {
+              return `Bin: ${data[dataIndex].label}\n(Percentile X-value: ${formatNumberForLabel(xAxisDataPoints[dataIndex])})`;
             }
+            return '';
+          },
+          label: function(context: any) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              const probability = context.parsed.y;
+              label += (probability * 100).toFixed(2) + '%';
+            }
+            return label;
+          }
         }
       },
       title: {
@@ -262,20 +304,19 @@ export default function Histogram({
         text: title,
         padding: {
           top: 10,
-          bottom: 20 
+          bottom: 20
         },
         font: {
-            size: 16
+          size: 16
         },
         color: `hsl(var(--foreground))`
       }
     }
   };
-  
+
   return (
-    <div style={{ height: '450px', width: '100%' }}> 
-      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
+    <div style={{ height: '450px', width: '100%' }}>
+      {data && data.length > 0 && xAxisDataPoints.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
     </div>
   );
 }
-

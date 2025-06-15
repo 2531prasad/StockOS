@@ -14,29 +14,28 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(23); 
-  const [submittedExpression, setSubmittedExpression] = useState(""); 
-  const [submittedIterations, setSubmittedIterations] = useState(0); 
+  const [histogramBins, setHistogramBins] = useState(21); // Defaulting to 21 for more percentile points
+  const [submittedExpression, setSubmittedExpression] = useState("");
+  const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []); 
-  
+  }, []);
+
   const result = useCalculator(
-    submittedExpression, 
-    submittedIterations > 0 ? submittedIterations : 10000, 
+    submittedExpression,
+    submittedIterations > 0 ? submittedIterations : 10000,
     submittedHistogramBins
   );
-  
+
   const handleCalculate = () => {
     if (!expression.trim()) {
-        // Optionally, show a toast or message if expression is empty
-        return;
+      return;
     }
     setSubmittedExpression(expression);
-    setSubmittedIterations(iterations); 
+    setSubmittedIterations(iterations);
     setSubmittedHistogramBins(histogramBins);
   };
 
@@ -44,10 +43,10 @@ export default function MCCalculator() {
     if (num === undefined || isNaN(num)) return "N/A";
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
-  
+
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-2xl font-bold text-primary py-4">
-        Output: {formatNumber(calcResult.results[0])}
+      Output: {formatNumber(calcResult.results[0])}
     </div>
   );
 
@@ -69,15 +68,16 @@ export default function MCCalculator() {
 
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
         <div className="mt-4 h-[450px] w-full">
-          <Histogram 
-            data={calcResult.histogram} 
+          <Histogram
+            data={calcResult.histogram}
+            simulationResults={calcResult.results} // Pass raw results
             title="Outcome Distribution"
             meanValue={calcResult.mean}
-            medianValue={calcResult.p50} // p50 is the median
+            medianValue={calcResult.p50}
             stdDevValue={calcResult.stdDev}
           />
         </div>
-      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null }
+      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </>
   );
 
@@ -89,7 +89,7 @@ export default function MCCalculator() {
       <Card className="w-full max-w-4xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl">Monte Carlo Calculator</CardTitle>
-          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean, Median, and Standard Deviations (σ).</CardDescription>
+          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean, Median, and Standard Deviations (σ). X-axis values on chart represent data values at specific percentiles.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
@@ -115,12 +115,12 @@ export default function MCCalculator() {
                 step="1000"
               />
             </div>
-             <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
           </div>
-          
+
           <div className="mb-6">
             <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Histogram Bins: {histogramBins}
+              Chart Detail (Number of Points/Bars): {histogramBins}
             </Label>
             <Slider
               id="histogram-bins-slider"
@@ -135,7 +135,7 @@ export default function MCCalculator() {
           </div>
 
           {result.error && (
-             <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <Terminal className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{result.error}</AlertDescription>
@@ -149,7 +149,7 @@ export default function MCCalculator() {
           </div>
         </CardContent>
       </Card>
-       <footer className="text-center mt-8 text-muted-foreground text-xs">
+      <footer className="text-center mt-8 text-muted-foreground text-xs">
         <p>Uses <a href="https://mathjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">math.js</a> for expression parsing and <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Chart.js</a> for visualization.</p>
       </footer>
     </div>
