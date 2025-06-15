@@ -8,26 +8,39 @@ import {
   CategoryScale,
   LinearScale,
   Tooltip,
-  Title
+  Title,
+  type ChartOptions // Import ChartOptions
 } from "chart.js";
+import annotationPlugin from 'chartjs-plugin-annotation';
 import type { SigmaCategory } from '../utils/stats';
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title);
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
 interface HistogramEntry {
   label: string; // Bin range label e.g., "100-120"
   value: number; // PDF value for that bin
   sigmaCategory: SigmaCategory;
+  lowerBound: number;
+  upperBound: number;
 }
 
 interface Props {
   data: HistogramEntry[];
   title?: string;
+  meanValue?: number;
+  medianValue?: number;
+  yScaleMin?: number;
+  yScaleMax?: number;
 }
 
-export default function Histogram({ data, title = "Distribution" }: Props) {
-  const chartLabels = data.map(d => d.label);
-  const chartValues = data.map(d => d.value);
+export default function Histogram({ 
+  data, 
+  title = "Distribution", 
+  meanValue, 
+  medianValue,
+  yScaleMin,
+  yScaleMax 
+}: Props) {
 
   const getSigmaStyle = (category: SigmaCategory) => {
     switch (category) {
@@ -42,23 +55,76 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
         return { bg: 'hsl(var(--sigma-other-bg))', border: 'hsl(var(--sigma-other-border))' };
     }
   };
-
-  const backgroundColors = data.map(d => getSigmaStyle(d.sigmaCategory).bg);
-  const borderColors = data.map(d => getSigmaStyle(d.sigmaCategory).border);
+  
+  const formatNumberForLabel = (num: number | undefined): string => {
+    if (num === undefined || isNaN(num)) return "N/A";
+    return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  };
 
 
   const chartData = {
-    labels: chartLabels,
+    // Labels are not directly used for y-axis scale with linear type, but good for context
+    // labels: data.map(d => d.label), 
     datasets: [{
       label: "Probability Density", 
-      data: chartValues,
-      backgroundColor: backgroundColors,
-      borderColor: borderColors,
-      borderWidth: 1
+      data: data.map(entry => ({
+        x: entry.value, // PDF value for bar length
+        y: [entry.lowerBound, entry.upperBound] as [number, number] // Floating bar for Y-axis
+      })),
+      backgroundColor: data.map(d => getSigmaStyle(d.sigmaCategory).bg),
+      borderColor: data.map(d => getSigmaStyle(d.sigmaCategory).border),
+      borderWidth: 1,
+      borderSkipped: false, // Important for floating bars to render full borders
     }]
   };
 
-  const options = {
+  const annotationsConfig: any = {};
+  if (typeof meanValue === 'number' && !isNaN(meanValue)) {
+    annotationsConfig.meanLine = {
+      type: 'line',
+      scaleID: 'y',
+      value: meanValue,
+      borderColor: 'hsl(var(--primary))',
+      borderWidth: 2,
+      borderDash: [5, 5],
+      label: {
+        enabled: true,
+        content: `Mean: ${formatNumberForLabel(meanValue)}`,
+        position: 'end',
+        backgroundColor: 'hsla(var(--background), 0.75)',
+        color: 'hsl(var(--primary-foreground))',
+         font: {
+          weight: 'bold'
+        },
+        padding: 3,
+        yAdjust: -10,
+      }
+    };
+  }
+  if (typeof medianValue === 'number' && !isNaN(medianValue)) {
+    annotationsConfig.medianLine = {
+      type: 'line',
+      scaleID: 'y',
+      value: medianValue,
+      borderColor: 'hsl(var(--accent))',
+      borderWidth: 2,
+      borderDash: [5, 5],
+      label: {
+        enabled: true,
+        content: `Median: ${formatNumberForLabel(medianValue)}`,
+        position: 'start',
+        backgroundColor: 'hsla(var(--background), 0.75)',
+        color: 'hsl(var(--accent-foreground))',
+         font: {
+          weight: 'bold'
+        },
+        padding: 3,
+        yAdjust: 10,
+      }
+    };
+  }
+
+  const options: ChartOptions<'bar'> = { // Explicitly type ChartOptions
     indexAxis: 'y' as const, 
     responsive: true,
     maintainAspectRatio: false,
@@ -74,35 +140,47 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
         },
         ticks: {
           color: 'hsl(var(--foreground))',
-          // Consider formatting for PDF values if they become very small
            callback: function(value: string | number) {
             if (typeof value === 'number') {
-              return value.toPrecision(2); // Adjust precision as needed
+              return value.toPrecision(2); 
             }
             return value;
           }
         },
       },
       y: { 
+        type: 'linear', // Y-axis is now linear
+        min: typeof yScaleMin === 'number' && !isNaN(yScaleMin) ? yScaleMin : undefined,
+        max: typeof yScaleMax === 'number' && !isNaN(yScaleMax) ? yScaleMax : undefined,
         title: {
           display: true,
-          text: 'Value Bins' 
+          text: 'Value' // Changed from "Value Bins"
         },
         grid: {
           display: false,
         },
         ticks: {
           color: 'hsl(var(--foreground))',
+          // Consider adding a callback here if you want to format y-axis numbers
         },
       }
     },
     plugins: {
+      annotation: {
+        annotations: annotationsConfig
+      },
       tooltip: {
         mode: 'index' as const,
         intersect: false,
         callbacks: {
             title: function(tooltipItems: any) {
-              return tooltipItems[0]?.label || ''; // Bin range e.g. "100-120"
+              // For floating bars, tooltipItems[0].label is usually the parsed y value or range.
+              // We can use dataIndex to get our original bin label.
+              const dataIndex = tooltipItems[0]?.dataIndex;
+              if (dataIndex !== undefined && data[dataIndex]) {
+                return data[dataIndex].label; // Bin range e.g. "100-120"
+              }
+              return '';
             },
             label: function(context: any) {
                 let label = context.dataset.label || ''; // "Probability Density"
@@ -111,7 +189,7 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
                 }
                 if (context.parsed.x !== null) { 
                     const val = context.parsed.x;
-                    label += typeof val === 'number' ? val.toPrecision(4) : val; // More precision for tooltip
+                    label += typeof val === 'number' ? val.toPrecision(4) : val; 
                 }
                 return label;
             }
@@ -122,7 +200,7 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
         text: title,
         padding: {
           top: 10,
-          bottom: 10
+          bottom: 30 // Added more padding to avoid overlap with annotation labels
         },
         font: {
             size: 16
@@ -134,7 +212,8 @@ export default function Histogram({ data, title = "Distribution" }: Props) {
   
   return (
     <div style={{ height: '400px', width: '100%' }}> 
-      <Bar data={chartData} options={options} />
+      {/* Ensure data has loaded before rendering chart to prevent errors with empty/undefined structures */}
+      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p>Loading chart data...</p>}
     </div>
   );
 }

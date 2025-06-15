@@ -16,7 +16,6 @@ export function getPercentile(data: number[], percentile: number): number {
   const valC = sorted[c];
 
   if (valF === undefined || valC === undefined) {
-    // Fallback if k is exactly sorted.length - 1 or 0 due to percentile calculation
     return sorted[Math.max(0, Math.min(sorted.length - 1, Math.round(k)))];
   }
   
@@ -31,9 +30,12 @@ const formatNumberForBin = (num: number): string => {
 export type SigmaCategory = '1' | '2' | '3' | 'other';
 
 export interface HistogramDataEntry {
-  label: string;
-  value: number; // This will be PDF value
+  label: string; // Bin range label e.g., "100-120"
+  value: number; // PDF value for that bin
   sigmaCategory: SigmaCategory;
+  lowerBound: number;
+  upperBound: number;
+  binCenter: number;
 }
 
 
@@ -57,18 +59,24 @@ export function getHistogram(
         else if (Math.abs(zScore) <= 2) sigmaCat = '2';
         else if (Math.abs(zScore) <= 3) sigmaCat = '3';
     } else if (!isNaN(mean) && minVal === mean) {
-        // If stdDev is 0 or NaN, but all values are the mean
         sigmaCat = '1';
     }
     return [{
         label: `${formatNumberForBin(minVal)}`,
-        value: 1, // PDF for a single point is tricky, conventionally 1 if it's the only point.
-        sigmaCategory: sigmaCat 
+        value: 1, 
+        sigmaCategory: sigmaCat,
+        lowerBound: minVal,
+        upperBound: minVal,
+        binCenter: minVal,
     }];
   }
 
   const binWidth = (maxVal - minVal) / numBins;
-  if (binWidth <= 0) return []; // Avoid division by zero or infinite loops
+  if (binWidth <= 0) { // Should only happen if minVal === maxVal, handled above, but good guard
+    console.warn("[getHistogram] binWidth is zero or negative. Data min:", minVal, "max:", maxVal, "numBins:", numBins);
+    return [];
+  }
+
 
   const bins: { 
     label: string; 
@@ -94,13 +102,19 @@ export function getHistogram(
     });
   }
   
+  // Ensure the last bin's upper bound is exactly maxVal to catch all values.
   if (bins.length > 0) {
-      bins[bins.length -1].upperBound = maxVal; // Ensure last bin includes maxVal
-      bins[bins.length -1].binCenter = (bins[bins.length-1].lowerBound + bins[bins.length-1].upperBound) / 2;
+      bins[bins.length -1].upperBound = maxVal; 
+      // Recalculate label and binCenter for the last bin if its upperBound changed significantly
+      const lastBin = bins[bins.length-1];
+      lastBin.label = `${formatNumberForBin(lastBin.lowerBound)} - ${formatNumberForBin(lastBin.upperBound)}`;
+      lastBin.binCenter = (lastBin.lowerBound + lastBin.upperBound) / 2;
   }
+
 
   for (const item of validData) {
     let binIndex = Math.floor((item - minVal) / binWidth);
+    // Special case for the max value to ensure it falls into the last bin
     if (item === maxVal) {
       binIndex = numBins - 1;
     }
@@ -108,50 +122,53 @@ export function getHistogram(
     
     if (bins[binIndex]) {
       bins[binIndex].frequency++;
+    } else {
+       // This should not happen if binIndex calculation and guards are correct
+       console.warn(`[getHistogram] No bin found for item: ${item}, calculated binIndex: ${binIndex}. Total bins: ${numBins}`);
     }
   }
   
   const totalDataPoints = validData.length;
 
   bins.forEach(bin => {
-    // Calculate PDF value
     if (totalDataPoints > 0 && binWidth > 0) {
         bin.pdfValue = bin.frequency / (totalDataPoints * binWidth);
     } else {
         bin.pdfValue = 0;
     }
 
-    // Determine sigma category
     if (!isNaN(mean) && !isNaN(stdDev) && stdDev > 0) {
         const zScore = (bin.binCenter - mean) / stdDev;
         if (Math.abs(zScore) <= 1) bin.sigmaCategory = '1';
         else if (Math.abs(zScore) <= 2) bin.sigmaCategory = '2';
         else if (Math.abs(zScore) <= 3) bin.sigmaCategory = '3';
         else bin.sigmaCategory = 'other';
-    } else if (!isNaN(mean) && bin.binCenter >= mean && bin.binCenter <= mean && stdDev === 0) {
-        // Handle case where all data points are the same (stdDev is 0)
+    } else if (!isNaN(mean) && bin.binCenter >= mean && bin.binCenter <= mean && (stdDev === 0 || isNaN(stdDev)) ) {
         bin.sigmaCategory = '1';
     } else {
         bin.sigmaCategory = 'other';
     }
   });
   
-  bins.sort((a, b) => a.lowerBound - b.lowerBound);
+  // No sorting by lowerBound needed as bins are created in order
 
   return bins.map(b => ({ 
     label: b.label, 
     value: b.pdfValue, 
-    sigmaCategory: b.sigmaCategory 
+    sigmaCategory: b.sigmaCategory,
+    lowerBound: b.lowerBound,
+    upperBound: b.upperBound,
+    binCenter: b.binCenter
   }));
 }
 
 
 export function getStandardDeviation(data: number[]): number {
   const validData = data.filter(d => !isNaN(d) && isFinite(d));
-  if (validData.length < 2) return 0; // Return 0 instead of NaN for stdDev if not enough data
+  if (validData.length < 2) return 0; 
   const meanValue = getMean(validData);
-  if (isNaN(meanValue)) return NaN; // Should not happen if validData has items
-  const variance = validData.reduce((acc, val) => acc + Math.pow(val - meanValue, 2), 0) / (validData.length -1); // Sample variance
+  if (isNaN(meanValue)) return NaN; 
+  const variance = validData.reduce((acc, val) => acc + Math.pow(val - meanValue, 2), 0) / (validData.length -1); 
   return Math.sqrt(variance);
 }
 

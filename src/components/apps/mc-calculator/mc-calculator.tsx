@@ -14,7 +14,7 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(21);
+  const [histogramBins, setHistogramBins] = useState(23); // Default changed
   const [submittedExpression, setSubmittedExpression] = useState(""); 
   const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
@@ -22,7 +22,11 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Removed initial calculation trigger:
+    // if (expression && !submittedExpression) {
+    //   handleCalculate();
+    // }
+  }, []); // Removed expression, submittedExpression from deps for initial load
   
   const result = useCalculator(
     submittedExpression, 
@@ -32,6 +36,8 @@ export default function MCCalculator() {
   
   const handleCalculate = () => {
     if (!expression.trim()) {
+        // Optionally, show a toast or an inline message if the expression is empty
+        // For now, just return to prevent calculation with empty input.
         return;
     }
     setSubmittedExpression(expression);
@@ -66,9 +72,16 @@ export default function MCCalculator() {
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {calcResult.histogram && calcResult.histogram.length > 0 ? (
+      {calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.p50) ? (
         <div className="mt-4 h-[400px] w-full">
-          <Histogram data={calcResult.histogram} title="Outcome Distribution"/>
+          <Histogram 
+            data={calcResult.histogram} 
+            title="Outcome Distribution (Probability Density)"
+            meanValue={calcResult.mean}
+            medianValue={calcResult.p50}
+            yScaleMin={calcResult.min}
+            yScaleMax={calcResult.max}
+          />
         </div>
       ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null }
     </>

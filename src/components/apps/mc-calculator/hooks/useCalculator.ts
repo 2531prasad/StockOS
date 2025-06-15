@@ -79,7 +79,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
             } else if (typeof evalResult === 'number' && !isFinite(evalResult) ) {
               error = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
               currentResults = [NaN];
-            } else if (typeof evalResult === 'string') { // Error message from evaluateDeterministic
+            } else if (typeof evalResult === 'string') { 
               error = evalResult; 
               currentResults = [NaN]; 
             }
@@ -93,8 +93,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
                error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
-            // Partial errors occurred, these are handled by filtering NaNs later
-            // console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations.`);
+             console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations were filtered out before statistical analysis.`);
           }
       }
       
@@ -112,14 +111,16 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     }
 
     const finalValidResults = currentResults.filter(n => !isNaN(n) && isFinite(n));
-
+    
+    const calculatedMin = finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.min(a, b), Infinity) : NaN;
+    const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN;
     const calculatedMean = getMean(finalValidResults);
     const calculatedStdDev = getStandardDeviation(finalValidResults);
 
     setData({
       results: finalValidResults.length > 0 ? finalValidResults : (processedData?.error || error) ? [NaN] : [], 
-      min: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.min(a, b), Infinity) : NaN,
-      max: finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN,
+      min: calculatedMin,
+      max: calculatedMax,
       mean: calculatedMean,
       stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
@@ -133,7 +134,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       expressionUsed: submittedExpression 
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); // Added data.expressionUsed to ensure reset logic works correctly
+  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); 
 
   return data;
 }
