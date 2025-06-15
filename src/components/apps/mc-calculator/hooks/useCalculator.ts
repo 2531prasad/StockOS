@@ -2,7 +2,10 @@
 import { useState, useEffect } from 'react';
 import { preprocessExpression, type ProcessedExpression } from "../utils/expressionParser";
 import { runSimulation, evaluateDeterministic } from "../utils/monteCarlo";
-import { getPercentile, getHistogram, getStandardDeviation, getMean, type HistogramDataEntry } from "../utils/stats";
+import { getPercentile, getHistogram, getStandardDeviation, getMean, type HistogramDataEntry as StatsHistogramDataEntry } from "../utils/stats";
+
+// This is the type coming from stats.ts
+export type HistogramDataEntry = StatsHistogramDataEntry;
 
 export interface CalculatorResults {
   results: number[];
@@ -108,8 +111,8 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
     const finalValidResults = currentResults.filter(n => !isNaN(n) && isFinite(n));
     
-    const calculatedMin = finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.min(a, b), Infinity) : NaN;
-    const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((a, b) => Math.max(a, b), -Infinity) : NaN;
+    const calculatedMin = finalValidResults.length > 0 ? finalValidResults.reduce((min, val) => Math.min(min, val), Infinity) : NaN;
+    const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((max, val) => Math.max(max, val), -Infinity) : NaN;
     const calculatedMean = getMean(finalValidResults);
     const calculatedStdDev = getStandardDeviation(finalValidResults);
     const calculatedP50 = getPercentile(finalValidResults, 50);
@@ -125,7 +128,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       p50: calculatedP50, 
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
-      histogram: getHistogram(finalValidResults, histogramBinCount),
+      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev), // Pass mean and stdDev
       error,
       isDeterministic: isDeterministicCalculation,
       expressionUsed: submittedExpression 

@@ -12,6 +12,7 @@ import {
   type ChartOptions,
   type ChartData,
   type PluginOptionsByType,
+  type ScriptableContext,
 } from "chart.js";
 import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions } from 'chartjs-plugin-annotation';
 
@@ -24,6 +25,7 @@ export interface HistogramEntry {
   lowerBound: number; 
   upperBound: number;
   binCenter: number;
+  sigmaCategory: '1' | '2' | '3' | 'other';
 }
 
 interface Props {
@@ -41,10 +43,9 @@ const findBinIndexForValue = (value: number, bins: HistogramEntry[]): number => 
       return i;
     }
   }
-  // If value is outside all bins, snap to closest
   if (value < bins[0].lowerBound) return 0;
   if (value > bins[bins.length - 1].upperBound) return bins.length - 1;
-  return -1; // Should not happen if logic is correct
+  return -1; 
 };
 
 
@@ -61,13 +62,39 @@ export default function Histogram({
     return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const getBarColor = (context: ScriptableContext<'bar'>): string => {
+    const index = context.dataIndex;
+    const entry = data[index];
+    if (!entry || !entry.sigmaCategory) return `hsl(var(--sigma-other-bg))`;
+
+    switch (entry.sigmaCategory) {
+      case '1': return `hsl(var(--sigma-1-bg))`;
+      case '2': return `hsl(var(--sigma-2-bg))`;
+      case '3': return `hsl(var(--sigma-3-bg))`;
+      default: return `hsl(var(--sigma-other-bg))`;
+    }
+  };
+
+  const getBorderColor = (context: ScriptableContext<'bar'>): string => {
+    const index = context.dataIndex;
+    const entry = data[index];
+    if (!entry || !entry.sigmaCategory) return `hsl(var(--sigma-other-border))`;
+
+    switch (entry.sigmaCategory) {
+      case '1': return `hsl(var(--sigma-1-border))`;
+      case '2': return `hsl(var(--sigma-2-border))`;
+      case '3': return `hsl(var(--sigma-3-border))`;
+      default: return `hsl(var(--sigma-other-border))`;
+    }
+  };
+
   const chartData: ChartData<'bar'> = {
     labels: data.map(d => d.label), 
     datasets: [{
       label: "Probability", 
       data: data.map(entry => entry.probability), 
-      backgroundColor: `hsl(var(--primary))`,
-      borderColor: `hsl(var(--primary-foreground))`,
+      backgroundColor: getBarColor,
+      borderColor: getBorderColor,
       borderWidth: 1,
       barPercentage: 1.0,
       categoryPercentage: 1.0,
@@ -90,7 +117,7 @@ export default function Histogram({
           content: `Mean: ${formatNumberForLabel(meanValue)}`,
           position: 'top',
           backgroundColor: 'hsla(var(--card), 0.8)',
-          color: `hsl(var(--destructive-foreground))`,
+          color: `hsl(var(--foreground))`, // Changed for better visibility on various bar colors
           font: { weight: 'bold' },
           yAdjust: -5,
         }
@@ -105,7 +132,7 @@ export default function Histogram({
         type: 'line',
         scaleID: 'x',
         value: medianBinIndex,
-        borderColor: `hsl(var(--chart-2))`, // Using a chart-specific color
+        borderColor: `hsl(var(--chart-2))`, 
         borderWidth: 2,
         borderDash: [6, 6],
         label: {
@@ -113,7 +140,7 @@ export default function Histogram({
           content: `Median: ${formatNumberForLabel(medianValue)}`,
           position: 'bottom',
           backgroundColor: 'hsla(var(--card), 0.8)',
-          color: `hsl(var(--chart-2))`,
+          color: `hsl(var(--foreground))`, // Changed for better visibility
           font: { weight: 'bold' },
           yAdjust: 5,
         }
@@ -123,7 +150,6 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    // Use a muted foreground for sigma lines, or define specific chart sigma colors
     const sigmaLineColor = `hsl(var(--muted-foreground))`;
 
     sigmas.forEach((s) => {
