@@ -14,7 +14,7 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(21); // Defaulting to 21 for more percentile points
+  const [histogramBins, setHistogramBins] = useState(23); 
   const [submittedExpression, setSubmittedExpression] = useState("");
   const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
@@ -26,7 +26,7 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 10000,
+    submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
 
@@ -70,10 +70,9 @@ export default function MCCalculator() {
         <div className="mt-4 h-[450px] w-full">
           <Histogram
             data={calcResult.histogram}
-            simulationResults={calcResult.results} // Pass raw results
             title="Outcome Distribution"
             meanValue={calcResult.mean}
-            medianValue={calcResult.p50}
+            medianValue={calcResult.p50} 
             stdDevValue={calcResult.stdDev}
           />
         </div>
@@ -89,7 +88,11 @@ export default function MCCalculator() {
       <Card className="w-full max-w-4xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl">Monte Carlo Calculator</CardTitle>
-          <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation. Vertical lines indicate Mean, Median, and Standard Deviations (σ). X-axis values on chart represent data values at specific percentiles.</CardDescription>
+          <CardDescription>
+            Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
+            Vertical lines indicate Mean, Median, and Standard Deviations (σ).
+            Bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ).
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
@@ -120,13 +123,13 @@ export default function MCCalculator() {
 
           <div className="mb-6">
             <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Chart Detail (Number of Points/Bars): {histogramBins}
+              Histogram Bins (Chart Detail): {histogramBins}
             </Label>
             <Slider
               id="histogram-bins-slider"
               min={5}
               max={50}
-              step={1}
+              step={1} 
               value={[histogramBins]}
               onValueChange={(value) => setHistogramBins(value[0])}
               className="mt-2"
@@ -147,6 +150,7 @@ export default function MCCalculator() {
             {showResults && result.isDeterministic && renderDeterministicOutput(result)}
             {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
           </div>
+
         </CardContent>
       </Card>
       <footer className="text-center mt-8 text-muted-foreground text-xs">

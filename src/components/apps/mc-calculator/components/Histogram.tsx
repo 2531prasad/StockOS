@@ -1,4 +1,3 @@
-
 "use client";
 import React from 'react';
 import { Bar } from "react-chartjs-2";
@@ -11,18 +10,16 @@ import {
   Title,
   type ChartOptions,
   type ChartData,
-  type PluginOptionsByType,
   type ScriptableContext,
   type Tick,
 } from "chart.js";
 import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions } from 'chartjs-plugin-annotation';
-import { getPercentile } from "../utils/stats"; // Import getPercentile
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotationPlugin);
 
 export interface HistogramEntry {
   label: string; // e.g., "100.0-110.0"
-  probability: number;
+  probability: number; // This is the PDF value or normalized frequency
   lowerBound: number;
   upperBound: number;
   binCenter: number;
@@ -31,81 +28,50 @@ export interface HistogramEntry {
 
 interface Props {
   data: HistogramEntry[];
-  simulationResults?: number[]; // Raw simulation data for percentile calculations
   title?: string;
   meanValue?: number;
   medianValue?: number;
   stdDevValue?: number;
 }
 
-// Helper function to generate percentile steps
-function getEvenPercentileSteps(binCount: number): number[] {
-  if (binCount <= 0) return [];
-  if (binCount === 1) return [50]; // Single bar, show median percentile
+const formatNumberForLabel = (num: number | undefined, digits: number = 2): string => {
+  if (num === undefined || isNaN(num)) return "N/A";
+  if (Math.abs(num) < 0.01 && num !== 0 && (Math.abs(num) < 0.0001 || Math.abs(num) > 1e-5 )) return num.toExponential(1);
+  if (Math.abs(num) >= 10000 || (Math.abs(num) < 0.1 && num !== 0)) {
+    return num.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: Math.max(digits, 3) });
+  }
+  return num.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+};
 
-  const startPercentile = 5;
-  const endPercentile = 95;
-  // For binCount items, there are binCount - 1 intervals.
-  const step = (endPercentile - startPercentile) / (binCount - 1);
+const findBinIndexForValue = (value: number, data: HistogramEntry[]): number => {
+    if (!data || data.length === 0 || isNaN(value)) return -1;
 
-  return Array.from({ length: binCount }, (_, i) => {
-    const pVal = startPercentile + i * step;
-    return parseFloat(pVal.toFixed(2));
-  });
-}
-
-
-const findBinIndexForValue = (value: number, dataValues: number[]): number => {
-    if (!dataValues || dataValues.length === 0 || isNaN(value)) return -1;
-
-    let closestIndex = -1;
-    let minDiff = Infinity;
-
-    for (let i = 0; i < dataValues.length; i++) {
-        if (isNaN(dataValues[i])) continue;
-        const diff = Math.abs(dataValues[i] - value);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closestIndex = i;
+    for (let i = 0; i < data.length; i++) {
+        if (value >= data[i].lowerBound && value <= data[i].upperBound) {
+            if (i === data.length - 1 && value === data[i].upperBound) return i;
+            if (value < data[i].upperBound || value === data[i].lowerBound) return i;
         }
     }
-    return closestIndex;
+    if (value < data[0].lowerBound) return 0;
+    if (value > data[data.length - 1].upperBound) return data.length - 1;
+    if (value === data[data.length -1].upperBound) return data.length -1;
+
+    return -1; 
 };
 
 
 export default function Histogram({
   data,
-  simulationResults,
   title = "Distribution",
   meanValue,
   medianValue,
   stdDevValue,
 }: Props) {
 
-  const formatNumberForLabel = (num: number | undefined, digits: number = 2): string => {
-    if (num === undefined || isNaN(num)) return "N/A";
-    return num.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  };
-
-  const numBars = data.length;
-  const percentilePoints = getEvenPercentileSteps(numBars);
-  
-  const safeSimulationResults = simulationResults && simulationResults.length > 0 ? simulationResults : [];
-
-  const xAxisDataPoints = percentilePoints.map(p => {
-    if (safeSimulationResults.length === 0) return p; // Fallback if no results, unlikely but safe
-    return parseFloat(getPercentile(safeSimulationResults, p).toFixed(2));
-  }).filter(v => !isNaN(v));
-  
-  // Ensure data for the dataset matches the number of actual x-axis points calculated
-  const probabilities = data.slice(0, xAxisDataPoints.length).map(entry => entry.probability);
-  const sigmaCategoriesForBars = data.slice(0, xAxisDataPoints.length).map(entry => entry.sigmaCategory);
-
-
   const getBarColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
-    const sigmaCategory = sigmaCategoriesForBars[index];
-    if (!sigmaCategory) return 'hsl(var(--sigma-other-bg))';
+    const sigmaCategory = data[index]?.sigmaCategory;
+    if (!sigmaCategory) return 'hsl(var(--sigma-other-bg))'; // Fallback
 
     switch (sigmaCategory) {
       case '1': return 'hsl(var(--sigma-1-bg))';
@@ -117,8 +83,8 @@ export default function Histogram({
 
   const getBorderColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
-    const sigmaCategory = sigmaCategoriesForBars[index];
-     if (!sigmaCategory) return 'hsl(var(--sigma-other-border))';
+    const sigmaCategory = data[index]?.sigmaCategory;
+     if (!sigmaCategory) return 'hsl(var(--sigma-other-border))'; // Fallback
 
     switch (sigmaCategory) {
       case '1': return 'hsl(var(--sigma-1-border))';
@@ -129,45 +95,47 @@ export default function Histogram({
   };
 
   const chartData: ChartData<'bar'> = {
-    labels: xAxisDataPoints, // Numeric X-coordinates for a linear axis
+    labels: data.map(entry => entry.label), 
     datasets: [{
-      label: "Probability",
-      data: probabilities, // Y-values (probabilities)
+      label: "Probability", 
+      data: data.map(entry => entry.probability),
       backgroundColor: getBarColor,
       borderColor: getBorderColor,
       borderWidth: 1,
-      barPercentage: 1.0, // Adjust for potentially non-uniform spacing if needed
-      categoryPercentage: 1.0, // Adjust for potentially non-uniform spacing
+      barPercentage: 1.0, 
+      categoryPercentage: 1.0, 
     }]
   };
 
   const annotationsConfig: Record<string, AnnotationOptions> = {};
 
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
+    const meanBinIndex = findBinIndexForValue(meanValue, data);
     annotationsConfig.meanLine = {
       type: 'line',
-      scaleID: 'x',
-      value: meanValue,
-      borderColor: 'hsl(var(--destructive))', // Using destructive for high visibility
+      scaleID: 'x', 
+      value: meanBinIndex !== -1 ? meanBinIndex : undefined, 
+      borderColor: 'hsl(var(--destructive))', 
       borderWidth: 2,
       label: {
         enabled: true,
         content: `Mean: ${formatNumberForLabel(meanValue)}`,
         position: 'top',
         backgroundColor: 'hsla(var(--card), 0.7)',
-        color: 'hsl(var(--destructive-foreground))',
+        color: 'hsl(var(--destructive-foreground))', 
         font: { weight: 'bold' },
-        yAdjust: -5,
+        yAdjust: -5, 
       }
     };
   }
 
   if (typeof medianValue === 'number' && !isNaN(medianValue)) {
+    const medianBinIndex = findBinIndexForValue(medianValue, data);
     annotationsConfig.medianLine = {
       type: 'line',
-      scaleID: 'x',
-      value: medianValue,
-      borderColor: 'hsl(var(--primary))', // Using primary for median
+      scaleID: 'x', 
+      value: medianBinIndex !== -1 ? medianBinIndex : undefined, 
+      borderColor: 'hsl(var(--primary))', 
       borderWidth: 2,
       borderDash: [6, 6],
       label: {
@@ -177,25 +145,25 @@ export default function Histogram({
         backgroundColor: 'hsla(var(--card), 0.7)',
         color: 'hsl(var(--primary-foreground))',
         font: { weight: 'bold' },
-        yAdjust: 5,
+        yAdjust: 5, 
       }
     };
   }
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    // Using a muted color for sigma lines to avoid clutter
     const sigmaLineColor = 'hsl(var(--muted-foreground))'; 
     const sigmaLabelBackgroundColor = 'hsla(var(--background), 0.7)';
 
 
     sigmas.forEach((s) => {
       const sigmaVal = meanValue + s * stdDevValue;
-      // For a linear X-axis, the value is directly sigmaVal
+      const sigmaBinIndex = findBinIndexForValue(sigmaVal, data);
+      if (sigmaBinIndex !== -1) {
         annotationsConfig[`sigmaLine${s}`] = {
           type: 'line',
           scaleID: 'x',
-          value: sigmaVal,
+          value: sigmaBinIndex,
           borderColor: sigmaLineColor,
           borderWidth: 1,
           borderDash: [2, 2],
@@ -205,50 +173,44 @@ export default function Histogram({
             position: s < 0 ? 'start' : 'end',
             rotation: 90,
             backgroundColor: sigmaLabelBackgroundColor,
-            color: sigmaLineColor,
+            color: sigmaLineColor, 
             font: { size: 10 },
-            yAdjust: s < 0 ? -15 : 15, // Adjusted for vertical text
+            yAdjust: s < 0 ? -15 : 15, 
           }
         };
+      }
     });
   }
+
 
   const options: ChartOptions<'bar'> & PluginOptionsByType<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      x: {
-        type: 'linear', // X-axis is now linear
+      x: { 
+        type: 'category',
         title: {
           display: true,
-          text: 'Value (at Percentiles)',
+          text: 'Value Bins',
           color: `hsl(var(--foreground))`
         },
         grid: {
           color: `hsl(var(--border))`,
-          display: false,
+          display: false, 
         },
         ticks: {
           color: `hsl(var(--foreground))`,
           maxRotation: 45,
           minRotation: 30,
-          autoSkip: true,
-          // Chart.js will auto-generate ticks on the linear scale.
-          // Bars are positioned at xAxisDataPoints, ticks might differ.
-          callback: function(value: string | number, index: number, ticks: Tick[]) {
-            if (typeof value === 'number') {
-              return formatNumberForLabel(value, 1);
-            }
-            return value;
-          }
+          autoSkip: true, 
         },
       },
-      y: {
+      y: { 
         type: 'linear',
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Probability',
+          text: 'Probability', 
           color: `hsl(var(--foreground))`
         },
         grid: {
@@ -258,7 +220,7 @@ export default function Histogram({
           color: `hsl(var(--foreground))`,
           callback: function(value: string | number, index: number, ticks: Tick[]) {
             if (typeof value === 'number') {
-              return (value * 100).toFixed(0) + '%';
+              return (value * 100).toFixed(0) + '%'; 
             }
             return value;
           }
@@ -268,23 +230,17 @@ export default function Histogram({
     plugins: {
       annotation: {
         annotations: annotationsConfig,
-        drawTime: 'afterDatasetsDraw'
-      } as AnnotationPluginOptions,
+        drawTime: 'afterDatasetsDraw' 
+      } as AnnotationPluginOptions, 
       tooltip: {
-        mode: 'index' as const, // Might need 'nearest' with linear X for better UX
+        mode: 'index',
         intersect: false,
         backgroundColor: `hsl(var(--card))`,
         titleColor: `hsl(var(--card-foreground))`,
         bodyColor: `hsl(var(--card-foreground))`,
         callbacks: {
           title: function(tooltipItems: any) {
-            const dataIndex = tooltipItems[0]?.dataIndex;
-            // Since X-axis is linear, tooltipItems[0].label might be the numeric x-value
-            // or we can use props.data[dataIndex].label for the original bin range.
-            if (dataIndex !== undefined && data[dataIndex]) {
-              return `Bin: ${data[dataIndex].label}\n(Percentile X-value: ${formatNumberForLabel(xAxisDataPoints[dataIndex])})`;
-            }
-            return '';
+            return `Bin: ${tooltipItems[0].label}`;
           },
           label: function(context: any) {
             let label = context.dataset.label || '';
@@ -316,7 +272,7 @@ export default function Histogram({
 
   return (
     <div style={{ height: '450px', width: '100%' }}>
-      {data && data.length > 0 && xAxisDataPoints.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
+      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
     </div>
   );
 }
