@@ -8,63 +8,61 @@ export function preprocessExpression(expr: string): PreprocessedExpression {
   console.log('[expressionParser] Raw input expression:', JSON.stringify(expr));
 
   let processedExpr = expr.replace(/x|X/gi, '*');
-  processedExpr = processedExpr.replace(/\s+/g, '');
+  processedExpr = processedExpr.replace(/\s+/g, ''); // Remove all whitespace
   console.log('[expressionParser] After whitespace and "x" replacement:', JSON.stringify(processedExpr));
 
   const ranges: { min: number; max: number }[] = [];
   let varIndex = 0;
   let expressionWithPlaceholders = processedExpr;
 
-  // Iteratively find and replace ranges
-  // The regex looks for number~number patterns.
-  // (-?\d+(?:\.\d+)?) matches the first number (min), allowing for optional '-' and decimal.
-  // ~ is the literal separator.
-  // (-?\d+(?:\.\d+)?) matches the second number (max), same pattern.
-  const rangeRegex = /(-?\d+(?:\.\d+)?)~(-?\d+(?:\.\d+)?)/; 
+  // Regex must be global for iterative exec to advance.
+  const rangeRegex = /(-?\d+(?:\.\d+)?)~(-?\d+(?:\.\d+)?)/g; 
   let matchResult;
 
-  // Keep replacing the first found match until no more matches are found in the string
   // eslint-disable-next-line no-cond-assign
   while ((matchResult = rangeRegex.exec(expressionWithPlaceholders)) !== null) {
     const fullMatch = matchResult[0]; // The entire matched string, e.g., "600~700"
     const minStr = matchResult[1];    // The first captured group (min value string)
     const maxStr = matchResult[2];    // The second captured group (max value string)
 
+    console.log(`[expressionParser] Iteration ${varIndex}: Found match "${fullMatch}" at index ${matchResult.index}. Current expression: "${expressionWithPlaceholders}"`);
+
     const min = parseFloat(minStr);
     const max = parseFloat(maxStr);
 
-    // Validate parsing; if numbers are not valid, replace with a string
-    // that will prevent an infinite loop and likely cause a clear error in mathjs.
     if (isNaN(min) || isNaN(max)) {
-      console.warn(`[expressionParser] Failed to parse range from match: "${fullMatch}". Min string: "${minStr}", Max string: "${maxStr}".`);
-      // Replace the problematic match with a unique error string to avoid re-matching it infinitely.
-      // This part of the string will then likely cause an error in math.js, which is intended behavior for invalid input.
-      expressionWithPlaceholders = expressionWithPlaceholders.replace(fullMatch, `_INVALID_RANGE_${varIndex}_`);
-      // We don't push to ranges or increment varIndex for an invalid parse here.
+      console.warn(`[expressionParser] Failed to parse range from match: "${fullMatch}". Min string: "${minStr}", Max string: "${maxStr}". Replacing with error placeholder.`);
+      const errorPlaceholder = `_INVALID_RANGE_${varIndex}_`;
+      expressionWithPlaceholders = 
+          expressionWithPlaceholders.substring(0, matchResult.index) + 
+          errorPlaceholder + 
+          expressionWithPlaceholders.substring(matchResult.index + fullMatch.length);
+      rangeRegex.lastIndex = 0; // Reset regex for the modified string
       continue; 
     }
     
     ranges.push({ min, max });
     const placeholder = `VAR${varIndex++}`;
-    // Replace only the first occurrence of `fullMatch` with the generated placeholder.
-    // This is crucial for iterative replacement.
-    const indexOfMatch = matchResult.index;
+    
     expressionWithPlaceholders = 
-        expressionWithPlaceholders.substring(0, indexOfMatch) + 
+        expressionWithPlaceholders.substring(0, matchResult.index) + 
         placeholder + 
-        expressionWithPlaceholders.substring(indexOfMatch + fullMatch.length);
+        expressionWithPlaceholders.substring(matchResult.index + fullMatch.length);
+    
+    console.log(`[expressionParser] Iteration ${varIndex-1}: Replaced with "${placeholder}". New expression: "${expressionWithPlaceholders}"`);
+    
+    // Reset the regex's lastIndex because the string has been modified.
+    // This ensures the next search starts from the beginning of the modified string.
+    rangeRegex.lastIndex = 0;
   }
   
   console.log('[expressionParser] Final expressionWithPlaceholders:', JSON.stringify(expressionWithPlaceholders));
   console.log('[expressionParser] Collected ranges:', JSON.stringify(ranges));
 
-  // Check for malformed VARnVARm patterns, which indicates operators were lost.
   const malformedVarPattern = /VAR\d+VAR\d+/;
   if (malformedVarPattern.test(expressionWithPlaceholders)) {
     const errorMessage = `[expressionParser] CRITICAL PARSER ERROR: Malformed VARnVARm pattern detected in expression: "${expressionWithPlaceholders}". This indicates operators between ranges were lost.`;
     console.error(errorMessage);
-    // Depending on desired behavior, you might throw an error here to halt processing:
-    // throw new Error(errorMessage); 
   }
 
   return {
