@@ -55,12 +55,16 @@ export function useCalculator(submittedExpression: string, iterations: number = 
   }, []);
 
   useEffect(() => {
-    if (!isClient || !submittedExpression) {
-      if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
-        setData(defaultInitialResults);
-      }
+    if (!isClient) {
+      setData(prevData => JSON.stringify(prevData) !== JSON.stringify(defaultInitialResults) ? defaultInitialResults : prevData);
       return;
     }
+    
+    if (!submittedExpression) {
+        setData(prevData => JSON.stringify(prevData) !== JSON.stringify(defaultInitialResults) ? defaultInitialResults : prevData);
+        return;
+    }
+
 
     let currentResults: number[] = [];
     let generalError: string | null = null;
@@ -100,13 +104,14 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
       if (minExprEvalError || maxExprEvalError) {
         currentAnalyticalError = [minExprEvalError, maxExprEvalError].filter(Boolean).join('. ');
-      } else {
-        // Both expressions evaluated to valid, finite numbers
+      } else if (!isNaN(valForMinInputs) && !isNaN(valForMaxInputs)) { // Ensure both are valid numbers before comparison
         if (valForMinInputs > valForMaxInputs) {
           currentAnalyticalError = "Note: The expression's structure causes the 'all-min-inputs' case to yield a higher value than the 'all-max-inputs' case (e.g., due to subtraction or division by a range). The displayed analytical range reflects the true overall minimum and maximum possible outcomes.";
         }
         currentAnalyticalMin = Math.min(valForMinInputs, valForMaxInputs);
         currentAnalyticalMax = Math.max(valForMinInputs, valForMaxInputs);
+      } else {
+        currentAnalyticalError = (currentAnalyticalError || "") + " Could not determine analytical range due to non-finite results from min/max expressions.";
       }
 
 
@@ -183,7 +188,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       analyticalError: currentAnalyticalError,
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient, data]); // Added `data` to dependency array to re-evaluate if it changes externally.
+  }, [submittedExpression, iterations, histogramBinCount, isClient]); // Removed `data` from dependency array
 
   return data;
 }
