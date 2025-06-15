@@ -11,7 +11,6 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -24,7 +23,7 @@ import { Terminal, HelpCircle } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [histogramBins, setHistogramBins] = useState(23); 
+  const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState("");
   const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
@@ -36,7 +35,7 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, 
+    submittedIterations > 0 ? submittedIterations : 1,
     submittedHistogramBins
   );
 
@@ -82,7 +81,7 @@ export default function MCCalculator() {
             data={calcResult.histogram}
             title="Outcome Distribution"
             meanValue={calcResult.mean}
-            medianValue={calcResult.p50} 
+            medianValue={calcResult.p50}
             stdDevValue={calcResult.stdDev}
           />
         </div>
@@ -109,77 +108,76 @@ export default function MCCalculator() {
               <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-xl">How This Calculator Works</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm text-left max-h-[70vh] overflow-y-auto pr-2">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-semibold text-base mb-1">🚀 What This Calculator Does</h3>
-                        <p>Unlike normal calculators, this tool allows you to:</p>
-                        <ul className="list-disc list-inside ml-4">
-                          <li>Use ranges (uncertainty) in inputs (e.g. 5~10)</li>
-                          <li>Simulate thousands of random outcomes using Monte Carlo</li>
-                          <li>Visualize result distributions via a histogram</li>
-                          <li>Understand risk and variability through percentiles</li>
-                        </ul>
-                      </div>
+                  {/* Replaced AlertDialogDescription with a div for complex content */}
+                  <div className="text-sm text-muted-foreground text-left max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">🚀 What This Calculator Does</h3>
+                      <p>Unlike normal calculators, this tool allows you to:</p>
+                      <ul className="list-disc list-inside ml-4">
+                        <li>Use ranges (uncertainty) in inputs (e.g. 5~10)</li>
+                        <li>Simulate thousands of random outcomes using Monte Carlo</li>
+                        <li>Visualize result distributions via a histogram</li>
+                        <li>Understand risk and variability through percentiles</li>
+                      </ul>
+                    </div>
 
-                      <div>
-                        <h3 className="font-semibold text-base mb-1">✍️ Expression Syntax</h3>
-                        <div className="space-y-1">
-                          <p><strong>Fixed number:</strong> As usual (e.g., <code>5 + 10</code>)</p>
-                          <p><strong>Uncertain/range value:</strong> Use ~ between min and max (e.g., <code>5~10</code>, <code>-2~3.5</code>)</p>
-                          <p><strong>Round values:</strong> Use round(...) (e.g., <code>round(1~6)</code>)</p>
-                          <p><strong>Multiplication:</strong> Use * or implicit like 5(2~3) (e.g., <code>2 * (3~5)</code>, or <code>5(1~6)</code>)</p>
-                          <p><strong>Area of circle:</strong> pi * r^2 (e.g., <code>pi * (4~6)^2</code>)</p>
-                          <p><strong>Salary model (yearly):</strong> monthly * 12 (e.g., <code>(3000~4000) * 12</code>)</p>
-                          <p><strong>Investment growth:</strong> Compound multiplication (e.g., <code>10000 * (1 + 0.05~0.15)^5</code>)</p>
-                          <p><strong>Dice roll (2 dice sum):</strong> round(1~6) + round(1~6) (✅ realistic distribution)</p>
-                          <p><strong>Population sampling:</strong> Multiple samples per range (e.g., <code>round(20~30) + round(20~30) + ...</code>)</p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-base mb-1">📈 Interpreting the Results</h3>
-                        <p>After simulation (default 10,000 iterations), you’ll get:</p>
-                        <ul className="list-disc list-inside ml-4">
-                          <li><strong>Range:</strong> The full simulated result range (min-max)</li>
-                          <li><strong>Mean:</strong> Average outcome</li>
-                          <li><strong>Std Dev:</strong> Statistical spread (variability)</li>
-                          <li><strong>Median (P50):</strong> 50th percentile (center of data)</li>
-                          <li><strong>P5, P10, P90, P95:</strong> Useful risk boundaries</li>
-                          <li><strong>Histogram:</strong> Shape of result distribution</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-base mb-1">🎨 Histogram Features</h3>
-                        <p>Bar colors reflect standard deviation zones:</p>
-                        <ul className="list-disc list-inside ml-4">
-                          <li>🟦 Center (±1σ) — most likely values</li>
-                          <li>🟩 ±2σ — less likely</li>
-                          <li>🟨 ±3σ — rare outcomes</li>
-                        </ul>
-                        <p className="mt-1">Labels can display values at key percentiles (based on bin count).</p>
-                        <p className="mt-1">Vertical lines show:</p>
-                        <ul className="list-disc list-inside ml-4">
-                          <li>Mean (μ)</li>
-                          <li>Median</li>
-                          <li>±1σ, ±2σ, ±3σ</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-base mb-1">🧠 Use Cases</h3>
-                        <div className="space-y-1">
-                          <p><strong>Business Viability:</strong> <code>50000~80000 * 0.1~0.2 * 5~10 - 20000~50000</code></p>
-                          <p><strong>Income Forecasting:</strong> <code>1000~1500 * 12~14 * (1 - 0.3~0.4)</code></p>
-                          <p><strong>Time Saved Estimate:</strong> <code>(3~5 * 5~10 * 52) / 60 - 10~15</code></p>
-                          <p><strong>Investment Return:</strong> <code>10000 * (1 + -0.05~0.15)^5</code></p>
-                          <p><strong>Risk of Infection:</strong> <code>(10~30 / 100) * (0.1~1.0 / 100) * 1000000</code></p>
-                          <p><strong>Geometry/Physics:</strong> <code>pi * (4~6)^2</code>, <code>2 * pi * (10~12)</code></p>
-                        </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">✍️ Expression Syntax</h3>
+                      <div className="space-y-1">
+                        <p><strong>Fixed number:</strong> As usual (e.g., <code>5 + 10</code>)</p>
+                        <p><strong>Uncertain/range value:</strong> Use ~ between min and max (e.g., <code>5~10</code>, <code>-2~3.5</code>)</p>
+                        <p><strong>Round values:</strong> Use round(...) (e.g., <code>round(1~6)</code>)</p>
+                        <p><strong>Multiplication:</strong> Use * or implicit like 5(2~3) (e.g., <code>2 * (3~5)</code>, or <code>5(1~6)</code>)</p>
+                        <p><strong>Area of circle:</strong> pi * r^2 (e.g., <code>pi * (4~6)^2</code>)</p>
+                        <p><strong>Salary model (yearly):</strong> monthly * 12 (e.g., <code>(3000~4000) * 12</code>)</p>
+                        <p><strong>Investment growth:</strong> Compound multiplication (e.g., <code>10000 * (1 + 0.05~0.15)^5</code>)</p>
+                        <p><strong>Dice roll (2 dice sum):</strong> round(1~6) + round(1~6) (✅ realistic distribution)</p>
+                        <p><strong>Population sampling:</strong> Multiple samples per range (e.g., <code>round(20~30) + round(20~30) + ...</code>)</p>
                       </div>
                     </div>
-                  </AlertDialogDescription>
+
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">📈 Interpreting the Results</h3>
+                      <p>After simulation (default 10,000 iterations), you’ll get:</p>
+                      <ul className="list-disc list-inside ml-4">
+                        <li><strong>Range:</strong> The full simulated result range (min-max)</li>
+                        <li><strong>Mean:</strong> Average outcome</li>
+                        <li><strong>Std Dev:</strong> Statistical spread (variability)</li>
+                        <li><strong>Median (P50):</strong> 50th percentile (center of data)</li>
+                        <li><strong>P5, P10, P90, P95:</strong> Useful risk boundaries</li>
+                        <li><strong>Histogram:</strong> Shape of result distribution</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">🎨 Histogram Features</h3>
+                      <p>Bar colors reflect standard deviation zones:</p>
+                      <ul className="list-disc list-inside ml-4">
+                        <li>🟦 Center (±1σ) — most likely values</li>
+                        <li>🟩 ±2σ — less likely</li>
+                        <li>🟨 ±3σ — rare outcomes</li>
+                      </ul>
+                      <p className="mt-1">Labels can display values at key percentiles (based on bin count).</p>
+                      <p className="mt-1">Vertical lines show:</p>
+                      <ul className="list-disc list-inside ml-4">
+                        <li>Mean (μ)</li>
+                        <li>Median</li>
+                        <li>±1σ, ±2σ, ±3σ</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">🧠 Use Cases</h3>
+                      <div className="space-y-1">
+                        <p><strong>Business Viability:</strong> <code>50000~80000 * 0.1~0.2 * 5~10 - 20000~50000</code></p>
+                        <p><strong>Income Forecasting:</strong> <code>1000~1500 * 12~14 * (1 - 0.3~0.4)</code></p>
+                        <p><strong>Time Saved Estimate:</strong> <code>(3~5 * 5~10 * 52) / 60 - 10~15</code></p>
+                        <p><strong>Investment Return:</strong> <code>10000 * (1 + -0.05~0.15)^5</code></p>
+                        <p><strong>Risk of Infection:</strong> <code>(10~30 / 100) * (0.1~1.0 / 100) * 1000000</code></p>
+                        <p><strong>Geometry/Physics:</strong> <code>pi * (4~6)^2</code>, <code>2 * pi * (10~12)</code></p>
+                      </div>
+                    </div>
+                  </div>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogAction>Got it!</AlertDialogAction>
@@ -229,7 +227,7 @@ export default function MCCalculator() {
               id="histogram-bins-slider"
               min={5}
               max={50}
-              step={1} 
+              step={1}
               value={[histogramBins]}
               onValueChange={(value) => setHistogramBins(value[0])}
               className="mt-2"
@@ -259,6 +257,4 @@ export default function MCCalculator() {
     </div>
   );
 }
-
-
     
