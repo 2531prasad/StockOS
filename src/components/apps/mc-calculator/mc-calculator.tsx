@@ -12,7 +12,7 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [submittedExpression, setSubmittedExpression] = useState(""); // Initialize as empty for server and client initial render
+  const [submittedExpression, setSubmittedExpression] = useState(""); 
   const [submittedIterations, setSubmittedIterations] = useState(iterations);
   const [isClient, setIsClient] = useState(false);
 
@@ -20,7 +20,6 @@ export default function MCCalculator() {
     setIsClient(true);
   }, []);
 
-  // Effect to trigger initial calculation if expression is pre-filled, only on client after mount
   useEffect(() => {
     if (isClient && expression && !submittedExpression) {
       setSubmittedExpression(expression);
@@ -48,16 +47,22 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-4">
+      {/* Row 1: Range, Mean, Std Dev, Median */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2">
         <p><strong>Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean:</strong> {formatNumber(calcResult.mean)}</p>
         <p><strong>Std Dev:</strong> {formatNumber(calcResult.stdDev)}</p>
+        <p><strong>Median (50th %):</strong> {formatNumber(calcResult.p50)}</p>
+      </div>
+
+      {/* Row 2: Percentiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-4">
         <p><strong>5th %:</strong> {formatNumber(calcResult.p5)}</p>
         <p><strong>10th %:</strong> {formatNumber(calcResult.p10)}</p>
-        <p><strong>Median (50th %):</strong> {formatNumber(calcResult.p50)}</p>
         <p><strong>90th %:</strong> {formatNumber(calcResult.p90)}</p>
         <p><strong>95th %:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
+
       {calcResult.histogram && calcResult.histogram.length > 0 && calcResult.histogram.some(bin => bin.count > 0) ? (
         <div className="mt-4 h-[300px] w-full">
           <Histogram data={calcResult.histogram} title="Outcome Distribution"/>

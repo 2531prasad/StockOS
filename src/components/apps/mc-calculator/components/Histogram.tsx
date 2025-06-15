@@ -8,10 +8,10 @@ import {
   CategoryScale,
   LinearScale,
   Tooltip,
-  Title // Import Title
+  Title
 } from "chart.js";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title); // Register Title
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title);
 
 interface Props {
   data: { bin: number; count: number }[];
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function Histogram({ data, title = "Frequency Distribution" }: Props) {
-  const labels = data.map(d => d.bin.toString()); // Ensure labels are strings
+  const labels = data.map(d => d.bin.toString());
   const counts = data.map(d => d.count);
 
   const chartData = {
@@ -27,62 +27,63 @@ export default function Histogram({ data, title = "Frequency Distribution" }: Pr
     datasets: [{
       label: "Frequency",
       data: counts,
-      backgroundColor: "hsl(var(--primary))", // Use theme color
+      backgroundColor: "hsl(var(--primary))",
       borderColor: "hsl(var(--primary-foreground))",
       borderWidth: 1
     }]
   };
 
   const options = {
+    indexAxis: 'y' as const, // Make the chart horizontal
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      y: {
+      x: { // X-axis now represents Frequency Count
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Frequency Count'
+          text: 'Frequency Count' // Swapped title
         },
         grid: {
-          color: 'hsl(var(--border))', // Theme border color
+          color: 'hsl(var(--border))',
         },
         ticks: {
-          color: 'hsl(var(--foreground))', // Theme foreground color
+          color: 'hsl(var(--foreground))',
         },
       },
-      x: {
+      y: { // Y-axis now represents Value Bins
         title: {
           display: true,
-          text: 'Value Bins'
+          text: 'Value Bins' // Swapped title
         },
         grid: {
-          display: false, // Often cleaner for x-axis
+          display: false,
         },
         ticks: {
-          color: 'hsl(var(--foreground))', // Theme foreground color
-          maxRotation: 45,
-          minRotation: 0,
+          color: 'hsl(var(--foreground))',
+          // No rotation needed for y-axis labels in horizontal typically
         },
       }
     },
     plugins: {
       tooltip: {
-        mode: 'index' as const, // Cast to literal type
+        mode: 'index' as const,
         intersect: false,
         callbacks: {
-            label: function(context: any) { // Typing for context can be more specific
+            label: function(context: any) {
                 let label = context.dataset.label || '';
                 if (label) {
                     label += ': ';
                 }
-                if (context.parsed.y !== null) {
-                    label += context.parsed.y;
+                // For horizontal bar, parsed value is on x
+                if (context.parsed.x !== null) { 
+                    label += context.parsed.x;
                 }
                 return label;
             }
         }
       },
-      title: { // Add title plugin configuration
+      title: {
         display: true,
         text: title,
         padding: {
@@ -97,7 +98,6 @@ export default function Histogram({ data, title = "Frequency Distribution" }: Pr
     }
   };
 
-  // Ensure the chart has a non-zero height, e.g., by wrapping it or setting min-height
   return (
     <div style={{ height: '300px', width: '100%' }}> 
       <Bar data={chartData} options={options} />
