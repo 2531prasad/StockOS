@@ -27,43 +27,40 @@ math.import({
 
 export function runSimulation(expr: string, iterations = 10000): number[] {
   const results: number[] = [];
-  let compiled;
-
-  try {
-    // Example expr after preprocessing: "sample(range(1400,1700)) * sample(range(0.55,0.65)) - ..."
-    compiled = math.compile(expr);
-  } catch (error) {
-    // If compilation fails, return an array of NaNs.
-    // The calling function (useCalculator) will handle the display of this error.
-    return Array(iterations).fill(NaN);
-  }
+  
+  // Intentionally bypassing math.compile() for now to debug calculation issues.
+  // Evaluating the raw string in each iteration.
+  // let compiled;
+  // try {
+  //   compiled = math.compile(expr);
+  // } catch (error) {
+  //   console.error("Error compiling expression:", error); // Added console log for compilation error
+  //   return Array(iterations).fill(NaN);
+  // }
 
   for (let i = 0; i < iterations; i++) {
-    const scope = {}; // A new scope for each iteration ensures that `sample(range(A,B))` is re-evaluated.
+    const scope = {}; 
     
     let evaluatedValue;
     try {
-      // compiled.evaluate(scope) should now return a single number for the whole expression per iteration,
-      // as all Range objects are sampled into numbers during the evaluation process.
-      evaluatedValue = compiled.evaluate(scope);
+      // Evaluate the raw expression string in each iteration instead of a compiled version
+      evaluatedValue = math.evaluate(expr, scope);
       
-      // Math.js functions can return various types (e.g., BigNumber for precision).
-      // We need to ensure the result pushed to our array is a standard JavaScript number.
       if (typeof evaluatedValue === 'object' && evaluatedValue !== null && typeof (evaluatedValue as any).toNumber === 'function') {
         results.push((evaluatedValue as any).toNumber());
       } else if (typeof evaluatedValue === 'number') {
         results.push(evaluatedValue);
       } else {
-        // This case implies the expression didn't resolve to a number as expected.
         results.push(NaN);
       }
     } catch (error) {
       // This catch handles errors during the evaluation of the expression,
       // e.g., division by zero if the sampled values lead to it, or other math errors.
-      results.push(NaN); // Push NaN for this iteration's result
-      // Continue to the next iteration, the hook will report cumulative errors.
+      // console.error("Error evaluating expression in simulation iteration:", error); // Log available if needed
+      results.push(NaN); 
     }
   }
 
   return results;
 }
+
