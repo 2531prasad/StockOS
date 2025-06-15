@@ -74,6 +74,8 @@ export default function MCCalculator() {
             meanValue={calcResult.mean}
             medianValue={calcResult.p50} 
             stdDevValue={calcResult.stdDev}
+            p5Value={calcResult.p5}
+            p95Value={calcResult.p95}
           />
         </div>
       ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
@@ -92,6 +94,7 @@ export default function MCCalculator() {
             Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
             Vertical lines indicate Mean, Median, and Standard Deviations (σ).
             Bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ).
+            X-axis labels highlight bins containing key statistical markers.
           </CardDescription>
         </CardHeader>
         <CardContent>
