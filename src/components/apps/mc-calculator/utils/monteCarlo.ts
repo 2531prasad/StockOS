@@ -1,81 +1,69 @@
 
 import { create, all, MathJsStatic } from "mathjs";
-import type { Range } from "./range"; // Use 'import type' for type-only imports
+// Import the actual Range class, not just the type, because we need to instantiate it.
+import { Range } from "./range";
 
 const math: MathJsStatic = create(all);
 
-// It's good practice to type the arguments for imported functions if possible
 math.import({
-  range: (min: number, max: number): Range => new (math.Range as any)(min, max), // Use math.Range if Range is defined via math.typed
-  sample: (r: Range): number => r.sample()
+  // The 'range' function creates an instance of our custom Range class.
+  range: (min: number, max: number): Range => new Range(min, max),
+  // The 'sample' function takes a Range instance and returns a sampled number.
+  // It's also made robust to handle direct numbers if an expression like sample(5) was manually written,
+  // though current preprocessing focuses on sample(range(min,max)).
+  sample: (r: Range | number): number => {
+    if (r instanceof Range) {
+      return r.sample();
+    }
+    if (typeof r === 'number') { // If sample() is called on a plain number
+      return r;
+    }
+    // This path should ideally not be hit with the current preprocessing logic.
+    throw new Error('Invalid argument for sample function: Expected Range object or number.');
+  }
 }, {
-  override: true // Allow overriding existing functions if necessary, though 'range' is new
+  override: true // Allows overriding if 'range' or 'sample' were predefined by mathjs (unlikely for these custom names)
 });
-
-// Register Range with math.typed if you want mathjs to recognize it as a custom type
-// This might be more involved depending on how deeply you want to integrate
-// For now, the direct import approach with casting should work for 'range' function.
-// A more robust way if Range class is external to mathjs's direct creation:
-const RangeConstructor = require('./range').Range; // Assuming Range is a class constructor
-math.typed('Range', {
-  'number, number': (min, max) => new RangeConstructor(min, max)
-});
-
 
 export function runSimulation(expr: string, iterations = 10000): number[] {
   const results: number[] = [];
   let compiled;
+
   try {
+    // Example expr after preprocessing: "sample(range(1400,1700)) * sample(range(0.55,0.65)) - ..."
     compiled = math.compile(expr);
   } catch (error) {
-    console.error("Error compiling expression:", error);
-    return [NaN]; // Return NaN or throw, to indicate failure
+    // If compilation fails, return an array of NaNs.
+    // The calling function (useCalculator) will handle the display of this error.
+    return Array(iterations).fill(NaN);
   }
 
-
   for (let i = 0; i < iterations; i++) {
-    const scope = {}; // Create a new scope for each iteration if functions like `random()` are used in expr
+    const scope = {}; // A new scope for each iteration ensures that `sample(range(A,B))` is re-evaluated.
     
-    // If 'range' function in expression creates Range instances,
-    // and these instances need to be sampled within the math.evaluate context,
-    // ensure the compiled expression handles this.
-    // The current `preprocessExpression` transforms `1~2` into `range(1,2)`.
-    // The `math.import` then defines `range` to return a Range instance.
-    // `math.evaluate` would return this Range instance.
-    // The `evaluateRangeOrNumber` then samples it.
-
     let evaluatedValue;
     try {
+      // compiled.evaluate(scope) should now return a single number for the whole expression per iteration,
+      // as all Range objects are sampled into numbers during the evaluation process.
       evaluatedValue = compiled.evaluate(scope);
+      
+      // Math.js functions can return various types (e.g., BigNumber for precision).
+      // We need to ensure the result pushed to our array is a standard JavaScript number.
+      if (typeof evaluatedValue === 'object' && evaluatedValue !== null && typeof (evaluatedValue as any).toNumber === 'function') {
+        results.push((evaluatedValue as any).toNumber());
+      } else if (typeof evaluatedValue === 'number') {
+        results.push(evaluatedValue);
+      } else {
+        // This case implies the expression didn't resolve to a number as expected.
+        results.push(NaN);
+      }
     } catch (error) {
-      console.error("Error evaluating expression in simulation:", error);
-      results.push(NaN); // Push NaN for evaluation errors
-      continue;
+      // This catch handles errors during the evaluation of the expression,
+      // e.g., division by zero if the sampled values lead to it, or other math errors.
+      results.push(NaN); // Push NaN for this iteration's result
+      // Continue to the next iteration, the hook will report cumulative errors.
     }
-    
-    const sampled = evaluateRangeOrNumber(evaluatedValue);
-    results.push(sampled);
   }
 
   return results;
-}
-
-function evaluateRangeOrNumber(val: any): number {
-  // Check if val is an instance of your Range class
-  // The path to Range class might differ based on how it's imported/defined in monteCarlo.ts
-  // For simplicity, assuming Range class has a 'sample' method.
-  if (val && typeof val.sample === 'function' && typeof val.min === 'number' && typeof val.max === 'number') {
-     return val.sample();
-  }
-  if (typeof val === 'number') {
-    return val;
-  }
-  // Handle cases where evaluation results in an object that's not a Range (e.g. from mathjs functions)
-  // or if it's a mathjs BigNumber, convert it.
-  if (val && typeof val.toNumber === 'function') {
-    return val.toNumber();
-  }
-  // If it's not a Range instance and not a number, it might be an error or unexpected type
-  // console.warn("Unexpected type in evaluateRangeOrNumber:", val);
-  return Number(val); // Attempt conversion, might result in NaN
 }
