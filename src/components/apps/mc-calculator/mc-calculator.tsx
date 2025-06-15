@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useCalculator, type CalculatorResults } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,17 @@ import { Terminal } from "lucide-react";
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
-  const [submittedExpression, setSubmittedExpression] = useState(expression);
+  const [submittedExpression, setSubmittedExpression] = useState(""); // Initialize as empty
   const [submittedIterations, setSubmittedIterations] = useState(iterations);
 
+  // Trigger initial calculation if expression is pre-filled, only on client
+  useState(() => {
+    if (typeof window !== 'undefined' && expression) {
+      setSubmittedExpression(expression);
+    }
+    return undefined;
+  });
+  
   const result = useCalculator(submittedExpression, submittedIterations);
   
   const handleCalculate = () => {
@@ -24,7 +32,6 @@ export default function MCCalculator() {
 
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
-    // Use toLocaleString for better readability and precision control
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
   
@@ -46,13 +53,16 @@ export default function MCCalculator() {
         <p><strong>90th %:</strong> {formatNumber(calcResult.p90)}</p>
         <p><strong>95th %:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
-      {calcResult.histogram && calcResult.histogram.length > 0 && calcResult.histogram[0].count > 0 ? (
-        <div className="mt-4 h-[300px] w-full"> {/* Ensure container has height */}
+      {calcResult.histogram && calcResult.histogram.length > 0 && calcResult.histogram.some(bin => bin.count > 0) ? (
+        <div className="mt-4 h-[300px] w-full">
           <Histogram data={calcResult.histogram} title="Outcome Distribution"/>
         </div>
-      ) : <p className="text-muted-foreground">Histogram data is not available or all counts are zero.</p>}
+      ) : <p className="text-muted-foreground">Histogram data is not available.</p>}
     </>
   );
+
+  const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
+  const showInitialMessage = !submittedExpression && !result.error;
 
   return (
     <div className="container mx-auto p-4 md:p-8 font-body">
@@ -91,9 +101,9 @@ export default function MCCalculator() {
           )}
 
           <div className="space-y-2 text-sm md:text-base">
-            {result.isDeterministic && !result.error ? renderDeterministicOutput(result) : null}
-            {!result.isDeterministic && !result.error && result.results.length > 0 ? renderProbabilisticOutput(result) : null}
-            {!result.error && result.results.length === 0 && <p className="text-muted-foreground">Enter an expression and click Calculate.</p>}
+            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate.</p>}
+            {showResults && result.isDeterministic && renderDeterministicOutput(result)}
+            {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
           </div>
         </CardContent>
       </Card>
