@@ -23,7 +23,7 @@ export interface CalculatorResults {
   expressionUsed: string;
   analyticalMin: number;
   analyticalMax: number;
-  analyticalError: string | null; // Specific error for analytical range calculation
+  analyticalError: string | null; // Specific error/note for analytical range calculation
 }
 
 const defaultInitialResults: CalculatorResults = {
@@ -55,14 +55,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
   }, []);
 
   useEffect(() => {
-    if (!isClient) {
-      if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
-        setData(defaultInitialResults);
-      }
-      return;
-    }
-
-    if (!submittedExpression) {
+    if (!isClient || !submittedExpression) {
       if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
         setData(defaultInitialResults);
       }
@@ -78,29 +71,42 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     let currentAnalyticalMax: number = NaN;
     let currentAnalyticalError: string | null = null;
 
+    let valForMinInputs: number = NaN;
+    let valForMaxInputs: number = NaN;
+    let minExprEvalError: string | null = null;
+    let maxExprEvalError: string | null = null;
+
     try {
       // --- Analytical Min/Max Calculation ---
       const { minExpr, maxExpr } = buildMinMaxExpressions(submittedExpression);
       
-      const evalMin = evaluateDeterministic(minExpr);
-      if (typeof evalMin === 'string') {
-        currentAnalyticalError = `Min calculation error: ${evalMin}`;
+      const evalMinResult = evaluateDeterministic(minExpr);
+      if (typeof evalMinResult === 'string') {
+        minExprEvalError = `Min-expression (${minExpr}) evaluation error: ${evalMinResult}`;
+      } else if (isNaN(evalMinResult) || !isFinite(evalMinResult)) {
+        minExprEvalError = `Min-expression (${minExpr}) resulted in non-finite value: ${evalMinResult}.`;
       } else {
-        currentAnalyticalMin = evalMin;
+        valForMinInputs = evalMinResult;
       }
 
-      const evalMax = evaluateDeterministic(maxExpr);
-      if (typeof evalMax === 'string') {
-        const maxErrorMsg = `Max calculation error: ${evalMax}`;
-        currentAnalyticalError = currentAnalyticalError ? `${currentAnalyticalError}. ${maxErrorMsg}` : maxErrorMsg;
+      const evalMaxResult = evaluateDeterministic(maxExpr);
+      if (typeof evalMaxResult === 'string') {
+        maxExprEvalError = `Max-expression (${maxExpr}) evaluation error: ${evalMaxResult}`;
+      } else if (isNaN(evalMaxResult) || !isFinite(evalMaxResult)) {
+         maxExprEvalError = `Max-expression (${maxExpr}) resulted in non-finite value: ${evalMaxResult}.`;
       } else {
-        currentAnalyticalMax = evalMax;
+        valForMaxInputs = evalMaxResult;
       }
-      // Check if analytical min > max, which could be an error or valid if expression inverts
-      if (!isNaN(currentAnalyticalMin) && !isNaN(currentAnalyticalMax) && currentAnalyticalMin > currentAnalyticalMax) {
-          const inversionWarning = "Analytical min is greater than analytical max. This can happen with expressions involving subtraction or division of ranges (e.g., 10 - (1~5) or 10 / (1~5)).";
-          currentAnalyticalError = currentAnalyticalError ? `${currentAnalyticalError}. ${inversionWarning}` : inversionWarning;
-          // Optionally, swap them if strict min < max is always desired for display, but it's more informative to show as calculated.
+
+      if (minExprEvalError || maxExprEvalError) {
+        currentAnalyticalError = [minExprEvalError, maxExprEvalError].filter(Boolean).join('. ');
+      } else {
+        // Both expressions evaluated to valid, finite numbers
+        if (valForMinInputs > valForMaxInputs) {
+          currentAnalyticalError = "Note: The expression's structure causes the 'all-min-inputs' case to yield a higher value than the 'all-max-inputs' case (e.g., due to subtraction or division by a range). The displayed analytical range reflects the true overall minimum and maximum possible outcomes.";
+        }
+        currentAnalyticalMin = Math.min(valForMinInputs, valForMaxInputs);
+        currentAnalyticalMax = Math.max(valForMinInputs, valForMaxInputs);
       }
 
 
@@ -145,7 +151,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
 
     } catch (e: any) {
       generalError = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
-      currentResults = []; // Ensure results are empty on critical error
+      currentResults = []; 
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
 
@@ -177,7 +183,7 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       analyticalError: currentAnalyticalError,
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient]);
+  }, [submittedExpression, iterations, histogramBinCount, isClient, data]); // Added `data` to dependency array to re-evaluate if it changes externally.
 
   return data;
 }
