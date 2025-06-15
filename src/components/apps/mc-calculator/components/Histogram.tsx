@@ -13,6 +13,7 @@ import {
   type ChartData,
   type PluginOptionsByType,
   type ScriptableContext,
+  type Tick, // For tick formatting
 } from "chart.js";
 import annotationPlugin, { type AnnotationOptions, type AnnotationPluginOptions } from 'chartjs-plugin-annotation';
 
@@ -65,26 +66,26 @@ export default function Histogram({
   const getBarColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
     const entry = data[index];
-    if (!entry || !entry.sigmaCategory) return `hsl(var(--sigma-other-bg))`;
+    if (!entry || !entry.sigmaCategory) return 'hsl(0, 0%, 88%)'; // Default: Light Gray (Other)
 
     switch (entry.sigmaCategory) {
-      case '1': return `hsl(var(--sigma-1-bg))`;
-      case '2': return `hsl(var(--sigma-2-bg))`;
-      case '3': return `hsl(var(--sigma-3-bg))`;
-      default: return `hsl(var(--sigma-other-bg))`;
+      case '1': return 'hsl(180, 70%, 60%)';   // Sigma 1: Cyan-like
+      case '2': return 'hsl(120, 60%, 55%)';   // Sigma 2: Green-like
+      case '3': return 'hsl(55, 85%, 60%)';    // Sigma 3: Yellow-like
+      default: return 'hsl(0, 0%, 88%)';      // Other: Light Gray
     }
   };
 
   const getBorderColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
     const entry = data[index];
-    if (!entry || !entry.sigmaCategory) return `hsl(var(--sigma-other-border))`;
+    if (!entry || !entry.sigmaCategory) return 'hsl(0, 0%, 75%)'; // Default Border: Darker Gray (Other)
 
     switch (entry.sigmaCategory) {
-      case '1': return `hsl(var(--sigma-1-border))`;
-      case '2': return `hsl(var(--sigma-2-border))`;
-      case '3': return `hsl(var(--sigma-3-border))`;
-      default: return `hsl(var(--sigma-other-border))`;
+      case '1': return 'hsl(180, 70%, 45%)';   // Sigma 1 Border
+      case '2': return 'hsl(120, 60%, 40%)';   // Sigma 2 Border
+      case '3': return 'hsl(55, 85%, 45%)';    // Sigma 3 Border
+      default: return 'hsl(0, 0%, 75%)';      // Other Border
     }
   };
 
@@ -110,14 +111,14 @@ export default function Histogram({
         type: 'line',
         scaleID: 'x', 
         value: meanBinIndex, 
-        borderColor: `hsl(var(--destructive))`, 
+        borderColor: 'hsl(0, 100%, 50%)', // Hardcoded Red for mean line for now
         borderWidth: 2,
         label: {
           enabled: true,
           content: `Mean: ${formatNumberForLabel(meanValue)}`,
           position: 'top',
-          backgroundColor: 'hsla(var(--card), 0.8)',
-          color: `hsl(var(--foreground))`, // Changed for better visibility on various bar colors
+          backgroundColor: 'hsla(0, 0%, 100%, 0.8)', // Whiteish background for label
+          color: 'hsl(0, 0%, 0%)', // Black text
           font: { weight: 'bold' },
           yAdjust: -5,
         }
@@ -132,15 +133,15 @@ export default function Histogram({
         type: 'line',
         scaleID: 'x',
         value: medianBinIndex,
-        borderColor: `hsl(var(--chart-2))`, 
+        borderColor: 'hsl(240, 100%, 50%)', // Hardcoded Blue for median line
         borderWidth: 2,
         borderDash: [6, 6],
         label: {
           enabled: true,
           content: `Median: ${formatNumberForLabel(medianValue)}`,
           position: 'bottom',
-          backgroundColor: 'hsla(var(--card), 0.8)',
-          color: `hsl(var(--foreground))`, // Changed for better visibility
+          backgroundColor: 'hsla(0, 0%, 100%, 0.8)',
+          color: 'hsl(0, 0%, 0%)',
           font: { weight: 'bold' },
           yAdjust: 5,
         }
@@ -150,7 +151,7 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    const sigmaLineColor = `hsl(var(--muted-foreground))`;
+    const sigmaLineColor = 'hsl(0, 0%, 50%)'; // Hardcoded Gray for sigma lines
 
     sigmas.forEach((s) => {
       const sigmaVal = meanValue + s * stdDevValue;
@@ -167,10 +168,10 @@ export default function Histogram({
             enabled: true,
             content: `${s > 0 ? '+' : ''}${s}σ`,
             position: s < 0 ? 'start' : 'end',
-            backgroundColor: 'hsla(var(--card), 0.7)',
+            backgroundColor: 'hsla(0, 0%, 100%, 0.7)',
             color: sigmaLineColor,
             font: { size: 10, weight: 'normal' },
-            rotation: s < 0 ? -90 : 90,
+            rotation: s < 0 ? -90 : 90, // Rotate labels for better fit
             yAdjust: s < 0 ? -10 : 10,
             xAdjust: 0,
           }
@@ -215,7 +216,7 @@ export default function Histogram({
         },
         ticks: {
           color: `hsl(var(--foreground))`,
-           callback: function(value: string | number) {
+           callback: function(value: string | number, index: number, ticks: Tick[]) {
             if (typeof value === 'number') {
               return (value * 100).toFixed(0) + '%'; 
             }
