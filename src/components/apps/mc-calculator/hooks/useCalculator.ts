@@ -18,7 +18,7 @@ export interface CalculatorResults {
   p50: number; // Median
   p90: number;
   p95: number;
-  histogram: HistogramDataEntry[]; 
+  histogram: HistogramDataEntry[];
   error: string | null;
   isDeterministic: boolean;
   expressionUsed: string;
@@ -50,23 +50,34 @@ export function useCalculator(submittedExpression: string, iterations: number = 
   }, []);
 
   useEffect(() => {
-    if (!isClient || !submittedExpression) { 
-      if (!submittedExpression && data.expressionUsed) {
-         setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed}));
-      } else if (!submittedExpression) {
+    if (!isClient) {
+      // Server-side rendering or initial client render before setIsClient(true) from the first useEffect.
+      // Ensure we are using default data. Avoid unnecessary setData if already default.
+      if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
         setData(defaultInitialResults);
       }
       return;
     }
 
+    // Client-side rendering (isClient is true)
+    if (!submittedExpression) {
+      // No expression submitted yet. Reset to default.
+      // Avoid unnecessary setData if already default.
+      if (JSON.stringify(data) !== JSON.stringify(defaultInitialResults)) {
+        setData(defaultInitialResults);
+      }
+      return;
+    }
+
+    // Proceed with calculation: we are on the client and have an expression.
     let currentResults: number[] = [];
     let error: string | null = null;
     let isDeterministicCalculation = false;
     let processedData: ProcessedExpression | null = null;
-    
+
     try {
       processedData = preprocessExpression(submittedExpression);
-      
+
       if (processedData.error) {
         error = processedData.error;
       } else {
@@ -78,12 +89,12 @@ export function useCalculator(submittedExpression: string, iterations: number = 
               currentResults = [evalResult];
             } else if (typeof evalResult === 'number' && !isFinite(evalResult) ) {
               error = `Deterministic calculation resulted in a non-finite number: ${evalResult}.`;
-              currentResults = [NaN]; 
-            } else if (typeof evalResult === 'string') { 
-              error = evalResult; 
-              currentResults = [NaN]; 
+              currentResults = [NaN];
+            } else if (typeof evalResult === 'string') {
+              error = evalResult;
+              currentResults = [NaN];
             }
-        } else { 
+        } else {
             currentResults = runSimulation(processedData.expression, iterations);
         }
       }
@@ -96,21 +107,21 @@ export function useCalculator(submittedExpression: string, iterations: number = 
              console.warn(`[useCalculator] ${nanCount} NaN results out of ${iterations} iterations were filtered out before statistical analysis.`);
           }
       }
-      
+
       const validResultsForStats = currentResults.filter(r => !isNaN(r) && isFinite(r));
 
       if (!error && validResultsForStats.length === 0 && submittedExpression && (iterations > 0 || isDeterministicCalculation) && !processedData?.error) {
           error = `No valid numerical results obtained. Expression: "${submittedExpression}". Please check ranges and operators.`;
       }
 
-    } catch (e: any) { 
+    } catch (e: any) {
       error = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
-      currentResults = []; 
+      currentResults = [];
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
 
     const finalValidResults = currentResults.filter(n => !isNaN(n) && isFinite(n));
-    
+
     const calculatedMin = finalValidResults.length > 0 ? finalValidResults.reduce((min, val) => Math.min(min, val), Infinity) : NaN;
     const calculatedMax = finalValidResults.length > 0 ? finalValidResults.reduce((max, val) => Math.max(max, val), -Infinity) : NaN;
     const calculatedMean = getMean(finalValidResults);
@@ -125,16 +136,16 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       stdDev: calculatedStdDev,
       p5: getPercentile(finalValidResults, 5),
       p10: getPercentile(finalValidResults, 10),
-      p50: calculatedP50, 
+      p50: calculatedP50,
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
-      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev), // Pass mean and stdDev
+      histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev),
       error,
       isDeterministic: isDeterministicCalculation,
-      expressionUsed: submittedExpression 
+      expressionUsed: submittedExpression
     });
 
-  }, [submittedExpression, iterations, histogramBinCount, isClient, data.expressionUsed]); 
+  }, [submittedExpression, iterations, histogramBinCount, isClient]); // Simplified dependency array
 
   return data;
 }
