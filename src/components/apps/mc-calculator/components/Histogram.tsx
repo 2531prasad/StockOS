@@ -48,28 +48,22 @@ const formatNumberForLabel = (num: number | undefined, digits: number = 1): stri
 const findBinIndexForValue = (value: number, data: HistogramEntry[]): number => {
     if (!data || data.length === 0 || isNaN(value)) return -1;
 
-    // If only one bin, check if value is within its range
     if (data.length === 1 && value >= data[0].lowerBound && value <= data[0].upperBound) {
         return 0;
     }
     
     for (let i = 0; i < data.length; i++) {
-        // Check if the value falls within the current bin's range [lowerBound, upperBound)
         if (value >= data[i].lowerBound && value < data[i].upperBound) {
             return i;
         }
-        // For the last bin, include the upperBound: [lowerBound, upperBound]
         if (i === data.length - 1 && value >= data[i].lowerBound && value <= data[i].upperBound) {
             return i;
         }
     }
     
-    // If value is outside the range of all bins, snap to the closest end
     if (value < data[0].lowerBound) return 0; 
     if (value > data[data.length - 1].upperBound) return data.length - 1; 
 
-    // Should not be reached if data is contiguous and covers the value,
-    // but as a fallback, return -1 or handle as appropriate.
     return -1; 
 };
 
@@ -87,11 +81,12 @@ export default function Histogram({
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 80%)'; 
     const sigmaCategory = data[index]?.sigmaCategory;
     
+    // DIAGNOSTIC: Using hardcoded comma-separated HSL values
     switch (sigmaCategory) {
-      case '1': return 'hsl(180, 70%, 50%)'; // Cyan-like
-      case '2': return 'hsl(120, 60%, 50%)'; // Green-like
-      case '3': return 'hsl(55, 85%, 50%)';  // Yellow-like
-      default: return 'hsl(0, 0%, 88%)';    // Light Gray for 'other'
+      case '1': return 'hsl(180, 70%, 50%)'; // Cyan-like (e.g., theme's --sigma-1-bg)
+      case '2': return 'hsl(120, 60%, 50%)'; // Green-like (e.g., theme's --sigma-2-bg)
+      case '3': return 'hsl(55, 85%, 50%)';  // Yellow-like (e.g., theme's --sigma-3-bg)
+      default: return 'hsl(0, 0%, 88%)';    // Light Gray for 'other' (e.g., theme's --sigma-other-bg)
     }
   };
 
@@ -100,6 +95,7 @@ export default function Histogram({
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 70%)';
     const sigmaCategory = data[index]?.sigmaCategory;
 
+    // DIAGNOSTIC: Using hardcoded comma-separated HSL values
     switch (sigmaCategory) {
       case '1': return 'hsl(180, 70%, 40%)';
       case '2': return 'hsl(120, 60%, 40%)';
@@ -109,28 +105,30 @@ export default function Histogram({
   };
 
   const chartData: ChartData<'bar'> = {
-    labels: data.map(entry => formatNumberForLabel(entry.binCenter, 1)), // Use formatted bin center for labels
+    labels: data.map(entry => formatNumberForLabel(entry.binCenter, 1)), 
     datasets: [{
       label: "Probability",
       data: data.map(entry => entry.probability),
       backgroundColor: getBarColor, 
       borderColor: getBorderColor, 
       borderWidth: 1,
-      barPercentage: 1.0, 
-      categoryPercentage: 1.0, 
+      barThickness: 20, // Added to make bars thinner
+      // barPercentage: 1.0, // barThickness overrides this
+      // categoryPercentage: 1.0, // barThickness overrides this
     }]
   };
 
   const annotationsConfig: Record<string, AnnotationOptions> = {};
 
+  // DIAGNOSTIC: Using hardcoded simple colors for annotations
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
     const meanBinIndex = findBinIndexForValue(meanValue, data);
     if (meanBinIndex !== -1) {
       annotationsConfig.meanLine = {
         type: 'line',
-        scaleID: 'x', // Annotate on the x-axis (categorical bin index)
-        value: meanBinIndex, // Use the index of the bin for placement
-        borderColor: 'red', // Diagnostic color
+        scaleID: 'x',
+        value: meanBinIndex, 
+        borderColor: 'red', 
         borderWidth: 2,
         label: {
           enabled: true,
@@ -152,7 +150,7 @@ export default function Histogram({
           type: 'line',
           scaleID: 'x',
           value: medianBinIndex,
-          borderColor: 'blue', // Diagnostic color
+          borderColor: 'blue', 
           borderWidth: 2,
           borderDash: [6, 6],
           label: {
@@ -170,8 +168,7 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    // Using simple distinct colors for diagnostics
-    const sigmaLineColors = ['darkgrey', 'grey', 'lightgrey', 'lightgrey', 'grey', 'darkgrey']; 
+    const sigmaLineColors = ['#A9A9A9', '#808080', '#D3D3D3', '#D3D3D3', '#808080', '#A9A9A9']; // DarkGrey, Grey, LightGrey repeated
 
     sigmas.forEach((s, idx) => {
       const sigmaVal = meanValue + s * stdDevValue;
@@ -208,23 +205,18 @@ export default function Histogram({
         type: 'category', 
         title: {
           display: true,
-          text: 'Value Bins (Center)', // Updated title
-          color: 'black' // Diagnostic color
+          text: 'Value Bins (Center)',
+          color: 'black' 
         },
         grid: {
-          color: 'lightgrey', // Diagnostic color
+          color: 'lightgrey', 
           display: false, 
         },
         ticks: {
-          color: 'black',// Diagnostic color
+          color: 'black',
           maxRotation: 45, 
           minRotation: 30,
           autoSkip: true, 
-          // callback: function(value: string | number, index: number, ticks_arr: Tick[]) {
-          //   // Value is the index here for categorical scale
-          //   // this.getLabelForValue(index) would give the string label if needed
-          //   return data[index] ? formatNumberForLabel(data[index].binCenter, 1) : '';
-          // }
         },
       },
       y: {
@@ -233,14 +225,14 @@ export default function Histogram({
         title: {
           display: true,
           text: 'Probability',
-          color: 'black' // Diagnostic color
+          color: 'black'
         },
         grid: {
-          color: 'lightgrey', // Diagnostic color
+          color: 'lightgrey', 
         },
         ticks: {
-          color: 'black', // Diagnostic color
-          callback: function(value: string | number, index: number, ticks_arr: Tick[]) {
+          color: 'black', 
+          callback: function(value: string | number) {
             if (typeof value === 'number') {
               return (value * 100).toFixed(0) + '%';
             }
@@ -257,15 +249,14 @@ export default function Histogram({
       tooltip: {
         mode: 'index',
         intersect: false,
-        backgroundColor: 'white', // Diagnostic color
-        titleColor: 'black', // Diagnostic color
-        bodyColor: 'black', // Diagnostic color
+        backgroundColor: 'white', 
+        titleColor: 'black', 
+        bodyColor: 'black', 
         callbacks: {
           title: function(tooltipItems: any) {
-            // tooltipItems[0].label is now the formatted binCenter string
             const originalBinIndex = tooltipItems[0].dataIndex;
             if (data && data[originalBinIndex]) {
-                return `Bin: ${data[originalBinIndex].label} (Center: ${tooltipItems[0].label})`;
+                return `Bin Range: ${data[originalBinIndex].label} (Center: ${tooltipItems[0].label})`;
             }
             return `Bin Center: ${tooltipItems[0].label}`;
           },
@@ -292,7 +283,7 @@ export default function Histogram({
         font: {
           size: 16
         },
-        color: 'black' // Diagnostic color
+        color: 'black' 
       }
     }
   };
