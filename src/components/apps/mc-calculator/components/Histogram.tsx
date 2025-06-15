@@ -19,7 +19,7 @@ ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title, annotat
 interface HistogramEntry {
   label: string; 
   probability: number; 
-  lowerBound: number; // Still useful for context if needed, though not directly for bar value
+  lowerBound: number; 
   upperBound: number;
 }
 
@@ -27,7 +27,7 @@ interface Props {
   data: HistogramEntry[];
   title?: string;
   meanValue?: number;
-  stdDevValue?: number; // Changed from medianValue
+  stdDevValue?: number; 
 }
 
 export default function Histogram({ 
@@ -39,7 +39,6 @@ export default function Histogram({
 
   const formatNumberForLabel = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
-    // Show more precision for mean/std dev lines
     return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -48,8 +47,8 @@ export default function Histogram({
     datasets: [{
       label: "Probability", 
       data: data.map(entry => entry.probability),
-      backgroundColor: 'hsl(var(--primary))',
-      borderColor: 'hsl(var(--primary-foreground))',
+      backgroundColor: `hsl(var(--primary))`,
+      borderColor: `hsl(var(--primary-foreground))`,
       borderWidth: 1,
     }]
   };
@@ -60,14 +59,14 @@ export default function Histogram({
       type: 'line',
       scaleID: 'x', 
       value: meanValue,
-      borderColor: 'hsl(var(--accent))', // Using accent for mean line
+      borderColor: `hsl(var(--accent))`, 
       borderWidth: 2,
       label: {
         enabled: true,
         content: `μ: ${formatNumberForLabel(meanValue)}`,
         position: 'top',
         backgroundColor: 'hsla(var(--background), 0.75)',
-        color: 'hsl(var(--accent-foreground))',
+        color: `hsl(var(--accent-foreground))`,
         font: { weight: 'bold' },
         yAdjust: -5,
       }
@@ -75,14 +74,14 @@ export default function Histogram({
 
     if (typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
       const sigmas = [-3, -2, -1, 1, 2, 3];
-      // Using a more distinct set of colors for sigma lines, can be themed later
+      // Explicitly define colors for sigma lines, can be HSL or hex
       const sigmaLineColors = [
-        '#FF6384', // -3σ (Reddish)
-        '#FF9F40', // -2σ (Orange)
-        '#FFCD56', // -1σ (Yellow)
-        '#4BC0C0', // +1σ (Teal)
-        '#36A2EB', // +2σ (Blue)
-        '#9966FF', // +3σ (Purple)
+        'hsl(var(--chart-1))', // Example: use chart-1 for -3sigma
+        'hsl(var(--chart-2))', // Example: use chart-2 for -2sigma
+        'hsl(var(--chart-3))', // Example: use chart-3 for -1sigma
+        'hsl(var(--chart-4))', // Example: use chart-4 for +1sigma
+        'hsl(var(--chart-5))', // Example: use chart-5 for +2sigma
+        'hsl(var(--destructive))', // Example: use destructive for +3sigma (or another chart color)
       ];
 
       sigmas.forEach((s, index) => {
@@ -99,10 +98,10 @@ export default function Histogram({
             content: `${s > 0 ? '+' : ''}${s}σ`,
             position: s < 0 ? 'bottom' : 'top',
             backgroundColor: 'hsla(var(--background), 0.6)',
-            color: sigmaLineColors[index],
+            color: sigmaLineColors[index], 
             font: { size: 10, weight: 'normal' },
             yAdjust: s < 0 ? 5 : -5,
-            xAdjust: s === -3 ? 10 : (s === 3 ? -10 : 0) // Prevent label overlap at edges
+            xAdjust: s === -3 ? 10 : (s === 3 ? -10 : 0) 
           }
         };
       });
@@ -110,40 +109,42 @@ export default function Histogram({
   }
   
   const options: ChartOptions<'bar'> = { 
-    indexAxis: 'x' as const, // Vertical bar chart
+    indexAxis: 'x' as const, 
     responsive: true,
     maintainAspectRatio: false,
     scales: {
       x: { 
         title: {
           display: true,
-          text: 'Value Bins' 
+          text: 'Value Bins',
+          color: `hsl(var(--foreground))`
         },
         grid: {
-          color: 'hsl(var(--border))',
+          color: `hsl(var(--border))`,
         },
         ticks: {
-          color: 'hsl(var(--foreground))',
+          color: `hsl(var(--foreground))`,
           maxRotation: 45,
           minRotation: 30,
           autoSkip: true,
-          maxTicksLimit: data.length > 20 ? Math.floor(data.length / 2) : data.length, // Reduce ticks if too many bins
+          maxTicksLimit: data.length > 20 ? Math.floor(data.length / 2) : data.length,
         },
       },
       y: { 
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Probability' 
+          text: 'Probability',
+          color: `hsl(var(--foreground))`
         },
         grid: {
-          color: 'hsl(var(--border))',
+          color: `hsl(var(--border))`,
         },
         ticks: {
-          color: 'hsl(var(--foreground))',
+          color: `hsl(var(--foreground))`,
            callback: function(value: string | number) {
             if (typeof value === 'number') {
-              return (value * 100).toFixed(0) + '%'; // Format probability as percentage
+              return (value * 100).toFixed(0) + '%'; 
             }
             return value;
           }
@@ -153,11 +154,14 @@ export default function Histogram({
     plugins: {
       annotation: {
         annotations: annotationsConfig,
-        drawTime: 'afterDatasetsDraw' // Draw annotations on top of bars
+        drawTime: 'afterDatasetsDraw' 
       },
       tooltip: {
         mode: 'index' as const,
         intersect: false,
+        backgroundColor: `hsl(var(--card))`,
+        titleColor: `hsl(var(--card-foreground))`,
+        bodyColor: `hsl(var(--card-foreground))`,
         callbacks: {
             title: function(tooltipItems: any) {
               const dataIndex = tooltipItems[0]?.dataIndex;
@@ -189,7 +193,7 @@ export default function Histogram({
         font: {
             size: 16
         },
-        color: 'hsl(var(--foreground))'
+        color: `hsl(var(--foreground))`
       }
     }
   };
@@ -200,3 +204,4 @@ export default function Histogram({
     </div>
   );
 }
+
