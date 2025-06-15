@@ -76,21 +76,19 @@ export default function Histogram({
   stdDevValue,
 }: Props) {
 
-  // DIAGNOSTIC: Using hardcoded, comma-separated HSL strings
   const getBarColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 80%)'; 
     const sigmaCategory = data[index]?.sigmaCategory;
     
     switch (sigmaCategory) {
-      case '1': return 'hsl(180, 70%, 50%)'; // Cyan-like
-      case '2': return 'hsl(120, 60%, 50%)'; // Green-like
-      case '3': return 'hsl(55, 85%, 50%)';  // Yellow-like
-      default: return 'hsl(0, 0%, 88%)';    // Light gray
+      case '1': return 'hsl(180, 70%, 50%)'; 
+      case '2': return 'hsl(120, 60%, 50%)'; 
+      case '3': return 'hsl(55, 85%, 50%)';  
+      default: return 'hsl(0, 0%, 88%)';    
     }
   };
 
-  // DIAGNOSTIC: Using hardcoded, comma-separated HSL strings
   const getBorderColor = (context: ScriptableContext<'bar'>): string => {
     const index = context.dataIndex;
     if (index < 0 || index >= data.length) return 'hsl(0, 0%, 70%)';
@@ -112,8 +110,8 @@ export default function Histogram({
       backgroundColor: getBarColor, 
       borderColor: getBorderColor, 
       borderWidth: 1,
-      barPercentage: 1.0, // Bar will take 100% of its category width
-      categoryPercentage: 0.9, // Categories will take 90% of chart width (gives some spacing between categories if multiple datasets)
+      barPercentage: 1.0, 
+      categoryPercentage: 1.0, 
     }]
   };
 
@@ -126,14 +124,14 @@ export default function Histogram({
         type: 'line',
         scaleID: 'x',
         value: meanBinIndex, 
-        borderColor: 'red', // DIAGNOSTIC
+        borderColor: 'red', 
         borderWidth: 2,
         label: {
           enabled: true,
           content: `Mean: ${formatNumberForLabel(meanValue)}`,
           position: 'top',
           backgroundColor: 'rgba(255,0,0,0.1)', 
-          color: 'black', // DIAGNOSTIC
+          color: 'black', 
           font: { weight: 'bold' },
           yAdjust: -5, 
         }
@@ -148,7 +146,7 @@ export default function Histogram({
           type: 'line',
           scaleID: 'x',
           value: medianBinIndex,
-          borderColor: 'blue', // DIAGNOSTIC
+          borderColor: 'blue', 
           borderWidth: 2,
           borderDash: [6, 6],
           label: {
@@ -156,7 +154,7 @@ export default function Histogram({
             content: `Median: ${formatNumberForLabel(medianValue)}`,
             position: 'bottom', 
             backgroundColor: 'rgba(0,0,255,0.1)', 
-            color: 'black', // DIAGNOSTIC
+            color: 'black', 
             font: { weight: 'bold' },
             yAdjust: 5, 
           }
@@ -166,7 +164,6 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    // DIAGNOSTIC: Using simple colors
     const sigmaLineColors = ['darkgrey', 'grey', 'lightgrey', 'lightgrey', 'grey', 'darkgrey']; 
 
     sigmas.forEach((s, idx) => {
@@ -186,7 +183,7 @@ export default function Histogram({
             position: s < 0 ? 'start' : 'end',
             rotation: 90,
             backgroundColor: 'rgba(128,128,128,0.1)', 
-            color: 'black', // DIAGNOSTIC
+            color: 'black', 
             font: { size: 10 },
             yAdjust: s < 0 ? -15 : 15, 
           }
@@ -206,14 +203,14 @@ export default function Histogram({
         title: {
           display: true,
           text: 'Value Bins (Center)',
-          color: 'black' // DIAGNOSTIC
+          color: 'black' 
         },
         grid: {
           color: 'lightgrey', 
           display: false, 
         },
         ticks: {
-          color: 'black', // DIAGNOSTIC
+          color: 'black', 
           maxRotation: 45, 
           minRotation: 30,
           autoSkip: true, 
@@ -225,13 +222,13 @@ export default function Histogram({
         title: {
           display: true,
           text: 'Probability',
-          color: 'black' // DIAGNOSTIC
+          color: 'black' 
         },
         grid: {
           color: 'lightgrey', 
         },
         ticks: {
-          color: 'black', // DIAGNOSTIC
+          color: 'black', 
           callback: function(value: string | number) {
             if (typeof value === 'number') {
               return (value * 100).toFixed(0) + '%';
@@ -283,7 +280,7 @@ export default function Histogram({
         font: {
           size: 16
         },
-        color: 'black' // DIAGNOSTIC
+        color: 'black' 
       }
     }
   };
