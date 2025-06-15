@@ -18,7 +18,7 @@ export function getPercentile(data: number[], percentile: number): number {
   return sorted[index];
 }
 
-export function getHistogram(data: number[], binCount = 20): { bin: number; count: number }[] {
+export function getHistogram(data: number[], binCount = 23): { bin: number; count: number }[] {
   const validData = data.filter(d => !isNaN(d));
   if (!validData.length) return []; // Return empty array if no valid data
 

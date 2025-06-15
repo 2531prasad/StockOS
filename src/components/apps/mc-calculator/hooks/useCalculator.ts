@@ -39,28 +39,24 @@ const defaultInitialResults: CalculatorResults = {
 };
 
 
-export function useCalculator(submittedExpression: string, iterations: number = 10000): CalculatorResults {
+export function useCalculator(submittedExpression: string, iterations: number = 10000, histogramBinCount: number = 23): CalculatorResults {
   const [data, setData] = useState<CalculatorResults>(defaultInitialResults);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // When component mounts, if there's a submittedExpression, calculate immediately
-    // This handles the case where an expression is pre-filled
-    if (submittedExpression) {
-        // This effect will be triggered by submittedExpression change anyway
-    } else {
-        setData(defaultInitialResults); // Explicitly reset if no expression on mount
+    if (!submittedExpression) {
+        setData(defaultInitialResults); 
     }
-  }, []); // Empty dependency array for client-side mount detection
+  }, []);
 
 
   useEffect(() => {
-    if (!isClient) { // Only run on client
+    if (!isClient) { 
       return;
     }
     if (!submittedExpression) {
-      setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed})); // Preserve previous expression if clearing
+      setData(prev => ({...defaultInitialResults, expressionUsed: prev.expressionUsed})); 
       return;
     }
 
@@ -80,37 +76,32 @@ export function useCalculator(submittedExpression: string, iterations: number = 
           const evalResult = evaluateDeterministic(finalExpressionForMathJS);
           if (typeof evalResult === 'number') {
             currentResults = [evalResult];
-          } else { // evalResult is an error string
-            error = evalResult; // Error string from evaluateDeterministic
-            currentResults = [NaN]; // Ensure results array has a NaN to reflect error
+          } else { 
+            error = evalResult; 
+            currentResults = [NaN]; 
           }
-      } else { // Probabilistic calculation
+      } else { 
           currentResults = runSimulation(finalExpressionForMathJS, iterations);
       }
 
-      // Check for NaN results from simulation or deterministic eval that produced error
       if (!error && currentResults.some(isNaN)) {
           const nanCount = currentResults.filter(isNaN).length;
           if (nanCount === currentResults.length && currentResults.length > 0 && iterations > 0 && !isDeterministicCalculation) {
                error = `Calculation resulted in errors for all ${iterations} iterations. This might be due to invalid ranges (e.g., min > max) or issues within the expression itself for the sampled values. Check console for per-iteration details.`;
           } else if (nanCount > 0 && !isDeterministicCalculation) {
-            // Partial errors might indicate some problematic samples, but we proceed with valid ones.
           }
-          // For deterministic, error is already set if evalResult was string.
-          // currentResults might contain NaNs already from failed deterministic or probabilistic.
       }
       
       const validResultsForStats = currentResults.filter(r => !isNaN(r));
 
       if (!error && validResultsForStats.length === 0 && submittedExpression && iterations > 0 && !isDeterministicCalculation) {
-          // This condition implies a simulation was run, but yielded no valid (non-NaN) results, and no specific error was set yet.
           error = `No valid results from simulation after ${iterations} iterations. All iterations may have led to errors. Check browser console for details.`;
       }
 
 
-    } catch (e: any) { // Catch errors from preprocessExpression or other unexpected issues
+    } catch (e: any) { 
       error = `Calculation setup error: ${e.message || "Unknown error during preprocessing"}`;
-      currentResults = []; // Ensure results are empty on critical error
+      currentResults = []; 
       console.error("[useCalculator] Critical error during calculation setup:", e);
     }
 
@@ -128,14 +119,13 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       p50: getPercentile(finalValidResults, 50), 
       p90: getPercentile(finalValidResults, 90),
       p95: getPercentile(finalValidResults, 95),
-      histogram: getHistogram(finalValidResults), 
+      histogram: getHistogram(finalValidResults, histogramBinCount), 
       error,
       isDeterministic: isDeterministicCalculation,
       expressionUsed: submittedExpression 
     });
 
-  }, [submittedExpression, iterations, isClient]); 
+  }, [submittedExpression, iterations, histogramBinCount, isClient]); 
 
   return data;
 }
-

@@ -7,27 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { Terminal } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(10000);
+  const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState(""); 
   const [submittedIterations, setSubmittedIterations] = useState(iterations);
+  const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Removed useEffect that triggered initial calculation on load
-  // Calculations will now only happen via handleCalculate
   
-  const result = useCalculator(submittedExpression, submittedIterations);
+  const result = useCalculator(submittedExpression, submittedIterations, submittedHistogramBins);
   
   const handleCalculate = () => {
     setSubmittedExpression(expression);
     setSubmittedIterations(iterations);
+    setSubmittedHistogramBins(histogramBins);
   };
 
   const formatNumber = (num: number | undefined): string => {
@@ -43,7 +45,6 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
-      {/* Row 1: Range, Mean, Std Dev, Median */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2">
         <p><strong>Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean:</strong> {formatNumber(calcResult.mean)}</p>
@@ -51,7 +52,6 @@ export default function MCCalculator() {
         <p><strong>Median (50th %):</strong> {formatNumber(calcResult.p50)}</p>
       </div>
 
-      {/* Row 2: Percentiles */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-4">
         <p><strong>5th %:</strong> {formatNumber(calcResult.p5)}</p>
         <p><strong>10th %:</strong> {formatNumber(calcResult.p10)}</p>
@@ -78,7 +78,7 @@ export default function MCCalculator() {
           <CardDescription>Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
             <Input
               value={expression}
               onChange={(e) => setExpression(e.target.value)}
@@ -86,17 +86,38 @@ export default function MCCalculator() {
               placeholder="e.g., 50~60 * 10 + (100~120)/2"
               aria-label="Expression Input"
             />
-            <Input
-              type="number"
-              value={iterations}
-              onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 10000))}
-              className="w-full sm:w-32 text-base"
-              placeholder="Iterations"
-              aria-label="Number of Iterations"
-              min="100"
-            />
-            <Button onClick={handleCalculate} className="text-base">Calculate</Button>
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
+              <Input
+                id="iterations-input"
+                type="number"
+                value={iterations}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 10000))}
+                className="w-full sm:w-32 text-base"
+                placeholder="Iterations"
+                aria-label="Number of Iterations"
+                min="100"
+              />
+            </div>
+             <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
           </div>
+          
+          <div className="mb-6">
+            <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
+              Histogram Bins: {histogramBins}
+            </Label>
+            <Slider
+              id="histogram-bins-slider"
+              min={5}
+              max={50}
+              step={1}
+              value={[histogramBins]}
+              onValueChange={(value) => setHistogramBins(value[0])}
+              className="mt-2"
+              aria-label="Histogram Bins Slider"
+            />
+          </div>
+
 
           {result.error && (
              <Alert variant="destructive" className="mb-4">
