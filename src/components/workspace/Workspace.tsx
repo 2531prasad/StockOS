@@ -6,7 +6,6 @@ import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon } from "lucide-react";
-import { TextHoverEffect } from "@/components/ui/text-hover-effect"; // Import the new component
 
 type AppType = 'system' | 'alertDialog';
 
@@ -51,6 +50,7 @@ export default function Workspace() {
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
         default: 
+          // Fallback for unclassified app types (should not happen with current setup)
           const globalMaxZOfOthers = prevApps
             .filter(app => app.id !== id)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
@@ -66,6 +66,7 @@ export default function Workspace() {
       let targetZ = maxZOfOtherSimilarApps + 1;
       const newZIndexForAppToFocus = Math.min(maxZForType, Math.max(minZForType, targetZ));
 
+      // If already at the target z-index, no need to update (prevents unnecessary re-renders)
       if (appToFocus.zIndex === newZIndexForAppToFocus) {
         return prevApps;
       }
@@ -74,7 +75,7 @@ export default function Workspace() {
         app.id === id ? { ...app, zIndex: newZIndexForAppToFocus } : app
       );
     });
-  }, []);
+  }, []); // Removed setApps from deps, as it's stable
 
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function Workspace() {
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
       const currentApp = apps.find(app => app.id === appId);
+      // Only allow dragging if the app is not minimized
       if(currentApp && !currentApp.isMinimized) { 
         const rect = appElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
@@ -135,20 +137,23 @@ export default function Workspace() {
       if (!appElement) return;
       
       const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData || appData.isMinimized) { 
-        setActiveDrag(null); 
+      if (!appData || appData.isMinimized) { // Stop drag if app becomes minimized
+        setActiveDrag(null); // Reset activeDrag state
         return;
       }
 
-      const appRect = appElement.getBoundingClientRect(); 
+      const appRect = appElement.getBoundingClientRect(); // Get current app dimensions
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
 
+      // Calculate new position based on viewport coordinates
       let newViewportX = e.clientX - activeDrag.offsetX;
       let newViewportY = e.clientY - activeDrag.offsetY;
 
+      // Convert viewport coordinates to be relative to the workspace
       let newRelativeX = newViewportX - workspaceRect.left;
       let newRelativeY = newViewportY - workspaceRect.top;
       
+      // Constrain within workspace boundaries
       newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width));
       newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height));
       
@@ -174,14 +179,12 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps, bringToFront]); // Added bringToFront to dependencies as it's used in useEffect
+  }, [activeDrag, apps]); // Removed bringToFront, setApps is stable and apps covers data changes
 
 
   return (
     <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <TextHoverEffect text="FloatCalc" duration={0.5} />
-      </div>
+      {/* The TextHoverEffect component has been removed from here */}
       {apps
         .filter((app) => app.isOpen)
         .map((app) => (
@@ -200,13 +203,15 @@ export default function Workspace() {
               userSelect: activeDrag?.appId === app.id ? 'none' : 'auto',
               transition: activeDrag?.appId === app.id ? 'none' : 'width 0.2s ease-out, height 0.2s ease-out',
             }}
-            onMouseDown={() => { 
+            onMouseDown={() => { // Bring to front on any click on the card
               bringToFront(app.id);
             }}
           >
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab border-b"
               onMouseDown={(e) => {
+                // Prevent card's onMouseDown from firing if header is clicked for dragging,
+                // but allow bringToFront to be called by handleDragStart itself.
                 e.stopPropagation(); 
                 handleDragStart(e, app.id);
               }}
@@ -222,12 +227,13 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!app.isMinimized && (
-              <CardContent className="p-0 flex-grow overflow-hidden"> 
+              <CardContent className="p-0 flex-grow overflow-hidden"> {/* Ensure content can grow and scroll if app has fixed height */}
                 {app.component}
               </CardContent>
             )}
              {app.isMinimized && (
-                <div className="h-2"></div> 
+                // Add a small fixed height or padding to the minimized card body if needed, or just an empty div
+                <div className="h-2"></div> // Minimal height for minimized state
              )}
           </Card>
         ))}
