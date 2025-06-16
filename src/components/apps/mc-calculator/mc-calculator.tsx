@@ -18,7 +18,7 @@ import { Terminal } from "lucide-react";
 
 
 export default function MCCalculator() {
-  const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
+  const [expression, setExpression] = useState("");
   const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState("");
@@ -61,7 +61,7 @@ export default function MCCalculator() {
   );
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    <div className="flex flex-col"> 
+    <> 
       {(!isNaN(calcResult.analyticalMin) || !isNaN(calcResult.analyticalMax)) && (
         <div className="mb-2 pt-2">
           <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
@@ -98,7 +98,7 @@ export default function MCCalculator() {
           />
         </div>
       ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
-    </div>
+    </>
   );
 
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
@@ -176,5 +176,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
-    
