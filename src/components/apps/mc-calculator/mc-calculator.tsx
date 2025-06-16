@@ -113,12 +113,12 @@ export default function MCCalculator() {
 
         {/* Iterations, Bars, True Range Controls Row */}
         {(showAdvancedControlsConditionally || showTrueRangeConditionally) && (
-          <div className="flex flex-row flex-wrap items-start gap-x-6 gap-y-4 mt-3 text-xs">
-            {/* True Analytical Range Column */}
+          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
+             {/* True Analytical Range Column */}
             {showTrueRangeConditionally && (
               <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground">True Range</Label>
-                <p className="text-foreground font-medium whitespace-nowrap">
+                <Label className="text-muted-foreground text-base">True Range</Label>
+                <p className="text-foreground font-medium whitespace-nowrap text-base">
                   {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
                 </p>
                 {result.analyticalError && (
@@ -132,7 +132,7 @@ export default function MCCalculator() {
             {/* Bars (Histogram Bins Slider) Column */}
             {showAdvancedControlsConditionally && (
               <div className="flex flex-col space-y-1 flex-1 min-w-[120px]">
-                <Label htmlFor="histogram-bins-slider-ctrl" className="text-muted-foreground">
+                <Label htmlFor="histogram-bins-slider-ctrl" className="text-muted-foreground text-base">
                   Bars: {histogramBins}
                 </Label>
                 <Slider
@@ -150,13 +150,13 @@ export default function MCCalculator() {
             {/* Iterations Column */}
             {showAdvancedControlsConditionally && (
               <div className="flex flex-col space-y-1">
-                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground">Iterations</Label>
+                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground text-base">Iterations</Label>
                 <Input
                   id="iterations-input-ctrl"
                   type="number"
                   value={iterations}
                   onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                  className="w-24 h-7 text-xs mt-1"
+                  className="w-24 h-9 text-base mt-1"
                   min="100"
                   step="1000"
                 />
