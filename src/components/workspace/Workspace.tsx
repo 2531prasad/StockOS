@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { XIcon, MinusIcon, HelpCircle } from "lucide-react";
+import { XIcon, MinusIcon, HelpCircle, MoveDiagonal } from "lucide-react";
 
 type AppType = 'system' | 'alertDialog';
 
@@ -27,7 +27,15 @@ interface AppInstance {
   position: { x: number; y: number };
   zIndex: number;
   isMinimized?: boolean;
-  size: { width: string; height: string; maxWidth: string; maxHeight: string };
+  previousSize?: { width: string; height: string } | null;
+  size: { 
+    width: string; 
+    height: string; 
+    minWidth?: number;
+    minHeight?: number;
+    maxWidth: string; 
+    maxHeight: string;
+  };
   appType: AppType;
 }
 
@@ -40,6 +48,13 @@ const ALERT_DIALOG_Z_MAX = 940;
 export default function Workspace() {
   const [apps, setApps] = useState<AppInstance[]>([]);
   const [activeDrag, setActiveDrag] = useState<{ appId: string; offsetX: number; offsetY: number } | null>(null);
+  const [activeResize, setActiveResize] = useState<{ 
+    appId: string; 
+    initialMouseX: number; 
+    initialMouseY: number; 
+    initialWidth: number; 
+    initialHeight: number; 
+  } | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const bringToFront = useCallback((id: string) => {
@@ -96,24 +111,76 @@ export default function Workspace() {
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
         isMinimized: false,
-        size: { width: '90vw', height: 'calc(100vh - 100px)', maxWidth: '800px', maxHeight: '800px' },
+        previousSize: null,
+        size: { 
+            width: '90vw', 
+            height: 'calc(100vh - 100px)', 
+            minWidth: 400, 
+            minHeight: 500, 
+            maxWidth: '800px', 
+            maxHeight: '800px' 
+        },
         appType: 'system',
+      },
+       {
+        id: "how-it-works-dialog",
+        title: "How This Calculator Works",
+        component: <HowItWorksContent />,
+        isOpen: false,
+        position: { x: 100, y: 100 },
+        zIndex: ALERT_DIALOG_Z_MIN,
+        isMinimized: false,
+        previousSize: null,
+        size: { 
+            width: '600px', 
+            height: 'auto', 
+            minWidth: 300, 
+            minHeight: 200,
+            maxWidth: '700px', 
+            maxHeight: '75vh' 
+        },
+        appType: 'alertDialog',
       },
     ];
     setApps(initialApps);
   }, []);
 
+  const openApp = useCallback((id: string) => {
+    setApps(prevApps => prevApps.map(app => app.id === id ? { ...app, isOpen: true } : app));
+    bringToFront(id);
+  }, [bringToFront]);
+
 
   const toggleMinimize = (id: string) => {
-    const appToToggle = apps.find(app => app.id ===id);
-    if (!appToToggle) return;
-
     setApps(prevApps =>
-      prevApps.map(app =>
-        app.id === id ? { ...app, isMinimized: !app.isMinimized } : app
-      )
+      prevApps.map(app => {
+        if (app.id === id) {
+          const isCurrentlyMinimized = app.isMinimized;
+          if (!isCurrentlyMinimized) { // Minimizing
+            return { 
+              ...app, 
+              isMinimized: true, 
+              previousSize: { width: app.size.width, height: app.size.height },
+              size: { ...app.size, width: '250px', height: 'auto' } 
+            };
+          } else { // Restoring
+            return { 
+              ...app, 
+              isMinimized: false, 
+              size: { 
+                ...app.size, 
+                width: app.previousSize?.width || app.size.maxWidth, // Fallback to maxWidth or a default
+                height: app.previousSize?.height || app.size.maxHeight // Fallback
+              },
+              previousSize: null 
+            };
+          }
+        }
+        return app;
+      })
     );
-     if (appToToggle.isMinimized) { 
+     const appToToggle = apps.find(app => app.id ===id);
+     if (appToToggle && appToToggle.isMinimized) { // If it was minimized, now it's restored
       bringToFront(id);
     }
   };
@@ -185,48 +252,138 @@ export default function Workspace() {
     };
   }, [activeDrag, apps]); 
 
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
+    e.stopPropagation(); // Prevent drag start
+    bringToFront(appId);
+    const appElement = document.getElementById(`app-${appId}`);
+    const currentApp = apps.find(app => app.id === appId);
+    if (appElement && currentApp && !currentApp.isMinimized) {
+      const rect = appElement.getBoundingClientRect();
+      setActiveResize({
+        appId,
+        initialMouseX: e.clientX,
+        initialMouseY: e.clientY,
+        initialWidth: rect.width,
+        initialHeight: rect.height,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMoveResize = (e: MouseEvent) => {
+      if (!activeResize || !workspaceRef.current) return;
+      
+      const currentApp = apps.find(app => app.id === activeResize.appId);
+      if (!currentApp || currentApp.isMinimized) {
+        setActiveResize(null);
+        return;
+      }
+
+      const deltaX = e.clientX - activeResize.initialMouseX;
+      const deltaY = e.clientY - activeResize.initialMouseY;
+
+      let newWidth = activeResize.initialWidth + deltaX;
+      let newHeight = activeResize.initialHeight + deltaY;
+
+      // Apply min constraints
+      newWidth = Math.max(currentApp.size.minWidth || 200, newWidth);
+      newHeight = Math.max(currentApp.size.minHeight || 150, newHeight);
+      
+      // Apply workspace boundary constraints
+      const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      const appPos = currentApp.position;
+
+      if (appPos.x + newWidth > workspaceRect.width) {
+        newWidth = workspaceRect.width - appPos.x;
+      }
+      if (appPos.y + newHeight > workspaceRect.height) {
+        newHeight = workspaceRect.height - appPos.y;
+      }
+
+
+      setApps(prevApps =>
+        prevApps.map(app =>
+          app.id === activeResize.appId
+            ? {
+                ...app,
+                size: {
+                  ...app.size,
+                  width: `${Math.max(currentApp.size.minWidth || 200, newWidth)}px`, // ensure minWidth again after boundary adjustment
+                  height: `${Math.max(currentApp.size.minHeight || 150, newHeight)}px`, // ensure minHeight again
+                },
+              }
+            : app
+        )
+      );
+    };
+
+    const handleMouseUpResize = () => {
+      setActiveResize(null);
+    };
+
+    if (activeResize) {
+      window.addEventListener('mousemove', handleMouseMoveResize);
+      window.addEventListener('mouseup', handleMouseUpResize);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMoveResize);
+      window.removeEventListener('mouseup', handleMouseUpResize);
+    };
+  }, [activeResize, apps, bringToFront]);
+
 
   return (
-    <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden">
+    <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden bg-background">
       {apps
         .filter((app) => app.isOpen)
-        .map((app) => (
+        .map((appInstance) => {
+            const componentToRender = React.isValidElement(appInstance.component) && appInstance.id === 'mc-calculator'
+            ? React.cloneElement(appInstance.component as React.ReactElement<any>, { openApp })
+            : appInstance.component;
+
+            return (
           <Card
-            key={app.id}
-            id={`app-${app.id}`}
+            key={appInstance.id}
+            id={`app-${appInstance.id}`}
             className="absolute shadow-2xl flex flex-col border border-border rounded-lg overflow-hidden bg-card" 
             style={{
-              left: `${app.position.x}px`,
-              top: `${app.position.y}px`,
-              zIndex: app.zIndex,
-              width: app.isMinimized ? '250px': app.size.width,
-              height: app.isMinimized ? 'auto' : app.size.height,
-              maxWidth: app.isMinimized ? '250px': app.size.maxWidth,
-              maxHeight: app.isMinimized ? 'auto' : app.size.maxHeight,
-              userSelect: activeDrag?.appId === app.id ? 'none' : 'auto',
-              transition: activeDrag?.appId === app.id ? 'none' : 'width 0.2s ease-out, height 0.2s ease-out',
+              left: `${appInstance.position.x}px`,
+              top: `${appInstance.position.y}px`,
+              zIndex: appInstance.zIndex,
+              width: appInstance.size.width,
+              height: appInstance.size.height,
+              maxWidth: appInstance.size.maxWidth,
+              maxHeight: appInstance.size.maxHeight,
+              minWidth: `${appInstance.size.minWidth || 0}px`,
+              minHeight: `${appInstance.size.minHeight || 0}px`,
+              userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
+              transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out', // Changed transition
             }}
             onMouseDown={() => { 
-              bringToFront(app.id);
+              bringToFront(appInstance.id);
             }}
           >
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab"
               onMouseDown={(e) => {
+                if ((e.target as HTMLElement).closest('.resize-handle')) return; // Don't drag if clicking resize handle
                 e.stopPropagation(); 
-                handleDragStart(e, app.id);
+                handleDragStart(e, appInstance.id);
               }}
             >
               <div className="flex items-center">
-                <CardTitle className="text-sm font-medium select-none pl-1">{app.title}</CardTitle>
-                {app.id === 'mc-calculator' && (
+                <CardTitle className="text-sm font-medium select-none pl-1">{appInstance.title}</CardTitle>
+                 {appInstance.id === 'mc-calculator' && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="ml-2 h-6 w-6"
-                        onClick={(e) => e.stopPropagation()} 
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent card header's onMouseDown
+                            // AlertDialog will open due to trigger
+                        }} 
                         aria-label="How it Works"
                       >
                         <HelpCircle className="h-4 w-4" />
@@ -238,33 +395,41 @@ export default function Workspace() {
                       </AlertDialogHeader>
                       <HowItWorksContent />
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Close</AlertDialogCancel>
+                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Close</AlertDialogCancel>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
               </div>
               <div className="flex space-x-1">
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleMinimize(app.id);}}>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleMinimize(appInstance.id);}}>
                   <MinusIcon className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/80" onClick={(e) => {e.stopPropagation(); closeApp(app.id);}}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/80" onClick={(e) => {e.stopPropagation(); closeApp(appInstance.id);}}>
                   <XIcon className="h-3 w-3" />
                 </Button>
               </div>
             </CardHeader>
-            {!app.isMinimized && (
-              <CardContent className="p-0 flex-grow overflow-hidden">
-                {app.component}
+            {!appInstance.isMinimized && (
+              <CardContent className="p-0 flex-grow overflow-auto relative"> {/* Added relative for resize handle positioning */}
+                {componentToRender}
+                 {!appInstance.isMinimized && (
+                    <div 
+                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center"
+                        onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
+                        title="Resize"
+                    >
+                        <MoveDiagonal size={12} className="text-muted-foreground" />
+                    </div>
+                )}
               </CardContent>
             )}
-             {app.isMinimized && (
-                <div className="h-2"></div>
+             {appInstance.isMinimized && (
+                <div className="h-2"></div> 
              )}
           </Card>
-        ))}
+        );
+      })}
     </div>
   );
 }
-
-    

@@ -15,7 +15,7 @@ import {
 
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, Info } from "lucide-react";
+import { Terminal } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
@@ -51,7 +51,7 @@ export default function MCCalculator() {
   };
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
-    <div className="text-2xl font-bold text-primary py-4 bg-muted/30 p-4 rounded-md text-center">
+    <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-center shadow-inner">
       Output: {formatNumber(calcResult.results[0])}
     </div>
   );
@@ -62,9 +62,8 @@ export default function MCCalculator() {
         <div className="mb-2 pt-2">
           <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
            {calcResult.analyticalError && (
-             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center">
-                <Info size={14} className="mr-1 shrink-0" />
-                <span>Note on Analytical Range: {calcResult.analyticalError}</span>
+             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                Note on Analytical Range: {calcResult.analyticalError}
             </p>
            )}
         </div>
@@ -98,8 +97,7 @@ export default function MCCalculator() {
     </>
   );
   
-  const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
-  const showInitialMessage = !submittedExpression && !result.error;
+  const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showAdvancedControls = submittedExpression && !result.isDeterministic && !result.error && (result.results && result.results.length > 0 && !result.results.every(isNaN));
 
 
@@ -162,13 +160,11 @@ export default function MCCalculator() {
         )}
 
         <div className="space-y-2 text-sm md:text-base mt-4">
-          {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results.</p>}
-          {showResults && result.isDeterministic && renderDeterministicOutput(result)}
-          {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
+          {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
+          {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
       </AppCardContent>
     </div>
   );
 }
-
     
