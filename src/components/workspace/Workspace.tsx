@@ -17,6 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { DottedBackground } from "@/components/ui/dotted-background";
+import { cn } from "@/lib/utils";
 
 
 type AppType = 'system' | 'alertDialog';
@@ -317,7 +318,10 @@ export default function Workspace() {
           <Card
             key={appInstance.id}
             id={`app-${appInstance.id}`}
-            className="absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card"
+            className={cn(
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card",
+                "backdrop-blur-[var(--blur-sm)]"
+              )}
             style={{
               left: `${appInstance.position.x}px`,
               top: `${appInstance.position.y}px`,
