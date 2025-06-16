@@ -1,10 +1,10 @@
 
-import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
+import Workspace from "@/components/workspace/Workspace";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <MCCalculator />
+      <Workspace />
     </main>
   );
 }

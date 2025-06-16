@@ -10,7 +10,7 @@ interface CalculatorUIProps {
   onDecimalClick: () => void;
 }
 
-const buttonBaseClass = "text-xl font-medium h-16 transform transition-transform active:scale-95 shadow-sm hover:shadow-md focus:ring-2 focus:ring-ring focus:ring-offset-1";
+const buttonBaseClass = "text-xl font-medium h-16 transform transition-transform active:scale-95 shadow-xs hover:shadow-md focus:ring-2 focus:ring-ring focus:ring-offset-1";
 
 export function CalculatorUI({
   displayValue,

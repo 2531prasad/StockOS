@@ -1,19 +1,19 @@
 
 "use client";
 import React, { useState, useEffect } from "react";
-import { useCalculator, type CalculatorResults } from "./hooks/useCalculator";
+import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"; // Keep these for structure within the app
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogContent,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHeader as AlertDialogHeaderNative, // Renamed to avoid conflict
+  AlertDialogTitle as AlertDialogTitleNative, // Renamed to avoid conflict
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
@@ -22,7 +22,7 @@ import { Terminal, HelpCircle, Info } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
-  const [iterations, setIterations] = useState(100000); // Changed default to 100000
+  const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState("");
   const [submittedIterations, setSubmittedIterations] = useState(0);
@@ -35,13 +35,12 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, // Ensure iterations is at least 1
+    submittedIterations > 0 ? submittedIterations : 1,
     submittedHistogramBins
   );
 
   const handleCalculate = () => {
     if (!expression.trim()) {
-      // Optionally, show an alert or toast for empty expression
       return;
     }
     setSubmittedExpression(expression);
@@ -91,7 +90,7 @@ export default function MCCalculator() {
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
         <div className="mt-4 h-[450px] w-full">
           <Histogram
-            data={calcResult.histogram}
+            data={calcResult.histogram as HistogramDataEntry[]}
             title="Outcome Distribution"
             meanValue={calcResult.mean}
             medianValue={calcResult.p50}
@@ -107,22 +106,21 @@ export default function MCCalculator() {
 
 
   return (
-    <div className="container mx-auto p-4 md:p-8 font-body">
-      <Card className="w-full max-w-4xl mx-auto shadow-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl md:text-3xl">Monte Carlo Calculator</CardTitle>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon" className="ml-2">
-                  <HelpCircle className="h-5 w-5" />
-                  <span className="sr-only">How it Works</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="max-w-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-xl">How This Calculator Works</AlertDialogTitle>
-                   <div className="text-sm text-muted-foreground text-left max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+    <div className="font-body h-full flex flex-col bg-card text-card-foreground"> {/* App content container */}
+      <CardHeader className="border-b"> {/* Using CardHeader for semantic structure */}
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl md:text-2xl">Monte Carlo Analysis</CardTitle> {/* Changed title slightly */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="icon" className="ml-2 h-8 w-8">
+                <HelpCircle className="h-4 w-4" />
+                <span className="sr-only">How it Works</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-2xl">
+                <AlertDialogHeaderNative>
+                  <AlertDialogTitleNative className="text-xl">How This Calculator Works</AlertDialogTitleNative>
+                   <div className="text-sm text-muted-foreground text-left max-h-[60vh] overflow-y-auto pr-2 space-y-4">
                     <div>
                       <h3 className="font-semibold text-base mb-1">🚀 What This Calculator Does</h3>
                       <p>Unlike normal calculators, this tool allows you to:</p>
@@ -151,6 +149,8 @@ export default function MCCalculator() {
                         <p><strong>Dice roll (2 dice sum):</strong> round(1~6) + round(1~6) (✅ realistic distribution)</p>
                         <p><strong>Population sampling:</strong> Multiple samples per range (e.g., <code>round(20~30) + round(20~30) + ...</code>)</p>
                       </div>
+                       <p className="mt-2"><strong>Commas:</strong> Commas in numbers are ignored (e.g. <code>1,000</code> is treated as <code>1000</code>).</p>
+                       <p className="mt-1"><strong>True Analytical Range:</strong> For expressions with many ranges (&gt;8), the analytical range is an approximation. For fewer ranges, it's calculated by checking all 2<sup>N</sup> min/max combinations.</p>
                     </div>
 
                     <div>
@@ -196,84 +196,82 @@ export default function MCCalculator() {
                       </div>
                     </div>
                   </div>
-                </AlertDialogHeader>
+                </AlertDialogHeaderNative>
                 <AlertDialogFooter>
                   <AlertDialogAction>Got it!</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
-          <CardDescription>
-            Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
-            Vertical lines indicate Mean, Median, and Standard Deviations (σ).
-            Histogram bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ).
-            X-axis labels show the center value of each bin.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
+        </div>
+        <CardDescription className="text-xs">
+          Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
+          Vertical lines indicate Mean, Median, and Standard Deviations (σ).
+          Histogram bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ).
+          X-axis labels show the center value of each bin.
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex-grow p-4 overflow-y-auto"> {/* Main content area */}
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
+          <Input
+            value={expression}
+            onChange={(e) => setExpression(e.target.value)}
+            className="grow text-base"
+            placeholder="e.g., 50~60 * 10 + (100~120)/2"
+            aria-label="Expression Input"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
+          />
+          <div className="flex flex-col space-y-1">
+            <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
             <Input
-              value={expression}
-              onChange={(e) => setExpression(e.target.value)}
-              className="flex-grow text-base"
-              placeholder="e.g., 50~60 * 10 + (100~120)/2"
-              aria-label="Expression Input"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
-            />
-            <div className="flex flex-col space-y-1">
-              <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
-              <Input
-                id="iterations-input"
-                type="number"
-                value={iterations}
-                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))} // Ensure fallback uses 100000
-                className="w-full sm:w-32 text-base"
-                placeholder="Iterations"
-                aria-label="Number of Iterations"
-                min="100"
-                step="1000"
-              />
-            </div>
-            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
-          </div>
-
-          <div className="mb-6">
-            <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-              Chart Detail (Number of Points/Bars): {histogramBins}
-            </Label>
-            <Slider
-              id="histogram-bins-slider"
-              min={5}
-              max={50}
-              step={1}
-              value={[histogramBins]}
-              onValueChange={(value) => setHistogramBins(value[0])}
-              className="mt-2"
-              aria-label="Histogram Bins Slider"
+              id="iterations-input"
+              type="number"
+              value={iterations}
+              onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+              className="w-full sm:w-32 text-base"
+              placeholder="Iterations"
+              aria-label="Number of Iterations"
+              min="100"
+              step="1000"
             />
           </div>
+          <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+        </div>
 
-          {result.error && (
-            <Alert variant="destructive" className="mb-4">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{result.error}</AlertDescription>
-            </Alert>
-          )}
+        <div className="mb-6">
+          <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
+            Chart Detail (Number of Points/Bars): {histogramBins}
+          </Label>
+          <Slider
+            id="histogram-bins-slider"
+            min={5}
+            max={50}
+            step={1}
+            value={[histogramBins]}
+            onValueChange={(value) => setHistogramBins(value[0])}
+            className="mt-2"
+            aria-label="Histogram Bins Slider"
+          />
+        </div>
 
-          <div className="space-y-2 text-sm md:text-base">
-            {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and distribution chart.</p>}
-            {showResults && result.isDeterministic && renderDeterministicOutput(result)}
-            {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
-          </div>
+        {result.error && (
+          <Alert variant="destructive" className="mb-4">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{result.error}</AlertDescription>
+          </Alert>
+        )}
 
-        </CardContent>
-      </Card>
-      <footer className="text-center mt-8 text-muted-foreground text-xs">
+        <div className="space-y-2 text-sm md:text-base">
+          {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and distribution chart.</p>}
+          {showResults && result.isDeterministic && renderDeterministicOutput(result)}
+          {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
+        </div>
+      </CardContent>
+
+      <div className="text-center text-muted-foreground text-xs p-2 border-t"> {/* Footer inside the app content */}
         <p>Uses <a href="https://mathjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">math.js</a> for expression parsing and <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Chart.js</a> for visualization.</p>
-      </footer>
+      </div>
     </div>
   );
 }
-
-    
