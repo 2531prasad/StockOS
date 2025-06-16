@@ -7,8 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// AppCardContent was an alias for CardContent, we are simplifying the structure
-// so it's no longer needed here.
 import { 
   Alert, 
   AlertDescription, 
@@ -31,22 +29,20 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-    // Automatically calculate on first load if expression is present
     if (expression.trim()) {
       handleCalculate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, []); 
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, // Ensure at least 1 iteration
+    submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
 
   const handleCalculate = () => {
     if (!expression.trim()) {
-      // Optionally, clear results or show a message if expression is empty
       setSubmittedExpression("");
       setSubmittedIterations(0);
       return;
@@ -115,7 +111,7 @@ export default function MCCalculator() {
   return (
     <div className="h-full w-full flex flex-col"> {/* Main container, takes height from CardContent */}
       {/* Inputs and Controls Section (Fixed Top) */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border shrink-0">
           <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
             <Input
               value={expression}
@@ -147,7 +143,7 @@ export default function MCCalculator() {
                 />
               </div>
 
-              <div className="mb-2"> {/* Adjusted margin for slider section */}
+              <div className="mb-2"> 
                 <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
                   Chart Detail (Number of Points/Bars): {histogramBins}
                 </Label>
@@ -167,27 +163,25 @@ export default function MCCalculator() {
       </div>
 
       {/* Scrollable Area for Results and Histogram */}
-      <ScrollArea className="flex-1 w-full"> {/* This takes up the remaining space */}
-        <div className="p-4"> {/* Inner padding for the scrollable content */}
-          {result.error && (
-            <Alert variant="destructive" className="mb-4">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{result.error}</AlertDescription>
-            </Alert>
-          )}
+      <div className="flex-grow w-full min-h-0"> {/* This intermediate div takes up remaining space and allows ScrollArea to fill it */}
+        <ScrollArea className="h-full w-full"> 
+          <div className="p-4"> {/* Inner padding for the scrollable content */}
+            {result.error && (
+              <Alert variant="destructive" className="mb-4">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{result.error}</AlertDescription>
+              </Alert>
+            )}
 
-          <div className="space-y-2 text-sm md:text-base">
-            {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
-            {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+            <div className="space-y-2 text-sm md:text-base">
+              {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
+              {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+            </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
     </div>
   );
 }
     
-
-    
-
-
