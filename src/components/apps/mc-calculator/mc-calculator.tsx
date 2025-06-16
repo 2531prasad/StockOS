@@ -58,6 +58,10 @@ export default function MCCalculator() {
     </div>
   );
 
+  const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
+  const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
+  const showTrueRangeConditionally = showResultsArea && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
+
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2 text-xs">
@@ -119,10 +123,6 @@ export default function MCCalculator() {
     </>
   );
   
-  const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
-  const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
-  const showTrueRangeConditionally = showResultsArea && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
-
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -143,22 +143,22 @@ export default function MCCalculator() {
         </div>
 
         {/* True Range Row */}
-        {showTrueRangeConditionally && (
-          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
-            {/* True Analytical Range Column */}
-            <div className="flex flex-col space-y-1">
-              <Label className="text-muted-foreground text-base">True Range</Label>
-              <p className="text-foreground font-medium whitespace-nowrap text-base">
-                {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
-              </p>
-              {result.analyticalError && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
-                    {result.analyticalError}
+         <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
+            {showTrueRangeConditionally && (
+                <div className="flex flex-col space-y-1">
+                <Label className="text-muted-foreground text-base">True Range</Label>
+                <p className="text-foreground font-medium whitespace-nowrap text-base">
+                    {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
                 </p>
-              )}
-            </div>
-          </div>
-        )}
+                {result.analyticalError && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
+                        {result.analyticalError}
+                    </p>
+                )}
+                </div>
+            )}
+        </div>
+
 
         {/* Error Alert Section */}
         {result.error && (
@@ -178,3 +178,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
