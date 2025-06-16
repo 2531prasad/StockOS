@@ -38,8 +38,9 @@ export default function MCCalculator() {
 
   const handleCalculate = () => {
     if (!expression.trim()) {
-      setSubmittedExpression("");
-      setSubmittedIterations(0);
+      // If expression is empty, reset results but don't show errors for empty submission.
+      setSubmittedExpression(""); // This will trigger useCalculator to return default results.
+      setSubmittedIterations(0); // Or keep previous iterations if preferred.
       return;
     }
     setSubmittedExpression(expression);
@@ -85,6 +86,25 @@ export default function MCCalculator() {
           />
         </div>
       ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
+      
+      {showAdvancedControlsConditionally && (
+        <div className="flex flex-col items-center mt-4">
+          <div className="flex flex-col space-y-1 w-full max-w-xs">
+            <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
+              Bars: {histogramBins}
+            </Label>
+            <Slider
+              id="histogram-bins-slider-ctrl-prob"
+              min={5}
+              max={50}
+              step={1}
+              value={[histogramBins]}
+              onValueChange={(value) => setHistogramBins(value[0])}
+              className="relative flex w-full touch-none select-none items-center mt-1"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
   
@@ -95,7 +115,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"> {/* Single scrollable container */}
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -111,10 +131,10 @@ export default function MCCalculator() {
           </div>
         </div>
 
-        {/* Iterations, Bars, True Range Controls Row */}
-        {(showAdvancedControlsConditionally || showTrueRangeConditionally) && (
+        {/* True Range and Iterations Controls Row */}
+        {(showTrueRangeConditionally || showAdvancedControlsConditionally) && (
           <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
-             {/* True Analytical Range Column */}
+            {/* True Analytical Range Column */}
             {showTrueRangeConditionally && (
               <div className="flex flex-col space-y-1">
                 <Label className="text-muted-foreground text-base">True Range</Label>
@@ -129,24 +149,6 @@ export default function MCCalculator() {
               </div>
             )}
             
-            {/* Bars (Histogram Bins Slider) Column */}
-            {showAdvancedControlsConditionally && (
-              <div className="flex flex-col space-y-1 flex-1 min-w-[120px]">
-                <Label htmlFor="histogram-bins-slider-ctrl" className="text-muted-foreground text-base">
-                  Bars: {histogramBins}
-                </Label>
-                <Slider
-                  id="histogram-bins-slider-ctrl"
-                  min={5}
-                  max={50}
-                  step={1}
-                  value={[histogramBins]}
-                  onValueChange={(value) => setHistogramBins(value[0])}
-                  className="relative flex w-full touch-none select-none items-center mt-1" 
-                />
-              </div>
-            )}
-
             {/* Iterations Column */}
             {showAdvancedControlsConditionally && (
               <div className="flex flex-col space-y-1">
@@ -183,4 +185,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
