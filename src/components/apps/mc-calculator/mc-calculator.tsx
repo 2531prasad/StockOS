@@ -52,7 +52,7 @@ export default function MCCalculator() {
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-center shadow-inner">
-      Output: {formatNumber(calcResult.results[0])}
+      {formatNumber(calcResult.results[0])}
     </div>
   );
 
