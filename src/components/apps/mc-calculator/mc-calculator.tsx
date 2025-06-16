@@ -63,8 +63,7 @@ export default function MCCalculator() {
   );
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    // Removed flex-1 from this div, it will stack naturally
-    <div> 
+    <div className="flex flex-col"> 
       {(!isNaN(calcResult.analyticalMin) || !isNaN(calcResult.analyticalMax)) && (
         <div className="mb-2 pt-2">
           <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
@@ -110,7 +109,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 hide-native-scrollbar">
           {/* Inputs and Controls Section */}
           <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
             <Input

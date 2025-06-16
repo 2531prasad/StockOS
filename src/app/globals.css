@@ -1,3 +1,4 @@
+
 @import 'tailwindcss';
 
 @plugin 'tailwindcss-animate';
@@ -347,4 +348,15 @@
     background-color: #FFFFFF; /* White selection background */
     color: #000000;           /* Black selected text */
   }
+}
+
+/* Custom utility to hide native scrollbars */
+.hide-native-scrollbar {
+    overflow-y: scroll; /* Ensure scrolling is enabled if content overflows */
+    scrollbar-width: none; /* Firefox */
+}
+
+.hide-native-scrollbar::-webkit-scrollbar { /* WebKit */
+    width: 0;
+    height: 0;
 }
