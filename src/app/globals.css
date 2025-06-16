@@ -343,4 +343,9 @@
   body {
     @apply bg-background text-foreground font-body;
   }
+  ::selection {
+    background-color: #FFFFFF; /* White selection background */
+    color: #FFFFFF;           /* White selected text */
+  }
 }
+
