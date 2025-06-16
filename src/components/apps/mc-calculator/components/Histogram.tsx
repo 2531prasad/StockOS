@@ -109,24 +109,25 @@ export default function Histogram({
   stdDevValue,
 }: Props) {
   const [isClient, setIsClient] = useState(false);
-  const [chartThemeColors, setChartThemeColors] = useState<ChartThemeColors>({
+  // Static HSLA colors for a dark theme context, independent of main app theme
+  const [chartThemeColors] = useState<ChartThemeColors>({
     textColor: 'hsla(0, 0%, 95%, 1)', // Off-white
     gridColor: 'hsla(0, 0%, 50%, 0.2)', // Semi-transparent grey
     tooltipBgColor: 'hsla(0, 0%, 15%, 0.9)', // Dark semi-transparent
     tooltipTextColor: 'hsla(0, 0%, 90%, 1)', // Light grey
-    meanLineColor: 'hsla(207, 88%, 68%, 1)', // Soft blue
-    medianLineColor: 'hsla(125, 43%, 75%, 1)', // Light green
+    meanLineColor: 'hsla(207, 88%, 68%, 1)', // Soft blue (matches default primary)
+    medianLineColor: 'hsla(125, 43%, 75%, 1)', // Light green (matches default accent)
     annotationLabelColor: 'hsla(0, 0%, 90%, 1)',
     annotationLabelBgAlpha: 0.3,
-    sigmaLineColors: [
-        'hsla(0, 0%, 70%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 50%, 0.7)',
-        'hsla(0, 0%, 50%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 70%, 0.7)'
+    sigmaLineColors: [ // Shades of grey for sigma lines
+      'hsla(0, 0%, 70%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 50%, 0.7)',
+      'hsla(0, 0%, 50%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 70%, 0.7)'
     ],
-    sigmaBarColors: {
-      s1bg: 'hsla(180, 60%, 40%, 0.7)', s1border: 'hsla(180, 60%, 25%, 1)',
-      s2bg: 'hsla(120, 50%, 35%, 0.7)', s2border: 'hsla(120, 50%, 20%, 1)',
-      s3bg: 'hsla(55, 70%, 40%, 0.7)', s3border: 'hsla(55, 70%, 25%, 1)',
-      otherBg: 'hsla(0, 0%, 30%, 0.5)', otherBorder: 'hsla(0, 0%, 40%, 1)',
+    sigmaBarColors: { // Defined in globals.css style
+      s1bg: 'hsla(180, 60%, 40%, 0.7)', s1border: 'hsla(180, 60%, 25%, 1)',    // Cyan-like
+      s2bg: 'hsla(120, 50%, 35%, 0.7)', s2border: 'hsla(120, 50%, 20%, 1)',    // Green-like
+      s3bg: 'hsla(55, 70%, 40%, 0.7)', s3border: 'hsla(55, 70%, 25%, 1)',     // Yellow-like
+      otherBg: 'hsla(0, 0%, 30%, 0.5)', otherBorder: 'hsla(0, 0%, 40%, 1)', // Darker grey for tails
     }
   });
 
@@ -369,7 +370,7 @@ export default function Histogram({
   }
 
   return (
-    <div className="w-full h-full"> 
+    <div className="relative w-full h-full"> 
       {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p style={{color: chartThemeColors.textColor, opacity: 0.7}} className="flex items-center justify-center h-full">Loading chart data or no data to display...</p>}
     </div>
   );
