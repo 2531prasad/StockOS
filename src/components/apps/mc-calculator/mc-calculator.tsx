@@ -129,13 +129,13 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed overflow-y-auto to overflow-hidden here */}
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
-            className="grow text-base"
+            className="grow text-base h-10" 
             placeholder="e.g., 50~60 * 10 + (100~120)/2"
             aria-label="Expression Input"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
@@ -145,8 +145,9 @@ export default function MCCalculator() {
           </div>
         </div>
 
-        {/* True Range Row */}
+        {/* Control Row: True Range, Bars (moved), Iterations (moved) */}
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
+            {/* True Range Column */}
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
                 <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>
@@ -181,4 +182,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
