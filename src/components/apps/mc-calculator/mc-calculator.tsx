@@ -28,13 +28,12 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-    // Removed initial handleCalculate() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, // Ensure at least 1 iteration if submitted
+    submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
 
@@ -42,7 +41,6 @@ export default function MCCalculator() {
     if (!expression.trim()) {
       setSubmittedExpression("");
       setSubmittedIterations(0);
-      // Potentially clear results or set to default state here if desired
       return;
     }
     setSubmittedExpression(expression);
@@ -89,7 +87,7 @@ export default function MCCalculator() {
       </div>
 
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-        <div className="mt-4 w-full h-[450px] min-h-[300px]">
+        <div className="w-full h-[450px] min-h-[300px]">
           <Histogram
             data={calcResult.histogram as HistogramDataEntry[]}
             title="Outcome Distribution"
@@ -103,12 +101,12 @@ export default function MCCalculator() {
   );
 
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
-  const showAdvancedControls = submittedExpression && !result.isDeterministic && !result.error && (result.results && result.results.length > 0 && !result.results.every(isNaN));
+  const showAdvancedControls = submittedExpression && !result.isDeterministic && !result.error && (result.results && result.results.length > 0 && !result.results.every(isNaN)));
 
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 hide-native-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 no-scrollbar">
         {/* Inputs and Controls Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
