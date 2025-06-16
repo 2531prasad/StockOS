@@ -28,15 +28,13 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-    if (expression.trim()) {
-      handleCalculate();
-    }
+    // Removed initial handleCalculate() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1,
+    submittedIterations > 0 ? submittedIterations : 1, // Ensure at least 1 iteration if submitted
     submittedHistogramBins
   );
 
@@ -44,6 +42,7 @@ export default function MCCalculator() {
     if (!expression.trim()) {
       setSubmittedExpression("");
       setSubmittedIterations(0);
+      // Potentially clear results or set to default state here if desired
       return;
     }
     setSubmittedExpression(expression);
@@ -99,7 +98,7 @@ export default function MCCalculator() {
             stdDevValue={calcResult.stdDev}
           />
         </div>
-      ) : submittedExpression && !calcResult.error && !calcResult.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
+      ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </div>
   );
 
@@ -110,56 +109,56 @@ export default function MCCalculator() {
   return (
     <div className="h-full w-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 hide-native-scrollbar">
-          {/* Inputs and Controls Section */}
-          <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
-            <Input
-              value={expression}
-              onChange={(e) => setExpression(e.target.value)}
-              className="grow text-base"
-              placeholder="e.g., 50~60 * 10 + (100~120)/2"
-              aria-label="Expression Input"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
-            />
-            <div className="flex items-center space-x-1">
-              <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+        {/* Inputs and Controls Section */}
+        <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+          <Input
+            value={expression}
+            onChange={(e) => setExpression(e.target.value)}
+            className="grow text-base"
+            placeholder="e.g., 50~60 * 10 + (100~120)/2"
+            aria-label="Expression Input"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
+          />
+          <div className="flex items-center space-x-1">
+            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+          </div>
+        </div>
+
+        {showAdvancedControls && (
+          <div className="space-y-4"> {/* Wrapper for advanced controls to participate in space-y */}
+            <div>
+              <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
+              <Input
+                id="iterations-input"
+                type="number"
+                value={iterations}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                className="w-full sm:w-32 text-base mt-1"
+                placeholder="Iterations"
+                aria-label="Number of Iterations"
+                min="100"
+                step="1000"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
+                Chart Detail (Number of Points/Bars): {histogramBins}
+              </Label>
+              <Slider
+                id="histogram-bins-slider"
+                min={5}
+                max={50}
+                step={1}
+                value={[histogramBins]}
+                onValueChange={(value) => setHistogramBins(value[0])}
+                className="mt-2"
+                aria-label="Histogram Bins Slider"
+              />
             </div>
           </div>
-
-          {showAdvancedControls && (
-            <div className="space-y-4"> {/* Wrapper for advanced controls to participate in space-y */}
-              <div>
-                <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
-                <Input
-                  id="iterations-input"
-                  type="number"
-                  value={iterations}
-                  onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                  className="w-full sm:w-32 text-base mt-1"
-                  placeholder="Iterations"
-                  aria-label="Number of Iterations"
-                  min="100"
-                  step="1000"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-                  Chart Detail (Number of Points/Bars): {histogramBins}
-                </Label>
-                <Slider
-                  id="histogram-bins-slider"
-                  min={5}
-                  max={50}
-                  step={1}
-                  value={[histogramBins]}
-                  onValueChange={(value) => setHistogramBins(value[0])}
-                  className="mt-2"
-                  aria-label="Histogram Bins Slider"
-                />
-              </div>
-            </div>
-          )}
-      
+        )}
+    
         {/* Error Alert Section */}
         {result.error && (
           <Alert variant="destructive">
@@ -178,4 +177,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
