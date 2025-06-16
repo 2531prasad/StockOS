@@ -6,7 +6,7 @@ import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CardContent as AppCardContent } from "@/components/ui/card";
+import { CardContent as AppCardContent } from "@/components/ui/card"; // Renamed to avoid conflict
 import { 
   Alert, 
   AlertDescription, 
@@ -167,10 +167,6 @@ export default function MCCalculator() {
           {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
       </AppCardContent>
-
-      <div className="text-center text-muted-foreground text-xs p-2 border-t"> 
-        <p>Uses <a href="https://mathjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">math.js</a> for expression parsing and <a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Chart.js</a> for visualization.</p>
-      </div>
     </div>
   );
 }
