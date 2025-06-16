@@ -87,15 +87,16 @@ export default function MCCalculator() {
       ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </>
   );
-
+  
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
   const showTrueRangeConditionally = showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
 
+
   return (
     <div className="h-full w-full flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-        {/* Inputs and Controls Section */}
+        {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
@@ -110,25 +111,24 @@ export default function MCCalculator() {
           </div>
         </div>
 
-        {/* Combined Controls Row: Iterations, Bars, True Range */}
+        {/* Iterations, Bars, True Range Controls Row */}
         {(showAdvancedControlsConditionally || showTrueRangeConditionally) && (
           <div className="flex flex-row flex-wrap items-start gap-x-6 gap-y-4 mt-3 text-xs">
-            {/* Iterations Column */}
-            {showAdvancedControlsConditionally && (
+            {/* True Analytical Range Column */}
+            {showTrueRangeConditionally && (
               <div className="flex flex-col space-y-1">
-                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground">Iterations</Label>
-                <Input
-                  id="iterations-input-ctrl"
-                  type="number"
-                  value={iterations}
-                  onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                  className="w-24 h-7 text-xs"
-                  min="100"
-                  step="1000"
-                />
+                <Label className="text-muted-foreground">True Range</Label>
+                <p className="text-foreground font-medium whitespace-nowrap">
+                  {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
+                </p>
+                {result.analyticalError && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
+                     {result.analyticalError}
+                  </p>
+                )}
               </div>
             )}
-
+            
             {/* Bars (Histogram Bins Slider) Column */}
             {showAdvancedControlsConditionally && (
               <div className="flex flex-col space-y-1 flex-1 min-w-[120px]">
@@ -142,23 +142,24 @@ export default function MCCalculator() {
                   step={1}
                   value={[histogramBins]}
                   onValueChange={(value) => setHistogramBins(value[0])}
-                  className="w-full [&>span]:h-1.5 [&>span>span]:h-4 [&>span>span]:w-4 pt-[2px]" 
+                  className="relative flex w-full touch-none select-none items-center mt-1" 
                 />
               </div>
             )}
 
-            {/* True Analytical Range Column */}
-            {showTrueRangeConditionally && (
+            {/* Iterations Column */}
+            {showAdvancedControlsConditionally && (
               <div className="flex flex-col space-y-1">
-                <p className="text-muted-foreground">True Range</p>
-                <p className="text-foreground font-medium whitespace-nowrap">
-                  {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
-                </p>
-                {result.analyticalError && (
-                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
-                     {result.analyticalError}
-                  </p>
-                )}
+                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground">Iterations</Label>
+                <Input
+                  id="iterations-input-ctrl"
+                  type="number"
+                  value={iterations}
+                  onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                  className="w-24 h-7 text-xs mt-1"
+                  min="100"
+                  step="1000"
+                />
               </div>
             )}
           </div>
@@ -182,3 +183,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
