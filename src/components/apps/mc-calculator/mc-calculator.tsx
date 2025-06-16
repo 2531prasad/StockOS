@@ -63,7 +63,8 @@ export default function MCCalculator() {
   );
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    <div className="flex flex-col flex-1">
+    // Removed flex-1 from this div, it will stack naturally
+    <div> 
       {(!isNaN(calcResult.analyticalMin) || !isNaN(calcResult.analyticalMax)) && (
         <div className="mb-2 pt-2">
           <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
@@ -109,9 +110,9 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      {/* Inputs and Controls Section (Fixed Top) */}
-      <div className="p-4 border-b border-border shrink-0">
-          <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+          {/* Inputs and Controls Section */}
+          <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
             <Input
               value={expression}
               onChange={(e) => setExpression(e.target.value)}
@@ -126,8 +127,8 @@ export default function MCCalculator() {
           </div>
 
           {showAdvancedControls && (
-            <>
-              <div className="mb-4">
+            <div className="space-y-4"> {/* Wrapper for advanced controls to participate in space-y */}
+              <div>
                 <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
                 <Input
                   id="iterations-input"
@@ -142,7 +143,7 @@ export default function MCCalculator() {
                 />
               </div>
 
-              <div className="mb-2">
+              <div>
                 <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
                   Chart Detail (Number of Points/Bars): {histogramBins}
                 </Label>
@@ -157,20 +158,20 @@ export default function MCCalculator() {
                   aria-label="Histogram Bins Slider"
                 />
               </div>
-            </>
+            </div>
           )}
-      </div>
-
-      {/* Scrollable Area for Results and Histogram */}
-      <div className="flex-grow p-4 overflow-y-auto min-h-0">
+      
+        {/* Error Alert Section */}
         {result.error && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{result.error}</AlertDescription>
           </Alert>
         )}
-        <div className="space-y-2 text-sm md:text-base flex flex-col flex-1">
+
+        {/* Results and Histogram Section */}
+        <div className="space-y-2 text-sm md:text-base">
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
@@ -178,3 +179,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
