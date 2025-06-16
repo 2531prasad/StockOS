@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-body: Inter, sans-serif;
-  --font-headline: Inter, sans-serif;
+  --font-body: 'Victor Mono', monospace;
+  --font-headline: 'Victor Mono', monospace;
   --font-code: monospace;
 
   --color-background: hsl(var(--background));
@@ -92,12 +92,6 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
-  }
-}
-
-@layer utilities {
-  body {
-    font-family: Arial, Helvetica, sans-serif;
   }
 }
 
@@ -348,4 +342,3 @@
     @apply bg-background text-foreground;
   }
 }
-
