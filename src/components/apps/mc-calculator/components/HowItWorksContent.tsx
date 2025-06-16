@@ -1,11 +1,10 @@
 
 "use client";
 import React from 'react';
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function HowItWorksContent() {
   return (
-    <ScrollArea className="max-h-[calc(75vh-80px)]">
+    <div className="max-h-[calc(75vh-80px)] overflow-y-auto">
       <div className="text-sm text-muted-foreground text-left p-4 space-y-4">
         <div>
           <h3 className="font-semibold text-base mb-1 text-card-foreground">🚀 What This Calculator Does</h3>
@@ -82,6 +81,6 @@ export default function HowItWorksContent() {
           </div>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 }

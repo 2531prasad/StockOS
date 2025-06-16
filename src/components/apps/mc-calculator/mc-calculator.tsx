@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,7 @@ export default function MCCalculator() {
   );
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    <>
+    <div className="flex flex-col flex-1">
       {(!isNaN(calcResult.analyticalMin) || !isNaN(calcResult.analyticalMax)) && (
         <div className="mb-2 pt-2">
           <p><strong>True Analytical Range:</strong> {formatNumber(calcResult.analyticalMin)} ~ {formatNumber(calcResult.analyticalMax)}</p>
@@ -91,7 +90,7 @@ export default function MCCalculator() {
       </div>
 
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-        <div className="mt-4 flex-1 w-full min-h-[300px]"> {/* Ensure this container can flex */}
+        <div className="mt-4 flex-1 w-full min-h-[300px]">
           <Histogram
             data={calcResult.histogram as HistogramDataEntry[]}
             title="Outcome Distribution"
@@ -101,7 +100,7 @@ export default function MCCalculator() {
           />
         </div>
       ) : submittedExpression && !calcResult.error && !calcResult.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
-    </>
+    </div>
   );
   
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
@@ -163,23 +162,18 @@ export default function MCCalculator() {
       </div>
 
       {/* Scrollable Area for Results and Histogram */}
-      <div className="flex-grow w-full min-h-0"> 
-        <ScrollArea className="h-full w-full"> 
-          <div className="p-4 flex flex-col h-full"> {/* Make this inner div a flex column and take full height */}
-            {result.error && (
-              <Alert variant="destructive" className="mb-4">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{result.error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2 text-sm md:text-base flex flex-col flex-1"> {/* Allow this to flex */}
-              {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
-              {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
-            </div>
-          </div>
-        </ScrollArea>
+      <div className="flex-grow p-4 overflow-y-auto min-h-0"> 
+        {result.error && (
+          <Alert variant="destructive" className="mb-4">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{result.error}</AlertDescription>
+          </Alert>
+        )}
+        <div className="space-y-2 text-sm md:text-base flex flex-col flex-1">
+          {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
+          {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+        </div>
       </div>
     </div>
   );

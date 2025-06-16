@@ -119,9 +119,9 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '450px', 
-            height: '600px', // Adjusted initial height to better accommodate ScrollArea
+            height: '600px', 
             minWidth: 400,
-            minHeight: 300, // Adjusted min height
+            minHeight: 300, 
             maxWidth: 'none', 
             maxHeight: 'none'
         },
@@ -405,7 +405,7 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className={cn("flex-grow relative bg-card/80", appInstance.contentPadding || "p-4")}>
+              <CardContent className={cn("flex-grow relative bg-card/80 overflow-hidden", appInstance.contentPadding || "p-4")}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
