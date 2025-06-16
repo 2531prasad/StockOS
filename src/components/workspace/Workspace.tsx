@@ -119,14 +119,14 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '450px', 
-            height: '172px', 
+            height: '600px', // Adjusted initial height to better accommodate ScrollArea
             minWidth: 400,
-            minHeight: 172, 
+            minHeight: 300, // Adjusted min height
             maxWidth: 'none', 
             maxHeight: 'none'
         },
         appType: 'system',
-        contentPadding: 'p-0', // Calculator now manages its own internal padding
+        contentPadding: 'p-0', 
       },
       {
         id: "husky-image-viewer",
@@ -146,7 +146,7 @@ export default function Workspace() {
             maxHeight: 'none'
         },
         appType: 'system',
-        contentPadding: 'p-0', // Image viewer content should have no padding
+        contentPadding: 'p-0', 
       },
     ];
     setApps(initialApps);
@@ -194,7 +194,6 @@ export default function Workspace() {
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
       const currentApp = apps.find(app => app.id === appId);
-      // Allow dragging minimized windows by their header
       if(currentApp) { 
         const rect = appElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
@@ -212,12 +211,10 @@ export default function Workspace() {
       if (!appElement) return;
 
       const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData) { // Check if appData exists
+      if (!appData) { 
         setActiveDrag(null);
         return;
       }
-      // Minimized windows are draggable but not resizable via this drag logic.
-      // Resizing only makes sense for non-minimized windows.
 
       const appRect = appElement.getBoundingClientRect();
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
@@ -345,8 +342,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card",
-                "backdrop-blur-[8px]"
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card backdrop-blur-[8px]"
               )}
             style={{
               left: `${appInstance.position.x}px`,
@@ -409,7 +405,7 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className={cn("flex-grow overflow-auto relative bg-card/80", appInstance.contentPadding || "p-4")}>
+              <CardContent className={cn("flex-grow relative bg-card/80", appInstance.contentPadding || "p-4")}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
