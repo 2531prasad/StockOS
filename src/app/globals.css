@@ -345,7 +345,6 @@
   }
   ::selection {
     background-color: #FFFFFF; /* White selection background */
-    color: #FFFFFF;           /* White selected text */
+    color: #000000;           /* Black selected text */
   }
 }
-
