@@ -3,27 +3,19 @@
 import React, { useState, useEffect } from "react";
 import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
-import HowItWorksContent from "./components/HowItWorksContent";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CardHeader as AppCardHeader, CardTitle as AppCardTitle, CardDescription as AppCardDescription, CardContent as AppCardContent } from "@/components/ui/card";
+import { CardContent as AppCardContent } from "@/components/ui/card";
 import { 
   Alert, 
   AlertDescription, 
   AlertTitle 
 } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
+
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, HelpCircle, Info } from "lucide-react";
+import { Terminal, Info } from "lucide-react";
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
@@ -46,8 +38,6 @@ export default function MCCalculator() {
 
   const handleCalculate = () => {
     if (!expression.trim()) {
-      // Optionally, clear previous results or show a message
-      // setSubmittedExpression(""); // Clear previous submission to hide old results
       return;
     }
     setSubmittedExpression(expression);
@@ -110,42 +100,11 @@ export default function MCCalculator() {
   
   const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showInitialMessage = !submittedExpression && !result.error;
-  const showAdvancedControls = submittedExpression && !result.isDeterministic;
+  const showAdvancedControls = submittedExpression && !result.isDeterministic && !result.error && (result.results && result.results.length > 0 && !result.results.every(isNaN));
 
 
   return (
     <div className="font-body h-full flex flex-col bg-card text-card-foreground">
-      <AppCardHeader className="border-b"> 
-        <div className="flex items-center justify-between">
-          <AppCardTitle className="text-xl md:text-2xl">Monte Carlo Analysis</AppCardTitle>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="ml-2 h-8 w-8"
-                aria-label="How it Works"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="z-[930]">
-              <AlertDialogHeader>
-                <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
-              </AlertDialogHeader>
-              <HowItWorksContent /> 
-              <AlertDialogFooter>
-                <AlertDialogCancel>Close</AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-        <AppCardDescription className="text-xs">
-          Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
-          {showAdvancedControls && (<> Vertical lines indicate Mean, Median, and Standard Deviations (σ). Histogram bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ). X-axis labels show the center value of each bin.</>)}
-        </AppCardDescription>
-      </AppCardHeader>
-
       <AppCardContent className="flex-grow p-4 overflow-y-auto"> 
         <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
           <Input
@@ -215,3 +174,5 @@ export default function MCCalculator() {
     </div>
   );
 }
+
+    
