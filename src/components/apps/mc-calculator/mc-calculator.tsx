@@ -91,7 +91,7 @@ export default function MCCalculator() {
       </div>
 
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-        <div className="mt-4 h-[450px] w-full">
+        <div className="mt-4 flex-1 w-full min-h-[300px]"> {/* Ensure this container can flex */}
           <Histogram
             data={calcResult.histogram as HistogramDataEntry[]}
             title="Outcome Distribution"
@@ -109,7 +109,7 @@ export default function MCCalculator() {
 
 
   return (
-    <div className="h-full w-full flex flex-col"> {/* Main container, takes height from CardContent */}
+    <div className="h-full w-full flex flex-col">
       {/* Inputs and Controls Section (Fixed Top) */}
       <div className="p-4 border-b border-border shrink-0">
           <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
@@ -163,9 +163,9 @@ export default function MCCalculator() {
       </div>
 
       {/* Scrollable Area for Results and Histogram */}
-      <div className="flex-grow w-full min-h-0"> {/* This intermediate div takes up remaining space and allows ScrollArea to fill it */}
+      <div className="flex-grow w-full min-h-0"> 
         <ScrollArea className="h-full w-full"> 
-          <div className="p-4"> {/* Inner padding for the scrollable content */}
+          <div className="p-4 flex flex-col h-full"> {/* Make this inner div a flex column and take full height */}
             {result.error && (
               <Alert variant="destructive" className="mb-4">
                 <Terminal className="h-4 w-4" />
@@ -174,7 +174,7 @@ export default function MCCalculator() {
               </Alert>
             )}
 
-            <div className="space-y-2 text-sm md:text-base">
+            <div className="space-y-2 text-sm md:text-base flex flex-col flex-1"> {/* Allow this to flex */}
               {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
               {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
             </div>

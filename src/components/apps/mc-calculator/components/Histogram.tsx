@@ -132,7 +132,6 @@ export default function Histogram({
 
   useEffect(() => {
     setIsClient(true);
-    // No longer reading from CSS variables, chartThemeColors is initialized with static dark theme values.
   }, []);
 
 
@@ -224,7 +223,7 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
-    const sigmaLabelBaseColor = 'hsla(0, 0%, 60%, 1)'; // A neutral grey for sigma labels
+    const sigmaLabelBaseColor = 'hsla(0, 0%, 60%, 1)'; 
 
     sigmas.forEach((s, idx) => {
       const sigmaVal = meanValue + s * stdDevValue;
@@ -366,11 +365,11 @@ export default function Histogram({
   };
 
   if (!isClient) {
-    return <div style={{ height: '450px', width: '100%' }} className="flex items-center justify-center"><p style={{color: chartThemeColors.textColor, opacity: 0.7}}>Loading chart...</p></div>;
+    return <div className="w-full h-full flex items-center justify-center"><p style={{color: chartThemeColors.textColor, opacity: 0.7}}>Loading chart...</p></div>;
   }
 
   return (
-    <div style={{ height: '450px', width: '100%' }}> 
+    <div className="w-full h-full"> 
       {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p style={{color: chartThemeColors.textColor, opacity: 0.7}} className="flex items-center justify-center h-full">Loading chart data or no data to display...</p>}
     </div>
   );
