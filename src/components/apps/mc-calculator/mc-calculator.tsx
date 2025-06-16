@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CardContent as AppCardContent } from "@/components/ui/card"; // Renamed to avoid conflict
+// AppCardContent was an alias for CardContent, we are simplifying the structure
+// so it's no longer needed here.
 import { 
   Alert, 
   AlertDescription, 
@@ -30,7 +31,12 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Automatically calculate on first load if expression is present
+    if (expression.trim()) {
+      handleCalculate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   const result = useCalculator(
     submittedExpression,
@@ -40,6 +46,9 @@ export default function MCCalculator() {
 
   const handleCalculate = () => {
     if (!expression.trim()) {
+      // Optionally, clear results or show a message if expression is empty
+      setSubmittedExpression("");
+      setSubmittedIterations(0);
       return;
     }
     setSubmittedExpression(expression);
@@ -104,77 +113,76 @@ export default function MCCalculator() {
 
 
   return (
-    <div className="font-body h-full flex flex-col bg-card text-card-foreground">
-      <AppCardContent className="flex-grow overflow-hidden"> 
-        <ScrollArea className="h-full w-full">
-          <div className="p-4">
-            <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
-              <Input
-                value={expression}
-                onChange={(e) => setExpression(e.target.value)}
-                className="grow text-base"
-                placeholder="e.g., 50~60 * 10 + (100~120)/2"
-                aria-label="Expression Input"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
-              />
-              <div className="flex items-center space-x-1">
-                <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
-              </div>
-            </div>
-
-            {showAdvancedControls && (
-              <>
-                <div className="mb-4">
-                  <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
-                  <Input
-                    id="iterations-input"
-                    type="number"
-                    value={iterations}
-                    onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                    className="w-full sm:w-32 text-base mt-1"
-                    placeholder="Iterations"
-                    aria-label="Number of Iterations"
-                    min="100"
-                    step="1000"
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-                    Chart Detail (Number of Points/Bars): {histogramBins}
-                  </Label>
-                  <Slider
-                    id="histogram-bins-slider"
-                    min={5}
-                    max={50}
-                    step={1}
-                    value={[histogramBins]}
-                    onValueChange={(value) => setHistogramBins(value[0])}
-                    className="mt-2"
-                    aria-label="Histogram Bins Slider"
-                  />
-                </div>
-              </>
-            )}
-
-            {result.error && (
-              <Alert variant="destructive" className="mb-4 mt-4">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{result.error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2 text-sm md:text-base mt-4">
-              {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
-              {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+    <div className="font-body h-full w-full flex flex-col bg-card text-card-foreground">
+      <ScrollArea className="flex-1 w-full"> {/* Use flex-1 to take available space */}
+        <div className="p-4"> {/* Padding wrapper for all content */}
+          <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
+            <Input
+              value={expression}
+              onChange={(e) => setExpression(e.target.value)}
+              className="grow text-base"
+              placeholder="e.g., 50~60 * 10 + (100~120)/2"
+              aria-label="Expression Input"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
+            />
+            <div className="flex items-center space-x-1">
+              <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
             </div>
           </div>
-        </ScrollArea>
-      </AppCardContent>
+
+          {showAdvancedControls && (
+            <>
+              <div className="mb-4">
+                <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
+                <Input
+                  id="iterations-input"
+                  type="number"
+                  value={iterations}
+                  onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                  className="w-full sm:w-32 text-base mt-1"
+                  placeholder="Iterations"
+                  aria-label="Number of Iterations"
+                  min="100"
+                  step="1000"
+                />
+              </div>
+
+              <div className="mb-6">
+                <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
+                  Chart Detail (Number of Points/Bars): {histogramBins}
+                </Label>
+                <Slider
+                  id="histogram-bins-slider"
+                  min={5}
+                  max={50}
+                  step={1}
+                  value={[histogramBins]}
+                  onValueChange={(value) => setHistogramBins(value[0])}
+                  className="mt-2"
+                  aria-label="Histogram Bins Slider"
+                />
+              </div>
+            </>
+          )}
+
+          {result.error && (
+            <Alert variant="destructive" className="mb-4 mt-4">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{result.error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2 text-sm md:text-base mt-4">
+            {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
+            {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
     
 
     
+
