@@ -113,9 +113,9 @@ export default function MCCalculator() {
 
 
   return (
-    <div className="font-body h-full w-full flex flex-col bg-card text-card-foreground">
-      <ScrollArea className="flex-1 w-full"> {/* Use flex-1 to take available space */}
-        <div className="p-4"> {/* Padding wrapper for all content */}
+    <div className="h-full w-full flex flex-col"> {/* Main container, takes height from CardContent */}
+      {/* Inputs and Controls Section (Fixed Top) */}
+      <div className="p-4 border-b border-border">
           <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
             <Input
               value={expression}
@@ -147,7 +147,7 @@ export default function MCCalculator() {
                 />
               </div>
 
-              <div className="mb-6">
+              <div className="mb-2"> {/* Adjusted margin for slider section */}
                 <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
                   Chart Detail (Number of Points/Bars): {histogramBins}
                 </Label>
@@ -164,16 +164,20 @@ export default function MCCalculator() {
               </div>
             </>
           )}
+      </div>
 
+      {/* Scrollable Area for Results and Histogram */}
+      <ScrollArea className="flex-1 w-full"> {/* This takes up the remaining space */}
+        <div className="p-4"> {/* Inner padding for the scrollable content */}
           {result.error && (
-            <Alert variant="destructive" className="mb-4 mt-4">
+            <Alert variant="destructive" className="mb-4">
               <Terminal className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{result.error}</AlertDescription>
             </Alert>
           )}
 
-          <div className="space-y-2 text-sm md:text-base mt-4">
+          <div className="space-y-2 text-sm md:text-base">
             {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
             {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
           </div>
@@ -185,4 +189,5 @@ export default function MCCalculator() {
     
 
     
+
 
