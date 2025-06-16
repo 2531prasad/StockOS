@@ -3,10 +3,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
-// Removed HowItWorksContent import as it's no longer a direct app here
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon } from "lucide-react";
+import { TextHoverEffect } from "@/components/ui/text-hover-effect"; // Import the new component
 
 type AppType = 'system' | 'alertDialog';
 
@@ -24,8 +24,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921; // Kept for potential future workspace-managed dialogs
-const ALERT_DIALOG_Z_MAX = 940; // Kept for potential future workspace-managed dialogs
+const ALERT_DIALOG_Z_MIN = 921; 
+const ALERT_DIALOG_Z_MAX = 940; 
 
 
 export default function Workspace() {
@@ -46,7 +46,7 @@ export default function Workspace() {
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
           break;
-        case 'alertDialog': // This case remains for future dialog-like apps managed by workspace
+        case 'alertDialog': 
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
@@ -76,14 +76,13 @@ export default function Workspace() {
     });
   }, []);
 
-  // Removed openApp function and its useCallback wrapper
 
   useEffect(() => {
     const initialApps: AppInstance[] = [
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator />, // MCCalculator no longer needs openApp prop
+        component: <MCCalculator />, 
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -91,10 +90,9 @@ export default function Workspace() {
         size: { width: '90vw', height: 'calc(100vh - 100px)', maxWidth: '800px', maxHeight: '800px' },
         appType: 'system',
       },
-      // Removed "how-it-works-dialog" app instance
     ];
     setApps(initialApps);
-  }, []); // Removed openApp from dependency array
+  }, []);
 
 
   const toggleMinimize = (id: string) => {
@@ -176,11 +174,14 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps]);
+  }, [activeDrag, apps, bringToFront]); // Added bringToFront to dependencies as it's used in useEffect
 
 
   return (
-    <div ref={workspaceRef} className="relative w-full h-screen bg-muted/40 overflow-hidden">
+    <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <TextHoverEffect text="FloatCalc" duration={0.5} />
+      </div>
       {apps
         .filter((app) => app.isOpen)
         .map((app) => (
@@ -199,14 +200,13 @@ export default function Workspace() {
               userSelect: activeDrag?.appId === app.id ? 'none' : 'auto',
               transition: activeDrag?.appId === app.id ? 'none' : 'width 0.2s ease-out, height 0.2s ease-out',
             }}
-            onMouseDown={() => { // Added onMouseDown to Card itself
+            onMouseDown={() => { 
               bringToFront(app.id);
             }}
           >
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab border-b"
               onMouseDown={(e) => {
-                // Prevent this from triggering card's onMouseDown if already handling drag
                 e.stopPropagation(); 
                 handleDragStart(e, app.id);
               }}
