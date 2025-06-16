@@ -28,6 +28,7 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
+    // No initial calculation
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -106,7 +107,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {/* Inputs and Controls Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -175,3 +176,5 @@ export default function MCCalculator() {
     </div>
   );
 }
+
+    

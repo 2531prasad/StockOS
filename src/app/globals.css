@@ -351,6 +351,10 @@
 }
 
 /* Custom utility to hide native scrollbars */
+/*
 @utility no-scrollbar {
   @apply [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
 }
+*/
+
+    
