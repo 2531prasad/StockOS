@@ -129,7 +129,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed overflow-y-auto to overflow-hidden here */}
+      <div className="overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed overflow-y-auto to overflow-hidden here */}
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -151,7 +151,7 @@ export default function MCCalculator() {
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
                 <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>
-                <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-base">
+                <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-lg">
                     {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
                 </p>
                 {result.analyticalError && (
@@ -182,3 +182,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
