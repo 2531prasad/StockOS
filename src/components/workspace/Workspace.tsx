@@ -346,7 +346,7 @@ export default function Workspace() {
             id={`app-${appInstance.id}`}
             className={cn(
                 "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card",
-                "backdrop-blur-[var(--blur-sm)]"
+                "backdrop-blur-[8px]"
               )}
             style={{
               left: `${appInstance.position.x}px`,
