@@ -22,19 +22,17 @@ export default function MCCalculator() {
   const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
   const [submittedExpression, setSubmittedExpression] = useState("");
-  const [submittedIterations, setSubmittedIterations] = useState(0); // Default to 0 so no initial calc
+  const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // No initial calculation
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1,
+    submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
 
@@ -62,8 +60,6 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
-      {/* True Analytical Range is now rendered in the controls section */}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2 text-xs">
         <p><strong>Simulated Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
@@ -93,13 +89,12 @@ export default function MCCalculator() {
   );
 
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
-  // Iterations and Bars slider are shown if results are probabilistic and valid
   const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
-
+  const showTrueRangeConditionally = showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"> {/* Single scrollable container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {/* Inputs and Controls Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -116,12 +111,12 @@ export default function MCCalculator() {
         </div>
 
         {/* Combined Controls Row: Iterations, Bars, True Range */}
-        {(showAdvancedControlsConditionally || (showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax)))) && (
-          <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mt-3 text-xs">
-            {/* Iterations */}
+        {(showAdvancedControlsConditionally || showTrueRangeConditionally) && (
+          <div className="flex flex-row flex-wrap items-start gap-x-6 gap-y-4 mt-3 text-xs">
+            {/* Iterations Column */}
             {showAdvancedControlsConditionally && (
-              <div className="flex flex-col">
-                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground mb-0.5">Iterations</Label>
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="iterations-input-ctrl" className="text-muted-foreground">Iterations</Label>
                 <Input
                   id="iterations-input-ctrl"
                   type="number"
@@ -134,10 +129,10 @@ export default function MCCalculator() {
               </div>
             )}
 
-            {/* Bars (Histogram Bins Slider) */}
+            {/* Bars (Histogram Bins Slider) Column */}
             {showAdvancedControlsConditionally && (
-              <div className="flex-1 min-w-[120px]">
-                <Label htmlFor="histogram-bins-slider-ctrl" className="text-muted-foreground mb-0.5 block">
+              <div className="flex flex-col space-y-1 flex-1 min-w-[120px]">
+                <Label htmlFor="histogram-bins-slider-ctrl" className="text-muted-foreground">
                   Bars: {histogramBins}
                 </Label>
                 <Slider
@@ -147,16 +142,17 @@ export default function MCCalculator() {
                   step={1}
                   value={[histogramBins]}
                   onValueChange={(value) => setHistogramBins(value[0])}
-                  className="w-full [&>span]:h-1.5 [&>span>span]:h-4 [&>span>span]:w-4" // Adjust slider track/thumb
+                  className="w-full [&>span]:h-1.5 [&>span>span]:h-4 [&>span>span]:w-4 pt-[2px]" 
                 />
               </div>
             )}
 
-            {/* True Analytical Range */}
-            {showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax)) && (
-              <div className="self-end pb-0.5"> {/* Align with bottom of inputs/slider */}
-                <p className="text-muted-foreground whitespace-nowrap">
-                  <strong className="text-foreground font-medium">True Range:</strong> {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
+            {/* True Analytical Range Column */}
+            {showTrueRangeConditionally && (
+              <div className="flex flex-col space-y-1">
+                <p className="text-muted-foreground">True Range</p>
+                <p className="text-foreground font-medium whitespace-nowrap">
+                  {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
                 </p>
                 {result.analyticalError && (
                   <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
@@ -177,7 +173,7 @@ export default function MCCalculator() {
           </Alert>
         )}
 
-        {/* Results and Histogram Section (now inside the same scrollable div) */}
+        {/* Results and Histogram Section */}
         <div className="space-y-2">
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
@@ -186,4 +182,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
