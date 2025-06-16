@@ -3,10 +3,20 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
-// Removed HowItWorksContent import as it's no longer a separate app
+import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItWorksContent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { XIcon, MinusIcon, MoveDiagonal } from "lucide-react";
+import { XIcon, MinusIcon, MoveDiagonal, HelpCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+
 
 type AppType = 'system' | 'alertDialog';
 
@@ -32,8 +42,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921; // Keep for potential future workspace-managed dialogs
-const ALERT_DIALOG_Z_MAX = 940; // Keep for potential future workspace-managed dialogs
+const ALERT_DIALOG_Z_MIN = 921; 
+const ALERT_DIALOG_Z_MAX = 940; 
 
 
 export default function Workspace() {
@@ -61,11 +71,11 @@ export default function Workspace() {
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
           break;
-        case 'alertDialog': // This case might be used for future workspace-managed dialogs
+        case 'alertDialog': 
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
-        default:
+        default: // Should not happen with current types
           const globalMaxZOfOthers = prevApps
             .filter(app => app.id !== id)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
@@ -91,14 +101,13 @@ export default function Workspace() {
     });
   }, []);
 
-  // Removed openApp function as it's no longer needed for "How It Works"
 
   useEffect(() => {
     const initialApps: AppInstance[] = [
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator />, // No longer needs openApp prop
+        component: <MCCalculator />,
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -106,15 +115,14 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '90vw',
-            height: '172px',
+            height: '172px', // Default height
             minWidth: 400,
-            minHeight: 172, 
+            minHeight: 172, // Adjusted minHeight
             maxWidth: '800px',
             maxHeight: '800px'
         },
         appType: 'system',
       },
-      // "how-it-works-dialog" app instance removed
     ];
     setApps(initialApps);
   }, []);
@@ -133,13 +141,14 @@ export default function Workspace() {
               size: { ...app.size, width: '250px', height: 'auto' }
             };
           } else { // Restoring
+            bringToFront(id); // Bring to front when restoring
             return {
               ...app,
               isMinimized: false,
               size: {
                 ...app.size,
-                width: app.previousSize?.width || app.size.maxWidth,
-                height: app.previousSize?.height || app.size.maxHeight
+                width: app.previousSize?.width || app.size.maxWidth, // Use maxWidth as fallback
+                height: app.previousSize?.height || app.size.maxHeight // Use maxHeight as fallback
               },
               previousSize: null
             };
@@ -148,10 +157,6 @@ export default function Workspace() {
         return app;
       })
     );
-     const appToToggle = apps.find(app => app.id ===id);
-     if (appToToggle && appToToggle.isMinimized) {
-      bringToFront(id);
-    }
   };
 
   const closeApp = (id: string) => {
@@ -219,10 +224,10 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps]); // Removed bringToFront from deps as it was related to previous TextHoverEffect change
+  }, [activeDrag, apps]); 
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Important to prevent drag start on the window itself
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     const currentApp = apps.find(app => app.id === appId);
@@ -232,8 +237,8 @@ export default function Workspace() {
         appId,
         initialMouseX: e.clientX,
         initialMouseY: e.clientY,
-        initialWidth: rect.width,
-        initialHeight: rect.height,
+        initialWidth: rect.width, // Store initial width in pixels
+        initialHeight: rect.height, // Store initial height in pixels
       });
     }
   };
@@ -254,12 +259,14 @@ export default function Workspace() {
       let newWidth = activeResize.initialWidth + deltaX;
       let newHeight = activeResize.initialHeight + deltaY;
 
-      newWidth = Math.max(currentApp.size.minWidth || 200, newWidth);
-      newHeight = Math.max(currentApp.size.minHeight || 150, newHeight);
-
+      // Clamp to minWidth/minHeight
+      newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
+      newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
+      
+      // Prevent resizing beyond workspace boundaries if needed (optional, depends on desired UX)
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
       const appPos = currentApp.position;
-
+      
       if (appPos.x + newWidth > workspaceRect.width) {
         newWidth = workspaceRect.width - appPos.x;
       }
@@ -273,10 +280,10 @@ export default function Workspace() {
           app.id === activeResize.appId
             ? {
                 ...app,
-                size: {
+                size: { // Update size in pixels
                   ...app.size,
-                  width: `${Math.max(currentApp.size.minWidth || 200, newWidth)}px`,
-                  height: `${Math.max(currentApp.size.minHeight || 150, newHeight)}px`,
+                  width: `${newWidth}px`, 
+                  height: `${newHeight}px`,
                 },
               }
             : app
@@ -304,7 +311,7 @@ export default function Workspace() {
       {apps
         .filter((app) => app.isOpen)
         .map((appInstance) => {
-            const componentToRender = appInstance.component; // Simpler rendering, no cloneElement needed now
+            const componentToRender = appInstance.component;
 
             return (
           <Card
@@ -331,14 +338,31 @@ export default function Workspace() {
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab"
               onMouseDown={(e) => {
-                if ((e.target as HTMLElement).closest('.resize-handle')) return;
+                if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
                 e.stopPropagation();
                 handleDragStart(e, appInstance.id);
               }}
             >
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <CardTitle className="text-sm font-medium select-none pl-1">{appInstance.title}</CardTitle>
-                 {/* HelpCircle and AlertDialog removed from here, managed by MCCalculator itself */}
+                {appInstance.id === "mc-calculator" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="z-[930]">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
+                      </AlertDialogHeader>
+                      <HowItWorksContent />
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Close</AlertDialogCancel>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
               <div className="flex space-x-1">
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleMinimize(appInstance.id);}}>
@@ -364,14 +388,11 @@ export default function Workspace() {
               </CardContent>
             )}
              {appInstance.isMinimized && (
-                <div className="h-2"></div>
+                <div className="h-2"></div> 
              )}
           </Card>
         );
       })}
-       {/* Removed the AlertDialog rendering logic from here, as "How It Works" is now internal to MCCalculator */}
     </div>
   );
 }
-
-    
