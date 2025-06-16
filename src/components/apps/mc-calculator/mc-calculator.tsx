@@ -3,19 +3,32 @@
 import React, { useState, useEffect } from "react";
 import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
+import HowItWorksContent from "./components/HowItWorksContent"; // Import the content
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CardHeader as AppCardHeader, CardTitle as AppCardTitle, CardDescription as AppCardDescription, CardContent as AppCardContent } from "@/components/ui/card"; // Renamed to avoid conflict
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CardHeader as AppCardHeader, CardTitle as AppCardTitle, CardDescription as AppCardDescription, CardContent as AppCardContent } from "@/components/ui/card";
+import { 
+  Alert, 
+  AlertDescription, 
+  AlertTitle 
+} from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Terminal, HelpCircle, Info } from "lucide-react";
 
-interface MCCalculatorProps {
-  openApp: (id: string) => void;
-}
-
-export default function MCCalculator({ openApp }: MCCalculatorProps) {
+// Removed openApp prop
+export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
@@ -105,15 +118,28 @@ export default function MCCalculator({ openApp }: MCCalculatorProps) {
       <AppCardHeader className="border-b"> 
         <div className="flex items-center justify-between">
           <AppCardTitle className="text-xl md:text-2xl">Monte Carlo Analysis</AppCardTitle>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="ml-2 h-8 w-8" 
-              onClick={() => openApp("how-it-works-dialog")}
-              aria-label="How it Works"
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="ml-2 h-8 w-8"
+                aria-label="How it Works"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="z-[930]"> {/* Applied z-index */}
+              <AlertDialogHeader>
+                <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
+              </AlertDialogHeader>
+              {/* HowItWorksContent now provides the scrollable body */}
+              <HowItWorksContent /> 
+              <AlertDialogFooter>
+                <AlertDialogCancel>Close</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <AppCardDescription className="text-xs">
           Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
@@ -187,3 +213,4 @@ export default function MCCalculator({ openApp }: MCCalculatorProps) {
     </div>
   );
 }
+

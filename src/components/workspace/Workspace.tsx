@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
-import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItWorksContent";
+// Removed HowItWorksContent import as it's no longer a direct app here
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon } from "lucide-react";
@@ -13,7 +13,7 @@ type AppType = 'system' | 'alertDialog';
 interface AppInstance {
   id: string;
   title: string;
-  component: React.ReactNode; // Can be further typed if specific props are always passed
+  component: React.ReactNode;
   isOpen: boolean;
   position: { x: number; y: number };
   zIndex: number;
@@ -24,8 +24,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921;
-const ALERT_DIALOG_Z_MAX = 940;
+const ALERT_DIALOG_Z_MIN = 921; // Kept for potential future workspace-managed dialogs
+const ALERT_DIALOG_Z_MAX = 940; // Kept for potential future workspace-managed dialogs
 
 
 export default function Workspace() {
@@ -46,17 +46,17 @@ export default function Workspace() {
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
           break;
-        case 'alertDialog':
+        case 'alertDialog': // This case remains for future dialog-like apps managed by workspace
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
-        default: // Fallback for future unbanded types
+        default: 
           const globalMaxZOfOthers = prevApps
             .filter(app => app.id !== id)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
-          const newZIndexForAppToFocus = globalMaxZOfOthers + 1;
-          if (appToFocus.zIndex === newZIndexForAppToFocus) return prevApps;
-          return prevApps.map(app => app.id === id ? { ...app, zIndex: newZIndexForAppToFocus } : app);
+          const newZIndexForAppToFocusDefault = globalMaxZOfOthers + 1;
+          if (appToFocus.zIndex === newZIndexForAppToFocusDefault) return prevApps;
+          return prevApps.map(app => app.id === id ? { ...app, zIndex: newZIndexForAppToFocusDefault } : app);
       }
       
       const maxZOfOtherSimilarApps = prevApps
@@ -76,22 +76,14 @@ export default function Workspace() {
     });
   }, []);
 
-  const openApp = useCallback((id: string) => {
-    setApps(prevApps => 
-      prevApps.map(app => 
-        app.id === id ? { ...app, isOpen: true, isMinimized: false } : app
-      )
-    );
-    bringToFront(id);
-  }, [bringToFront]);
+  // Removed openApp function and its useCallback wrapper
 
   useEffect(() => {
-    // Initialize apps here, now that openApp (with its useCallback dependencies) is defined
     const initialApps: AppInstance[] = [
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator openApp={openApp} />, // Pass openApp here
+        component: <MCCalculator />, // MCCalculator no longer needs openApp prop
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -99,20 +91,10 @@ export default function Workspace() {
         size: { width: '90vw', height: 'calc(100vh - 100px)', maxWidth: '800px', maxHeight: '800px' },
         appType: 'system',
       },
-      {
-        id: "how-it-works-dialog",
-        title: "How This Calculator Works",
-        component: <HowItWorksContent />,
-        isOpen: false,
-        position: { x: 100, y: 100 },
-        zIndex: ALERT_DIALOG_Z_MIN,
-        isMinimized: false,
-        size: { width: '600px', height: 'auto', maxWidth: '700px', maxHeight: '75vh' },
-        appType: 'alertDialog',
-      }
+      // Removed "how-it-works-dialog" app instance
     ];
     setApps(initialApps);
-  }, [openApp]); // openApp is stable due to useCallback, so this effect runs once
+  }, []); // Removed openApp from dependency array
 
 
   const toggleMinimize = (id: string) => {
@@ -217,17 +199,17 @@ export default function Workspace() {
               userSelect: activeDrag?.appId === app.id ? 'none' : 'auto',
               transition: activeDrag?.appId === app.id ? 'none' : 'width 0.2s ease-out, height 0.2s ease-out',
             }}
-            onMouseDown={() => {
+            onMouseDown={() => { // Added onMouseDown to Card itself
               bringToFront(app.id);
-              const currentAppInstance = apps.find(a => a.id === app.id);
-              if (currentAppInstance?.isMinimized) { // If minimized, unminimize on click (except header buttons)
-                // toggleMinimize(app.id); // This would happen on title bar click too. Consider if needed here.
-              }
             }}
           >
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab border-b"
-              onMouseDown={(e) => handleDragStart(e, app.id)}
+              onMouseDown={(e) => {
+                // Prevent this from triggering card's onMouseDown if already handling drag
+                e.stopPropagation(); 
+                handleDragStart(e, app.id);
+              }}
             >
               <CardTitle className="text-sm font-medium select-none pl-1">{app.title}</CardTitle>
               <div className="flex space-x-1">
