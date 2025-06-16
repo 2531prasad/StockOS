@@ -36,6 +36,8 @@ interface Props {
   stdDevValue?: number;
 }
 
+const FONT_FAMILY_VICTOR_MONO = "'Victor Mono', monospace";
+
 const formatNumberForLabel = (num: number | undefined, digits: number = 1): string => {
   if (num === undefined || isNaN(num)) return "N/A";
   if (Math.abs(num) < 0.01 && num !== 0) return num.toExponential(1);
@@ -85,10 +87,8 @@ interface ChartThemeColors {
   };
 }
 
-// Helper to convert HSL string from CSS var (e.g., "210 40% 98%") to hsla for Chart.js
 const getHslaWithOpacity = (hslString: string, alpha: number): string => {
-  if (!hslString) return `hsla(0, 0%, 0%, ${alpha})`; // Fallback
-  // hslString is expected to be in format "H S% L%" e.g. "207 88% 68%"
+  if (!hslString) return `hsla(0, 0%, 0%, ${alpha})`; 
   const [h, s, l] = hslString.split(' ');
   return `hsla(${h}, ${s}, ${l}, ${alpha})`;
 };
@@ -131,17 +131,17 @@ export default function Histogram({
       const popoverCssVar = rootStyle.getPropertyValue('--popover').trim();
       const popoverFgCssVar = rootStyle.getPropertyValue('--popover-foreground').trim();
       const primaryCssVar = rootStyle.getPropertyValue('--primary').trim();
-      const secondaryCssVar = rootStyle.getPropertyValue('--secondary').trim(); // Or --accent
+      const secondaryCssVar = rootStyle.getPropertyValue('--secondary').trim(); 
       
       setChartThemeColors({
         textColor: `hsl(${fgCssVar})`,
-        gridColor: `hsla(${borderCssVar}, 0.5)`, // Use border with some transparency
+        gridColor: `hsla(${borderCssVar}, 0.5)`, 
         tooltipBgColor: `hsl(${popoverCssVar})`,
         tooltipTextColor: `hsl(${popoverFgCssVar})`,
         meanLineColor: `hsl(${primaryCssVar})`,
         medianLineColor: `hsl(${secondaryCssVar})`,
         annotationLabelColor: `hsl(${fgCssVar})`,
-        annotationLabelBgAlpha: 0.2, // Adjusted alpha for better visibility in dark mode
+        annotationLabelBgAlpha: 0.2, 
         sigmaLineColors: isDarkMode 
           ? ['hsl(0,0%,60%)', 'hsl(0,0%,50%)', 'hsl(0,0%,40%)', 'hsl(0,0%,40%)', 'hsl(0,0%,50%)', 'hsl(0,0%,60%)']
           : ['darkgrey', 'grey', 'lightgrey', 'lightgrey', 'grey', 'darkgrey'],
@@ -200,9 +200,9 @@ export default function Histogram({
   };
 
   const annotationsConfig: Record<string, AnnotationOptions> = {};
-  const primaryCssVarForLabel = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-  const secondaryCssVarForLabel = getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim();
-  const mutedFgCssVarForLabel = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim();
+  const primaryCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() : '';
+  const secondaryCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() : '';
+  const mutedFgCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim() : '';
 
 
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
@@ -220,7 +220,7 @@ export default function Histogram({
           position: 'top',
           backgroundColor: getHslaWithOpacity(primaryCssVarForLabel, chartThemeColors.annotationLabelBgAlpha),
           color: chartThemeColors.annotationLabelColor, 
-          font: { weight: 'bold' },
+          font: { weight: 'bold', family: FONT_FAMILY_VICTOR_MONO, size: 11 },
           yAdjust: -5, 
         }
       };
@@ -243,7 +243,7 @@ export default function Histogram({
             position: 'bottom', 
             backgroundColor: getHslaWithOpacity(secondaryCssVarForLabel, chartThemeColors.annotationLabelBgAlpha),
             color: chartThemeColors.annotationLabelColor, 
-            font: { weight: 'bold' },
+            font: { weight: 'bold', family: FONT_FAMILY_VICTOR_MONO, size: 11 },
             yAdjust: 5, 
           }
         };
@@ -271,7 +271,7 @@ export default function Histogram({
             rotation: 90,
             backgroundColor: getHslaWithOpacity(mutedFgCssVarForLabel, chartThemeColors.annotationLabelBgAlpha / 2), 
             color: chartThemeColors.annotationLabelColor, 
-            font: { size: 10 },
+            font: { size: 10, family: FONT_FAMILY_VICTOR_MONO },
             yAdjust: s < 0 ? -15 : 15, 
           }
         };
@@ -290,7 +290,11 @@ export default function Histogram({
         title: {
           display: true,
           text: 'Value Bins (Center)',
-          color: chartThemeColors.textColor 
+          color: chartThemeColors.textColor,
+          font: {
+            family: FONT_FAMILY_VICTOR_MONO,
+            size: 12,
+          }
         },
         grid: {
           color: chartThemeColors.gridColor, 
@@ -300,7 +304,11 @@ export default function Histogram({
           color: chartThemeColors.textColor, 
           maxRotation: 45, 
           minRotation: 30,
-          autoSkip: true, 
+          autoSkip: true,
+          font: {
+            family: FONT_FAMILY_VICTOR_MONO,
+            size: 10,
+          }
         },
       },
       y: {
@@ -309,7 +317,11 @@ export default function Histogram({
         title: {
           display: true,
           text: 'Probability',
-          color: chartThemeColors.textColor 
+          color: chartThemeColors.textColor,
+          font: {
+            family: FONT_FAMILY_VICTOR_MONO,
+            size: 12,
+          }
         },
         grid: {
           color: chartThemeColors.gridColor, 
@@ -321,6 +333,10 @@ export default function Histogram({
               return (value * 100).toFixed(0) + '%';
             }
             return value;
+          },
+          font: {
+            family: FONT_FAMILY_VICTOR_MONO,
+            size: 10,
           }
         },
       }
@@ -335,7 +351,9 @@ export default function Histogram({
         intersect: false,
         backgroundColor: chartThemeColors.tooltipBgColor, 
         titleColor: chartThemeColors.tooltipTextColor, 
-        bodyColor: chartThemeColors.tooltipTextColor, 
+        bodyColor: chartThemeColors.tooltipTextColor,
+        titleFont: { family: FONT_FAMILY_VICTOR_MONO, size: 12, weight: 'bold' },
+        bodyFont: { family: FONT_FAMILY_VICTOR_MONO, size: 11 },
         callbacks: {
           title: function(tooltipItems: any) {
             const originalBinIndex = tooltipItems[0].dataIndex;
@@ -365,7 +383,9 @@ export default function Histogram({
           bottom: 20
         },
         font: {
-          size: 16
+          size: 16,
+          family: FONT_FAMILY_VICTOR_MONO,
+          weight: 'bold',
         },
         color: chartThemeColors.textColor 
       }
@@ -382,3 +402,4 @@ export default function Histogram({
     </div>
   );
 }
+
