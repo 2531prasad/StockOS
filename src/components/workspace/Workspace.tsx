@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
 import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItWorksContent";
+import ImageViewer from "@/components/apps/image-viewer/ImageViewer"; // Import the new component
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon, MoveDiagonal, HelpCircle } from "lucide-react";
@@ -40,6 +41,7 @@ interface AppInstance {
     maxHeight: string; 
   };
   appType: AppType;
+  contentPadding?: string; // Optional: to control padding for CardContent
 }
 
 const SYSTEM_APP_Z_MIN = 901;
@@ -124,6 +126,27 @@ export default function Workspace() {
             maxHeight: 'none'
         },
         appType: 'system',
+        contentPadding: 'p-0', // Calculator now manages its own internal padding
+      },
+      {
+        id: "husky-image-viewer",
+        title: "Husky",
+        component: <ImageViewer />,
+        isOpen: true,
+        position: { x: 550, y: 50 },
+        zIndex: SYSTEM_APP_Z_MIN + 1,
+        isMinimized: false,
+        previousSize: null,
+        size: {
+            width: '300px', 
+            height: '300px', 
+            minWidth: 150,
+            minHeight: 150, 
+            maxWidth: 'none', 
+            maxHeight: 'none'
+        },
+        appType: 'system',
+        contentPadding: 'p-0', // Image viewer content should have no padding
       },
     ];
     setApps(initialApps);
@@ -171,7 +194,8 @@ export default function Workspace() {
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
       const currentApp = apps.find(app => app.id === appId);
-      if(currentApp && !currentApp.isMinimized) {
+      // Allow dragging minimized windows by their header
+      if(currentApp) { 
         const rect = appElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
@@ -188,10 +212,12 @@ export default function Workspace() {
       if (!appElement) return;
 
       const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData || appData.isMinimized) {
+      if (!appData) { // Check if appData exists
         setActiveDrag(null);
         return;
       }
+      // Minimized windows are draggable but not resizable via this drag logic.
+      // Resizing only makes sense for non-minimized windows.
 
       const appRect = appElement.getBoundingClientRect();
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
@@ -340,7 +366,7 @@ export default function Workspace() {
             }}
           >
             <CardHeader
-              className="bg-card p-2 flex flex-row items-center justify-between cursor-grab"
+              className="bg-card/80 p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50"
               onMouseDown={(e) => {
                 if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
                 e.stopPropagation();
@@ -383,7 +409,7 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className="p-0 flex-grow overflow-auto relative bg-card">
+              <CardContent className={cn("flex-grow overflow-auto relative bg-card/80", appInstance.contentPadding || "p-4")}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
@@ -405,3 +431,4 @@ export default function Workspace() {
     </div>
   );
 }
+
