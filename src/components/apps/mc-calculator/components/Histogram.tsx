@@ -87,10 +87,17 @@ interface ChartThemeColors {
   };
 }
 
-const getHslaWithOpacity = (hslString: string, alpha: number): string => {
-  if (!hslString) return `hsla(0, 0%, 0%, ${alpha})`; 
-  const [h, s, l] = hslString.split(' ');
-  return `hsla(${h}, ${s}, ${l}, ${alpha})`;
+const getHslaWithOpacity = (hslaString: string, alphaOverride?: number): string => {
+  if (!hslaString) return `hsla(0, 0%, 0%, ${alphaOverride ?? 1})`;
+  const parts = hslaString.replace(/hsla?\(/, '').replace(/\)/, '').split(',');
+  if (parts.length < 3) return `hsla(0, 0%, 0%, ${alphaOverride ?? 1})`;
+  
+  const h = parts[0].trim();
+  const s = parts[1].trim();
+  const l = parts[2].trim();
+  const a = alphaOverride !== undefined ? alphaOverride.toString() : (parts[3] ? parts[3].trim() : '1');
+  
+  return `hsla(${h}, ${s}, ${l}, ${a})`;
 };
 
 
@@ -103,60 +110,29 @@ export default function Histogram({
 }: Props) {
   const [isClient, setIsClient] = useState(false);
   const [chartThemeColors, setChartThemeColors] = useState<ChartThemeColors>({
-    textColor: 'black',
-    gridColor: 'lightgrey',
-    tooltipBgColor: 'white',
-    tooltipTextColor: 'black',
-    meanLineColor: 'red',
-    medianLineColor: 'blue',
-    annotationLabelColor: 'black',
-    annotationLabelBgAlpha: 0.1,
-    sigmaLineColors: ['darkgrey', 'grey', 'lightgrey', 'lightgrey', 'grey', 'darkgrey'],
+    textColor: 'hsla(0, 0%, 95%, 1)', // Off-white
+    gridColor: 'hsla(0, 0%, 50%, 0.2)', // Semi-transparent grey
+    tooltipBgColor: 'hsla(0, 0%, 15%, 0.9)', // Dark semi-transparent
+    tooltipTextColor: 'hsla(0, 0%, 90%, 1)', // Light grey
+    meanLineColor: 'hsla(207, 88%, 68%, 1)', // Soft blue
+    medianLineColor: 'hsla(125, 43%, 75%, 1)', // Light green
+    annotationLabelColor: 'hsla(0, 0%, 90%, 1)',
+    annotationLabelBgAlpha: 0.3,
+    sigmaLineColors: [
+        'hsla(0, 0%, 70%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 50%, 0.7)',
+        'hsla(0, 0%, 50%, 0.7)', 'hsla(0, 0%, 60%, 0.7)', 'hsla(0, 0%, 70%, 0.7)'
+    ],
     sigmaBarColors: {
-      s1bg: 'hsl(180, 70%, 50%)', s1border: 'hsl(180, 70%, 40%)',
-      s2bg: 'hsl(120, 60%, 50%)', s2border: 'hsl(120, 60%, 40%)',
-      s3bg: 'hsl(55, 85%, 50%)', s3border: 'hsl(55, 85%, 40%)',
-      otherBg: 'hsl(0, 0%, 88%)', otherBorder: 'hsl(0, 0%, 75%)',
+      s1bg: 'hsla(180, 60%, 40%, 0.7)', s1border: 'hsla(180, 60%, 25%, 1)',
+      s2bg: 'hsla(120, 50%, 35%, 0.7)', s2border: 'hsla(120, 50%, 20%, 1)',
+      s3bg: 'hsla(55, 70%, 40%, 0.7)', s3border: 'hsla(55, 70%, 25%, 1)',
+      otherBg: 'hsla(0, 0%, 30%, 0.5)', otherBorder: 'hsla(0, 0%, 40%, 1)',
     }
   });
 
   useEffect(() => {
     setIsClient(true);
-    if (typeof window !== 'undefined') {
-      const rootStyle = getComputedStyle(document.documentElement);
-      const isDarkMode = document.documentElement.classList.contains('dark');
-
-      const fgCssVar = rootStyle.getPropertyValue('--foreground').trim();
-      const borderCssVar = rootStyle.getPropertyValue('--border').trim();
-      const popoverCssVar = rootStyle.getPropertyValue('--popover').trim();
-      const popoverFgCssVar = rootStyle.getPropertyValue('--popover-foreground').trim();
-      const primaryCssVar = rootStyle.getPropertyValue('--primary').trim();
-      const secondaryCssVar = rootStyle.getPropertyValue('--secondary').trim(); 
-      
-      setChartThemeColors({
-        textColor: `hsl(${fgCssVar})`,
-        gridColor: `hsla(${borderCssVar}, 0.5)`, 
-        tooltipBgColor: `hsl(${popoverCssVar})`,
-        tooltipTextColor: `hsl(${popoverFgCssVar})`,
-        meanLineColor: `hsl(${primaryCssVar})`,
-        medianLineColor: `hsl(${secondaryCssVar})`,
-        annotationLabelColor: `hsl(${fgCssVar})`,
-        annotationLabelBgAlpha: 0.2, 
-        sigmaLineColors: isDarkMode 
-          ? ['hsl(0,0%,60%)', 'hsl(0,0%,50%)', 'hsl(0,0%,40%)', 'hsl(0,0%,40%)', 'hsl(0,0%,50%)', 'hsl(0,0%,60%)']
-          : ['darkgrey', 'grey', 'lightgrey', 'lightgrey', 'grey', 'darkgrey'],
-        sigmaBarColors: {
-          s1bg: `hsl(${rootStyle.getPropertyValue('--sigma-1-bg').trim()})`,
-          s1border: `hsl(${rootStyle.getPropertyValue('--sigma-1-border').trim()})`,
-          s2bg: `hsl(${rootStyle.getPropertyValue('--sigma-2-bg').trim()})`,
-          s2border: `hsl(${rootStyle.getPropertyValue('--sigma-2-border').trim()})`,
-          s3bg: `hsl(${rootStyle.getPropertyValue('--sigma-3-bg').trim()})`,
-          s3border: `hsl(${rootStyle.getPropertyValue('--sigma-3-border').trim()})`,
-          otherBg: `hsl(${rootStyle.getPropertyValue('--sigma-other-bg').trim()})`,
-          otherBorder: `hsl(${rootStyle.getPropertyValue('--sigma-other-border').trim()})`,
-        }
-      });
-    }
+    // No longer reading from CSS variables, chartThemeColors is initialized with static dark theme values.
   }, []);
 
 
@@ -200,10 +176,6 @@ export default function Histogram({
   };
 
   const annotationsConfig: Record<string, AnnotationOptions> = {};
-  const primaryCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() : '';
-  const secondaryCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() : '';
-  const mutedFgCssVarForLabel = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim() : '';
-
 
   if (typeof meanValue === 'number' && !isNaN(meanValue)) {
     const meanBinIndex = findBinIndexForValue(meanValue, data);
@@ -218,7 +190,7 @@ export default function Histogram({
           enabled: true,
           content: `Mean: ${formatNumberForLabel(meanValue)}`,
           position: 'top',
-          backgroundColor: getHslaWithOpacity(primaryCssVarForLabel, chartThemeColors.annotationLabelBgAlpha),
+          backgroundColor: getHslaWithOpacity(chartThemeColors.meanLineColor, chartThemeColors.annotationLabelBgAlpha),
           color: chartThemeColors.annotationLabelColor, 
           font: { weight: 'bold', family: FONT_FAMILY_VICTOR_MONO, size: 11 },
           yAdjust: -5, 
@@ -241,7 +213,7 @@ export default function Histogram({
             enabled: true,
             content: `Median: ${formatNumberForLabel(medianValue)}`,
             position: 'bottom', 
-            backgroundColor: getHslaWithOpacity(secondaryCssVarForLabel, chartThemeColors.annotationLabelBgAlpha),
+            backgroundColor: getHslaWithOpacity(chartThemeColors.medianLineColor, chartThemeColors.annotationLabelBgAlpha),
             color: chartThemeColors.annotationLabelColor, 
             font: { weight: 'bold', family: FONT_FAMILY_VICTOR_MONO, size: 11 },
             yAdjust: 5, 
@@ -252,6 +224,7 @@ export default function Histogram({
 
   if (typeof meanValue === 'number' && !isNaN(meanValue) && typeof stdDevValue === 'number' && !isNaN(stdDevValue) && stdDevValue > 0) {
     const sigmas = [-3, -2, -1, 1, 2, 3];
+    const sigmaLabelBaseColor = 'hsla(0, 0%, 60%, 1)'; // A neutral grey for sigma labels
 
     sigmas.forEach((s, idx) => {
       const sigmaVal = meanValue + s * stdDevValue;
@@ -269,7 +242,7 @@ export default function Histogram({
             content: `${s > 0 ? '+' : ''}${s}σ (${formatNumberForLabel(sigmaVal,1)})`,
             position: s < 0 ? 'start' : 'end',
             rotation: 90,
-            backgroundColor: getHslaWithOpacity(mutedFgCssVarForLabel, chartThemeColors.annotationLabelBgAlpha / 2), 
+            backgroundColor: getHslaWithOpacity(sigmaLabelBaseColor, chartThemeColors.annotationLabelBgAlpha / 2), 
             color: chartThemeColors.annotationLabelColor, 
             font: { size: 10, family: FONT_FAMILY_VICTOR_MONO },
             yAdjust: s < 0 ? -15 : 15, 
@@ -393,12 +366,12 @@ export default function Histogram({
   };
 
   if (!isClient) {
-    return <div style={{ height: '450px', width: '100%' }} className="flex items-center justify-center"><p className="text-muted-foreground">Loading chart...</p></div>;
+    return <div style={{ height: '450px', width: '100%' }} className="flex items-center justify-center"><p style={{color: chartThemeColors.textColor, opacity: 0.7}}>Loading chart...</p></div>;
   }
 
   return (
     <div style={{ height: '450px', width: '100%' }}> 
-      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p className="text-muted-foreground">Loading chart data or no data to display...</p>}
+      {data && data.length > 0 ? <Bar data={chartData} options={options} /> : <p style={{color: chartThemeColors.textColor, opacity: 0.7}} className="flex items-center justify-center h-full">Loading chart data or no data to display...</p>}
     </div>
   );
 }
