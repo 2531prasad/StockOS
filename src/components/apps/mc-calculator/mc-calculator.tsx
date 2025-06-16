@@ -59,8 +59,11 @@ export default function MCCalculator() {
   );
 
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
+  // True Range should only show for probabilistic calculations where analytical min/max are valid
+  const showTrueRangeConditionally = showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
+  // Advanced controls (Iterations, Bars) only for probabilistic results
   const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
-  const showTrueRangeConditionally = showResultsArea && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
+
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <>
@@ -146,8 +149,8 @@ export default function MCCalculator() {
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
-                <Label className="text-muted-foreground text-base">True Range</Label>
-                <p className="text-foreground font-medium whitespace-nowrap text-base">
+                <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>
+                <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-base">
                     {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
                 </p>
                 {result.analyticalError && (
