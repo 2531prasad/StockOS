@@ -34,8 +34,8 @@ interface AppInstance {
     height: string;
     minWidth?: number;
     minHeight?: number;
-    maxWidth: string;
-    maxHeight: string;
+    maxWidth: string; // Can be 'none' for no specific limit
+    maxHeight: string; // Can be 'none' for no specific limit
   };
   appType: AppType;
 }
@@ -75,7 +75,7 @@ export default function Workspace() {
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
-        default: // Should not happen with current types
+        default: 
           const globalMaxZOfOthers = prevApps
             .filter(app => app.id !== id)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
@@ -114,12 +114,12 @@ export default function Workspace() {
         isMinimized: false,
         previousSize: null,
         size: {
-            width: '90vw',
-            height: '172px', // Default height
+            width: '450px', // Initial sensible width
+            height: '172px', 
             minWidth: 400,
-            minHeight: 172, // Adjusted minHeight
-            maxWidth: '800px',
-            maxHeight: '800px'
+            minHeight: 172, 
+            maxWidth: 'none', // Flexible max width
+            maxHeight: 'none' // Flexible max height
         },
         appType: 'system',
       },
@@ -138,17 +138,17 @@ export default function Workspace() {
               ...app,
               isMinimized: true,
               previousSize: { width: app.size.width, height: app.size.height },
-              size: { ...app.size, width: '250px', height: 'auto' }
+              size: { ...app.size, width: '250px', height: 'auto' } // Minimized height is auto
             };
           } else { // Restoring
-            bringToFront(id); // Bring to front when restoring
+            bringToFront(id); 
             return {
               ...app,
               isMinimized: false,
               size: {
                 ...app.size,
-                width: app.previousSize?.width || app.size.maxWidth, // Use maxWidth as fallback
-                height: app.previousSize?.height || app.size.maxHeight // Use maxHeight as fallback
+                width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'), 
+                height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px') 
               },
               previousSize: null
             };
@@ -227,7 +227,7 @@ export default function Workspace() {
   }, [activeDrag, apps]); 
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
-    e.stopPropagation(); // Important to prevent drag start on the window itself
+    e.stopPropagation(); 
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     const currentApp = apps.find(app => app.id === appId);
@@ -237,8 +237,8 @@ export default function Workspace() {
         appId,
         initialMouseX: e.clientX,
         initialMouseY: e.clientY,
-        initialWidth: rect.width, // Store initial width in pixels
-        initialHeight: rect.height, // Store initial height in pixels
+        initialWidth: rect.width, 
+        initialHeight: rect.height, 
       });
     }
   };
@@ -259,11 +259,9 @@ export default function Workspace() {
       let newWidth = activeResize.initialWidth + deltaX;
       let newHeight = activeResize.initialHeight + deltaY;
 
-      // Clamp to minWidth/minHeight
       newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
       newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
       
-      // Prevent resizing beyond workspace boundaries if needed (optional, depends on desired UX)
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
       const appPos = currentApp.position;
       
@@ -274,13 +272,12 @@ export default function Workspace() {
         newHeight = workspaceRect.height - appPos.y;
       }
 
-
       setApps(prevApps =>
         prevApps.map(app =>
           app.id === activeResize.appId
             ? {
                 ...app,
-                size: { // Update size in pixels
+                size: { 
                   ...app.size,
                   width: `${newWidth}px`, 
                   height: `${newHeight}px`,
@@ -323,11 +320,11 @@ export default function Workspace() {
               top: `${appInstance.position.y}px`,
               zIndex: appInstance.zIndex,
               width: appInstance.size.width,
-              height: appInstance.size.height,
+              height: appInstance.isMinimized ? 'auto' : appInstance.size.height, // Minimized height is auto
               maxWidth: appInstance.size.maxWidth,
-              maxHeight: appInstance.size.maxHeight,
+              maxHeight: appInstance.isMinimized ? 'auto' : appInstance.size.maxHeight, // Minimized maxHeight is auto
               minWidth: `${appInstance.size.minWidth || 0}px`,
-              minHeight: `${appInstance.size.minHeight || 0}px`,
+              minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
               userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
               transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out',
             }}
@@ -396,3 +393,4 @@ export default function Workspace() {
     </div>
   );
 }
+
