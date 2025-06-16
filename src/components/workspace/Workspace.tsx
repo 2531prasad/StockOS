@@ -28,12 +28,12 @@ interface AppInstance {
   zIndex: number;
   isMinimized?: boolean;
   previousSize?: { width: string; height: string } | null;
-  size: { 
-    width: string; 
-    height: string; 
+  size: {
+    width: string;
+    height: string;
     minWidth?: number;
     minHeight?: number;
-    maxWidth: string; 
+    maxWidth: string;
     maxHeight: string;
   };
   appType: AppType;
@@ -41,19 +41,19 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921; 
-const ALERT_DIALOG_Z_MAX = 940; 
+const ALERT_DIALOG_Z_MIN = 921;
+const ALERT_DIALOG_Z_MAX = 940;
 
 
 export default function Workspace() {
   const [apps, setApps] = useState<AppInstance[]>([]);
   const [activeDrag, setActiveDrag] = useState<{ appId: string; offsetX: number; offsetY: number } | null>(null);
-  const [activeResize, setActiveResize] = useState<{ 
-    appId: string; 
-    initialMouseX: number; 
-    initialMouseY: number; 
-    initialWidth: number; 
-    initialHeight: number; 
+  const [activeResize, setActiveResize] = useState<{
+    appId: string;
+    initialMouseX: number;
+    initialMouseY: number;
+    initialWidth: number;
+    initialHeight: number;
   } | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
@@ -70,11 +70,11 @@ export default function Workspace() {
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
           break;
-        case 'alertDialog': 
+        case 'alertDialog':
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
-        default: 
+        default:
           const globalMaxZOfOthers = prevApps
             .filter(app => app.id !== id)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
@@ -82,11 +82,11 @@ export default function Workspace() {
           if (appToFocus.zIndex === newZIndexForAppToFocusDefault) return prevApps;
           return prevApps.map(app => app.id === id ? { ...app, zIndex: newZIndexForAppToFocusDefault } : app);
       }
-      
+
       const maxZOfOtherSimilarApps = prevApps
         .filter(app => app.appType === appToFocus.appType && app.id !== id)
         .reduce((max, app) => Math.max(max, app.zIndex), minZForType - 1);
-      
+
       let targetZ = maxZOfOtherSimilarApps + 1;
       const newZIndexForAppToFocus = Math.min(maxZForType, Math.max(minZForType, targetZ));
 
@@ -100,25 +100,30 @@ export default function Workspace() {
     });
   }, []);
 
+  const openApp = useCallback((id: string) => {
+    setApps(prevApps => prevApps.map(app => app.id === id ? { ...app, isOpen: true, isMinimized: false } : app));
+    bringToFront(id);
+  }, [bringToFront]);
+
 
   useEffect(() => {
     const initialApps: AppInstance[] = [
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator />, 
+        component: <MCCalculator />,
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
         isMinimized: false,
         previousSize: null,
-        size: { 
-            width: '90vw', 
-            height: 'calc(100vh - 100px)', 
-            minWidth: 400, 
-            minHeight: 500, 
-            maxWidth: '800px', 
-            maxHeight: '800px' 
+        size: {
+            width: '90vw',
+            height: '172px', // Default height set
+            minWidth: 400,
+            minHeight: 172, // Min height adjusted
+            maxWidth: '800px',
+            maxHeight: '800px'
         },
         appType: 'system',
       },
@@ -131,24 +136,19 @@ export default function Workspace() {
         zIndex: ALERT_DIALOG_Z_MIN,
         isMinimized: false,
         previousSize: null,
-        size: { 
-            width: '600px', 
-            height: 'auto', 
-            minWidth: 300, 
+        size: {
+            width: '600px',
+            height: 'auto',
+            minWidth: 300,
             minHeight: 200,
-            maxWidth: '700px', 
-            maxHeight: '75vh' 
+            maxWidth: '700px',
+            maxHeight: '75vh'
         },
         appType: 'alertDialog',
       },
     ];
     setApps(initialApps);
   }, []);
-
-  const openApp = useCallback((id: string) => {
-    setApps(prevApps => prevApps.map(app => app.id === id ? { ...app, isOpen: true } : app));
-    bringToFront(id);
-  }, [bringToFront]);
 
 
   const toggleMinimize = (id: string) => {
@@ -157,22 +157,22 @@ export default function Workspace() {
         if (app.id === id) {
           const isCurrentlyMinimized = app.isMinimized;
           if (!isCurrentlyMinimized) { // Minimizing
-            return { 
-              ...app, 
-              isMinimized: true, 
+            return {
+              ...app,
+              isMinimized: true,
               previousSize: { width: app.size.width, height: app.size.height },
-              size: { ...app.size, width: '250px', height: 'auto' } 
+              size: { ...app.size, width: '250px', height: 'auto' }
             };
           } else { // Restoring
-            return { 
-              ...app, 
-              isMinimized: false, 
-              size: { 
-                ...app.size, 
-                width: app.previousSize?.width || app.size.maxWidth, // Fallback to maxWidth or a default
-                height: app.previousSize?.height || app.size.maxHeight // Fallback
+            return {
+              ...app,
+              isMinimized: false,
+              size: {
+                ...app.size,
+                width: app.previousSize?.width || app.size.maxWidth,
+                height: app.previousSize?.height || app.size.maxHeight
               },
-              previousSize: null 
+              previousSize: null
             };
           }
         }
@@ -180,7 +180,7 @@ export default function Workspace() {
       })
     );
      const appToToggle = apps.find(app => app.id ===id);
-     if (appToToggle && appToToggle.isMinimized) { // If it was minimized, now it's restored
+     if (appToToggle && appToToggle.isMinimized) {
       bringToFront(id);
     }
   };
@@ -194,7 +194,7 @@ export default function Workspace() {
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
       const currentApp = apps.find(app => app.id === appId);
-      if(currentApp && !currentApp.isMinimized) { 
+      if(currentApp && !currentApp.isMinimized) {
         const rect = appElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
@@ -209,14 +209,14 @@ export default function Workspace() {
 
       const appElement = document.getElementById(`app-${activeDrag.appId}`);
       if (!appElement) return;
-      
+
       const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData || appData.isMinimized) { 
-        setActiveDrag(null); 
+      if (!appData || appData.isMinimized) {
+        setActiveDrag(null);
         return;
       }
 
-      const appRect = appElement.getBoundingClientRect(); 
+      const appRect = appElement.getBoundingClientRect();
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
 
       let newViewportX = e.clientX - activeDrag.offsetX;
@@ -224,10 +224,10 @@ export default function Workspace() {
 
       let newRelativeX = newViewportX - workspaceRect.left;
       let newRelativeY = newViewportY - workspaceRect.top;
-      
+
       newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width));
       newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height));
-      
+
       setApps(prevApps =>
         prevApps.map(app =>
           app.id === activeDrag.appId
@@ -250,10 +250,10 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps]); 
+  }, [activeDrag, apps]);
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
-    e.stopPropagation(); // Prevent drag start
+    e.stopPropagation();
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     const currentApp = apps.find(app => app.id === appId);
@@ -272,7 +272,7 @@ export default function Workspace() {
   useEffect(() => {
     const handleMouseMoveResize = (e: MouseEvent) => {
       if (!activeResize || !workspaceRef.current) return;
-      
+
       const currentApp = apps.find(app => app.id === activeResize.appId);
       if (!currentApp || currentApp.isMinimized) {
         setActiveResize(null);
@@ -285,11 +285,9 @@ export default function Workspace() {
       let newWidth = activeResize.initialWidth + deltaX;
       let newHeight = activeResize.initialHeight + deltaY;
 
-      // Apply min constraints
       newWidth = Math.max(currentApp.size.minWidth || 200, newWidth);
       newHeight = Math.max(currentApp.size.minHeight || 150, newHeight);
-      
-      // Apply workspace boundary constraints
+
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
       const appPos = currentApp.position;
 
@@ -308,8 +306,8 @@ export default function Workspace() {
                 ...app,
                 size: {
                   ...app.size,
-                  width: `${Math.max(currentApp.size.minWidth || 200, newWidth)}px`, // ensure minWidth again after boundary adjustment
-                  height: `${Math.max(currentApp.size.minHeight || 150, newHeight)}px`, // ensure minHeight again
+                  width: `${Math.max(currentApp.size.minWidth || 200, newWidth)}px`,
+                  height: `${Math.max(currentApp.size.minHeight || 150, newHeight)}px`,
                 },
               }
             : app
@@ -329,7 +327,7 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMoveResize);
       window.removeEventListener('mouseup', handleMouseUpResize);
     };
-  }, [activeResize, apps, bringToFront]);
+  }, [activeResize, apps]);
 
 
   return (
@@ -337,7 +335,7 @@ export default function Workspace() {
       {apps
         .filter((app) => app.isOpen)
         .map((appInstance) => {
-            const componentToRender = React.isValidElement(appInstance.component) && appInstance.id === 'mc-calculator'
+            const componentToRender = React.isValidElement(appInstance.component) && appInstance.id === 'mc-calculator' && typeof openApp === 'function'
             ? React.cloneElement(appInstance.component as React.ReactElement<any>, { openApp })
             : appInstance.component;
 
@@ -345,7 +343,7 @@ export default function Workspace() {
           <Card
             key={appInstance.id}
             id={`app-${appInstance.id}`}
-            className="absolute shadow-2xl flex flex-col border border-border rounded-lg overflow-hidden bg-card" 
+            className="absolute shadow-2xl flex flex-col border border-border rounded-lg overflow-hidden bg-card"
             style={{
               left: `${appInstance.position.x}px`,
               top: `${appInstance.position.y}px`,
@@ -357,17 +355,17 @@ export default function Workspace() {
               minWidth: `${appInstance.size.minWidth || 0}px`,
               minHeight: `${appInstance.size.minHeight || 0}px`,
               userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
-              transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out', // Changed transition
+              transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out',
             }}
-            onMouseDown={() => { 
+            onMouseDown={() => {
               bringToFront(appInstance.id);
             }}
           >
             <CardHeader
               className="bg-card p-2 flex flex-row items-center justify-between cursor-grab"
               onMouseDown={(e) => {
-                if ((e.target as HTMLElement).closest('.resize-handle')) return; // Don't drag if clicking resize handle
-                e.stopPropagation(); 
+                if ((e.target as HTMLElement).closest('.resize-handle')) return;
+                e.stopPropagation();
                 handleDragStart(e, appInstance.id);
               }}
             >
@@ -381,23 +379,17 @@ export default function Workspace() {
                         size="icon"
                         className="ml-2 h-6 w-6"
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent card header's onMouseDown
-                            // AlertDialog will open due to trigger
-                        }} 
+                            e.stopPropagation();
+                            const targetApp = apps.find(app => app.id === 'how-it-works-dialog');
+                            if (targetApp) {
+                                openApp('how-it-works-dialog');
+                            }
+                        }}
                         aria-label="How it Works"
                       >
                         <HelpCircle className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="z-[930]">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
-                      </AlertDialogHeader>
-                      <HowItWorksContent />
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Close</AlertDialogCancel>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
                   </AlertDialog>
                 )}
               </div>
@@ -411,10 +403,10 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className="p-0 flex-grow overflow-auto relative"> {/* Added relative for resize handle positioning */}
+              <CardContent className="p-0 flex-grow overflow-auto relative">
                 {componentToRender}
                  {!appInstance.isMinimized && (
-                    <div 
+                    <div
                         className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center"
                         onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
                         title="Resize"
@@ -425,11 +417,34 @@ export default function Workspace() {
               </CardContent>
             )}
              {appInstance.isMinimized && (
-                <div className="h-2"></div> 
+                <div className="h-2"></div>
              )}
           </Card>
         );
       })}
+       {/* This is where the "How it Works" AlertDialog's content will be rendered if it's a ShadCN dialog controlled outside an app instance */}
+       {apps.find(app => app.id === 'how-it-works-dialog' && app.isOpen && app.appType === 'alertDialog') && (
+        <AlertDialog open={apps.find(app => app.id === 'how-it-works-dialog')?.isOpen} onOpenChange={(open) => {
+            if (!open) closeApp('how-it-works-dialog');
+        }}>
+            <AlertDialogContent className="z-[930]" onMouseDownCapture={(e) => {
+                 // Check if the click is on the overlay or content to decide if bringToFront is needed
+                const dialogContent = (e.target as HTMLElement).closest('[role="dialog"]');
+                if (dialogContent) {
+                    bringToFront('how-it-works-dialog'); // Bring to front if clicking inside the dialog
+                }
+            }}>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
+                </AlertDialogHeader>
+                <HowItWorksContent />
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={(e) => { e.stopPropagation(); closeApp('how-it-works-dialog');}}>Close</AlertDialogCancel>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+       )}
     </div>
   );
 }
+
