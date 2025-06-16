@@ -3,19 +3,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
-import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItWorksContent";
+// Removed HowItWorksContent import as it's no longer a separate app
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
-import { XIcon, MinusIcon, HelpCircle, MoveDiagonal } from "lucide-react";
+import { XIcon, MinusIcon, MoveDiagonal } from "lucide-react";
 
 type AppType = 'system' | 'alertDialog';
 
@@ -41,8 +32,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921;
-const ALERT_DIALOG_Z_MAX = 940;
+const ALERT_DIALOG_Z_MIN = 921; // Keep for potential future workspace-managed dialogs
+const ALERT_DIALOG_Z_MAX = 940; // Keep for potential future workspace-managed dialogs
 
 
 export default function Workspace() {
@@ -70,7 +61,7 @@ export default function Workspace() {
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
           break;
-        case 'alertDialog':
+        case 'alertDialog': // This case might be used for future workspace-managed dialogs
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
           break;
@@ -100,18 +91,14 @@ export default function Workspace() {
     });
   }, []);
 
-  const openApp = useCallback((id: string) => {
-    setApps(prevApps => prevApps.map(app => app.id === id ? { ...app, isOpen: true, isMinimized: false } : app));
-    bringToFront(id);
-  }, [bringToFront]);
-
+  // Removed openApp function as it's no longer needed for "How It Works"
 
   useEffect(() => {
     const initialApps: AppInstance[] = [
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator />,
+        component: <MCCalculator />, // No longer needs openApp prop
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -119,33 +106,15 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '90vw',
-            height: '172px', // Default height set
+            height: '172px',
             minWidth: 400,
-            minHeight: 172, // Min height adjusted
+            minHeight: 172, 
             maxWidth: '800px',
             maxHeight: '800px'
         },
         appType: 'system',
       },
-       {
-        id: "how-it-works-dialog",
-        title: "How This Calculator Works",
-        component: <HowItWorksContent />,
-        isOpen: false,
-        position: { x: 100, y: 100 },
-        zIndex: ALERT_DIALOG_Z_MIN,
-        isMinimized: false,
-        previousSize: null,
-        size: {
-            width: '600px',
-            height: 'auto',
-            minWidth: 300,
-            minHeight: 200,
-            maxWidth: '700px',
-            maxHeight: '75vh'
-        },
-        appType: 'alertDialog',
-      },
+      // "how-it-works-dialog" app instance removed
     ];
     setApps(initialApps);
   }, []);
@@ -250,7 +219,7 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps]);
+  }, [activeDrag, apps]); // Removed bringToFront from deps as it was related to previous TextHoverEffect change
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
     e.stopPropagation();
@@ -335,9 +304,7 @@ export default function Workspace() {
       {apps
         .filter((app) => app.isOpen)
         .map((appInstance) => {
-            const componentToRender = React.isValidElement(appInstance.component) && appInstance.id === 'mc-calculator' && typeof openApp === 'function'
-            ? React.cloneElement(appInstance.component as React.ReactElement<any>, { openApp })
-            : appInstance.component;
+            const componentToRender = appInstance.component; // Simpler rendering, no cloneElement needed now
 
             return (
           <Card
@@ -371,27 +338,7 @@ export default function Workspace() {
             >
               <div className="flex items-center">
                 <CardTitle className="text-sm font-medium select-none pl-1">{appInstance.title}</CardTitle>
-                 {appInstance.id === 'mc-calculator' && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-2 h-6 w-6"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const targetApp = apps.find(app => app.id === 'how-it-works-dialog');
-                            if (targetApp) {
-                                openApp('how-it-works-dialog');
-                            }
-                        }}
-                        aria-label="How it Works"
-                      >
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                  </AlertDialog>
-                )}
+                 {/* HelpCircle and AlertDialog removed from here, managed by MCCalculator itself */}
               </div>
               <div className="flex space-x-1">
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleMinimize(appInstance.id);}}>
@@ -422,29 +369,9 @@ export default function Workspace() {
           </Card>
         );
       })}
-       {/* This is where the "How it Works" AlertDialog's content will be rendered if it's a ShadCN dialog controlled outside an app instance */}
-       {apps.find(app => app.id === 'how-it-works-dialog' && app.isOpen && app.appType === 'alertDialog') && (
-        <AlertDialog open={apps.find(app => app.id === 'how-it-works-dialog')?.isOpen} onOpenChange={(open) => {
-            if (!open) closeApp('how-it-works-dialog');
-        }}>
-            <AlertDialogContent className="z-[930]" onMouseDownCapture={(e) => {
-                 // Check if the click is on the overlay or content to decide if bringToFront is needed
-                const dialogContent = (e.target as HTMLElement).closest('[role="dialog"]');
-                if (dialogContent) {
-                    bringToFront('how-it-works-dialog'); // Bring to front if clicking inside the dialog
-                }
-            }}>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
-                </AlertDialogHeader>
-                <HowItWorksContent />
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={(e) => { e.stopPropagation(); closeApp('how-it-works-dialog');}}>Close</AlertDialogCancel>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-       )}
+       {/* Removed the AlertDialog rendering logic from here, as "How It Works" is now internal to MCCalculator */}
     </div>
   );
 }
 
+    
