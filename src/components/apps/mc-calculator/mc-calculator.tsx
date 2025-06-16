@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
-import HowItWorksContent from "./components/HowItWorksContent"; // Import the content
+import HowItWorksContent from "./components/HowItWorksContent";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CardHeader as AppCardHeader, CardTitle as AppCardTitle, CardDescription as AppCardDescription, CardContent as AppCardContent } from "@/components/ui/card";
@@ -14,20 +14,17 @@ import {
 } from "@/components/ui/alert";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Terminal, HelpCircle, Info } from "lucide-react";
 
-// Removed openApp prop
 export default function MCCalculator() {
   const [expression, setExpression] = useState("1400~1700 * 0.55~0.65 - 600~700 - 100~200 - 30 - 20");
   const [iterations, setIterations] = useState(100000);
@@ -43,12 +40,14 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1,
+    submittedIterations > 0 ? submittedIterations : 1, // Ensure at least 1 iteration
     submittedHistogramBins
   );
 
   const handleCalculate = () => {
     if (!expression.trim()) {
+      // Optionally, clear previous results or show a message
+      // setSubmittedExpression(""); // Clear previous submission to hide old results
       return;
     }
     setSubmittedExpression(expression);
@@ -62,7 +61,7 @@ export default function MCCalculator() {
   };
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
-    <div className="text-2xl font-bold text-primary py-4">
+    <div className="text-2xl font-bold text-primary py-4 bg-muted/30 p-4 rounded-md text-center">
       Output: {formatNumber(calcResult.results[0])}
     </div>
   );
@@ -105,12 +104,13 @@ export default function MCCalculator() {
             stdDevValue={calcResult.stdDev}
           />
         </div>
-      ) : submittedExpression && !calcResult.error ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
+      ) : submittedExpression && !calcResult.error && !calcResult.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </>
   );
   
   const showResults = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showInitialMessage = !submittedExpression && !result.error;
+  const showAdvancedControls = submittedExpression && !result.isDeterministic;
 
 
   return (
@@ -129,11 +129,10 @@ export default function MCCalculator() {
                 <HelpCircle className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="z-[930]"> {/* Applied z-index */}
+            <AlertDialogContent className="z-[930]">
               <AlertDialogHeader>
                 <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
               </AlertDialogHeader>
-              {/* HowItWorksContent now provides the scrollable body */}
               <HowItWorksContent /> 
               <AlertDialogFooter>
                 <AlertDialogCancel>Close</AlertDialogCancel>
@@ -143,14 +142,12 @@ export default function MCCalculator() {
         </div>
         <AppCardDescription className="text-xs">
           Enter expressions with ranges (e.g., 100~120) for probabilistic simulation.
-          Vertical lines indicate Mean, Median, and Standard Deviations (σ).
-          Histogram bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ).
-          X-axis labels show the center value of each bin.
+          {showAdvancedControls && (<> Vertical lines indicate Mean, Median, and Standard Deviations (σ). Histogram bars are colored based on their distance from the mean (±1σ, ±2σ, ±3σ). X-axis labels show the center value of each bin.</>)}
         </AppCardDescription>
       </AppCardHeader>
 
       <AppCardContent className="flex-grow p-4 overflow-y-auto"> 
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 mb-4 items-end">
+        <div className="grid grid-cols-[1fr_auto] gap-2 mb-4 items-end">
           <Input
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
@@ -159,49 +156,54 @@ export default function MCCalculator() {
             aria-label="Expression Input"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
-          <div className="flex flex-col space-y-1">
-            <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
-            <Input
-              id="iterations-input"
-              type="number"
-              value={iterations}
-              onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-              className="w-full sm:w-32 text-base"
-              placeholder="Iterations"
-              aria-label="Number of Iterations"
-              min="100"
-              step="1000"
-            />
-          </div>
           <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
         </div>
 
-        <div className="mb-6">
-          <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
-            Chart Detail (Number of Points/Bars): {histogramBins}
-          </Label>
-          <Slider
-            id="histogram-bins-slider"
-            min={5}
-            max={50}
-            step={1}
-            value={[histogramBins]}
-            onValueChange={(value) => setHistogramBins(value[0])}
-            className="mt-2"
-            aria-label="Histogram Bins Slider"
-          />
-        </div>
+        {showAdvancedControls && (
+          <>
+            <div className="mb-4">
+              <Label htmlFor="iterations-input" className="text-xs text-muted-foreground">Iterations</Label>
+              <Input
+                id="iterations-input"
+                type="number"
+                value={iterations}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                className="w-full sm:w-32 text-base mt-1"
+                placeholder="Iterations"
+                aria-label="Number of Iterations"
+                min="100"
+                step="1000"
+              />
+            </div>
+
+            <div className="mb-6">
+              <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
+                Chart Detail (Number of Points/Bars): {histogramBins}
+              </Label>
+              <Slider
+                id="histogram-bins-slider"
+                min={5}
+                max={50}
+                step={1}
+                value={[histogramBins]}
+                onValueChange={(value) => setHistogramBins(value[0])}
+                className="mt-2"
+                aria-label="Histogram Bins Slider"
+              />
+            </div>
+          </>
+        )}
 
         {result.error && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive" className="mb-4 mt-4">
             <Terminal className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{result.error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-2 text-sm md:text-base">
-          {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results and distribution chart.</p>}
+        <div className="space-y-2 text-sm md:text-base mt-4">
+          {showInitialMessage && <p className="text-muted-foreground">Enter an expression and click Calculate to see results.</p>}
           {showResults && result.isDeterministic && renderDeterministicOutput(result)}
           {showResults && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
@@ -213,4 +215,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
