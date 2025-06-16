@@ -6,10 +6,10 @@ import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Alert, 
-  AlertDescription, 
-  AlertTitle 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle
 } from "@/components/ui/alert";
 
 import { Slider } from "@/components/ui/slider";
@@ -32,11 +32,11 @@ export default function MCCalculator() {
       handleCalculate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []);
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, 
+    submittedIterations > 0 ? submittedIterations : 1,
     submittedHistogramBins
   );
 
@@ -90,7 +90,7 @@ export default function MCCalculator() {
       </div>
 
       {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-        <div className="mt-4 flex-1 w-full min-h-[300px]">
+        <div className="mt-4 w-full h-[450px] min-h-[300px]">
           <Histogram
             data={calcResult.histogram as HistogramDataEntry[]}
             title="Outcome Distribution"
@@ -102,7 +102,7 @@ export default function MCCalculator() {
       ) : submittedExpression && !calcResult.error && !calcResult.isDeterministic ? <p className="text-muted-foreground">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
     </div>
   );
-  
+
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   const showAdvancedControls = submittedExpression && !result.isDeterministic && !result.error && (result.results && result.results.length > 0 && !result.results.every(isNaN));
 
@@ -142,7 +142,7 @@ export default function MCCalculator() {
                 />
               </div>
 
-              <div className="mb-2"> 
+              <div className="mb-2">
                 <Label htmlFor="histogram-bins-slider" className="text-sm font-medium">
                   Chart Detail (Number of Points/Bars): {histogramBins}
                 </Label>
@@ -162,7 +162,7 @@ export default function MCCalculator() {
       </div>
 
       {/* Scrollable Area for Results and Histogram */}
-      <div className="flex-grow p-4 overflow-y-auto min-h-0"> 
+      <div className="flex-grow p-4 overflow-y-auto min-h-0">
         {result.error && (
           <Alert variant="destructive" className="mb-4">
             <Terminal className="h-4 w-4" />
@@ -178,4 +178,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-    
