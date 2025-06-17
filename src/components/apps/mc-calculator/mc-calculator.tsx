@@ -49,6 +49,16 @@ export default function MCCalculator() {
 
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
+
+    const absNum = Math.abs(num);
+    const sign = num < 0 ? "-" : "";
+
+    if (absNum >= 1_000_000_000) {
+      return sign + (absNum / 1_000_000_000).toFixed(1) + "B";
+    }
+    if (absNum >= 1_000_000) {
+      return sign + (absNum / 1_000_000).toFixed(1) + "M";
+    }
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
 
@@ -145,7 +155,7 @@ export default function MCCalculator() {
           </div>
         </div>
 
-        {/* Control Row: True Range, Bars (moved), Iterations (moved) */}
+        {/* Control Row: True Range, Bars, Iterations */}
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
             {/* True Range Column */}
             {showTrueRangeConditionally && (
