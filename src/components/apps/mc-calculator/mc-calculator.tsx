@@ -188,7 +188,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="p-4 space-y-4 min-h-0 overflow-clip"> {/* Changed overflow-y-auto to overflow-clip */}
+      <div className="p-4 space-y-4 min-h-0 overflow-clip">
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
           <Input
@@ -207,12 +207,12 @@ export default function MCCalculator() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[350px] p-0 z-[925]" align="end" sideOffset={5}>
-              <div className="p-2">
+              <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
                 {history.length === 0 && (
                   <p className="text-muted-foreground text-center py-4 text-sm">No history yet.</p>
                 )}
                 {history.length > 0 && (
-                  <ScrollArea className="h-auto max-h-[250px] rounded-md">
+                  <>
                     <div className="space-y-1">
                       {history.map((item) => (
                         <div
@@ -234,23 +234,21 @@ export default function MCCalculator() {
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-2"
+                        onClick={() => {
+                          setHistory([]);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Clear History
+                      </Button>
+                    </div>
+                  </>
                 )}
-                {history.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-2"
-                      onClick={() => {
-                        setHistory([]);
-                      }}
-                    >
-                      <Trash2 className="mr-2 h-3.5 w-3.5" /> Clear History
-                    </Button>
-                  </div>
-                )}
-              </div>
+              </ScrollArea>
             </PopoverContent>
           </Popover>
         </div>
