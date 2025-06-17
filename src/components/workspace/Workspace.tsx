@@ -69,15 +69,18 @@ export default function Workspace() {
 
       let minZForType: number;
       let maxZForType: number;
+      let baseZForType: number;
 
       switch (appToFocus.appType) {
         case 'system':
           minZForType = SYSTEM_APP_Z_MIN;
           maxZForType = SYSTEM_APP_Z_MAX;
+          baseZForType = SYSTEM_APP_Z_MIN -1;
           break;
         case 'alertDialog': 
           minZForType = ALERT_DIALOG_Z_MIN;
           maxZForType = ALERT_DIALOG_Z_MAX;
+          baseZForType = ALERT_DIALOG_Z_MIN -1;
           break;
         default: 
           const globalMaxZOfOthers = prevApps
@@ -90,7 +93,7 @@ export default function Workspace() {
 
       const maxZOfOtherSimilarApps = prevApps
         .filter(app => app.appType === appToFocus.appType && app.id !== id)
-        .reduce((max, app) => Math.max(max, app.zIndex), minZForType - 1);
+        .reduce((max, app) => Math.max(max, app.zIndex), baseZForType);
 
       let targetZ = maxZOfOtherSimilarApps + 1;
       const newZIndexForAppToFocus = Math.min(maxZForType, Math.max(minZForType, targetZ));
@@ -328,6 +331,19 @@ export default function Workspace() {
     };
   }, [activeResize, apps, bringToFront]);
 
+  const findTopmostZByType = (appsList: AppInstance[], type: AppType): number => {
+    let initialZ = 0;
+    if (type === 'system') initialZ = SYSTEM_APP_Z_MIN - 1;
+    else if (type === 'alertDialog') initialZ = ALERT_DIALOG_Z_MIN - 1;
+
+    return appsList
+      .filter(app => app.isOpen && app.appType === type)
+      .reduce((maxZ, app) => Math.max(maxZ, app.zIndex), initialZ);
+  };
+
+  const topmostSystemZ = findTopmostZByType(apps, 'system');
+  const topmostAlertDialogZ = findTopmostZByType(apps, 'alertDialog');
+
 
   return (
     <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden bg-background">
@@ -337,12 +353,20 @@ export default function Workspace() {
         .map((appInstance) => {
             const componentToRender = appInstance.component;
 
+            let isFocused = false;
+            if (appInstance.appType === 'system') {
+                isFocused = appInstance.zIndex === topmostSystemZ;
+            } else if (appInstance.appType === 'alertDialog') {
+                isFocused = appInstance.zIndex === topmostAlertDialogZ;
+            }
+
             return (
           <Card
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden bg-card backdrop-blur-[8px]"
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
+                isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover" 
               )}
             style={{
               left: `${appInstance.position.x}px`,
@@ -362,7 +386,10 @@ export default function Workspace() {
             }}
           >
             <CardHeader
-              className="bg-card/80 p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50"
+              className={cn(
+                "p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50",
+                isFocused ? "bg-card/80" : "bg-popover"
+              )}
               onMouseDown={(e) => {
                 if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
                 e.stopPropagation();
@@ -405,7 +432,11 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className={cn("flex-grow relative bg-card/80 overflow-hidden", appInstance.contentPadding || "p-4")}>
+              <CardContent className={cn(
+                  "flex-grow relative overflow-hidden", 
+                  appInstance.contentPadding || "p-4",
+                  isFocused ? "bg-card/80" : "bg-popover"
+                )}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
@@ -427,6 +458,3 @@ export default function Workspace() {
     </div>
   );
 }
-
-
-    
