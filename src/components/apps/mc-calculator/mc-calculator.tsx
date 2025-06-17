@@ -16,7 +16,6 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Terminal, CornerDownLeft, History, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from 'timeago.js';
 
 interface HistoryItem {
@@ -94,7 +93,6 @@ export default function MCCalculator() {
     setExpression("");
     setSubmittedExpression("");
     setSubmittedIterations(0);
-    // Optionally, clear other states if needed, e.g., if there were specific error messages tied to the cleared input.
   };
 
   const formatNumber = (num: number | undefined): string => {
@@ -208,7 +206,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="p-4 space-y-4 min-h-0 overflow-clip">
+      <div className="overflow-clip p-4 space-y-4 min-h-0"> {/* Changed overflow-hidden to overflow-clip */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
@@ -226,12 +224,11 @@ export default function MCCalculator() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent 
-                className="w-[400px] p-0 z-[925]" 
+                className="w-[400px] z-[925] p-2 max-h-[266px] overflow-y-auto"
                 align="end"
                 onOpenAutoFocus={(e) => e.preventDefault()}
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
-                <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
                   {history.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
                   ) : (
@@ -267,14 +264,13 @@ export default function MCCalculator() {
                       </Button>
                     </>
                   )}
-                </ScrollArea>
               </PopoverContent>
             </Popover>
             <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm">AC</Button>
             <button
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="p-[3px] relative h-10 flex items-center justify-center" // Ensure consistent height
+              className="p-[3px] relative h-10 flex items-center justify-center"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
               <div className="px-4 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent flex items-center justify-center">
@@ -308,7 +304,7 @@ export default function MCCalculator() {
           </Alert>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2 relative"> {/* Added relative for history popover positioning if it were inside */}
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
@@ -316,6 +312,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
-
-    
