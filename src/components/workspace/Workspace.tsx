@@ -26,7 +26,7 @@ type AppType = 'system' | 'alertDialog';
 interface AppInstance {
   id: string;
   title: string;
-  component: React.ReactNode;
+  component: React.ReactNode; // This will now be a function that accepts props
   isOpen: boolean;
   position: { x: number; y: number };
   zIndex: number;
@@ -129,7 +129,7 @@ export default function Workspace() {
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: <MCCalculator />,
+        component: (props: any) => <MCCalculator {...props} />,
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -149,7 +149,7 @@ export default function Workspace() {
       {
         id: "husky-image-viewer",
         title: "Husky",
-        component: <ImageViewer />,
+        component: (props: any) => <ImageViewer {...props} />,
         isOpen: true,
         position: { x: 550, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN + 1,
@@ -192,7 +192,7 @@ export default function Workspace() {
                 ...app.size,
                 width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                 height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                maxHeight: app.id === "mc-calculator" ? '625px' : 'none'
+                maxHeight: app.id === "mc-calculator" ? '625px' : 'none' // Retain original maxHeight logic
               },
               previousSize: null
             };
@@ -373,10 +373,8 @@ export default function Workspace() {
     <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden bg-background">
       <DottedBackground />
       {apps
-        .filter((app) => app.isOpen)
+        .filter((appInstance) => appInstance.isOpen)
         .map((appInstance) => {
-            const componentToRender = appInstance.component;
-
             let isFocused = false;
             if (appInstance.appType === 'system') {
                 isFocused = appInstance.zIndex === topmostSystemZ;
@@ -384,12 +382,18 @@ export default function Workspace() {
                 isFocused = appInstance.zIndex === topmostAlertDialogZ;
             }
 
+            // Render the component by calling the function with props
+            const componentToRender = typeof appInstance.component === 'function'
+              ? appInstance.component({ isFocused, isMinimized: appInstance.isMinimized })
+              : appInstance.component;
+
+
             return (
           <Card
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden", // Changed from overflow-auto
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover"
               )}
             style={{
@@ -456,14 +460,14 @@ export default function Workspace() {
             </CardHeader>
             {!appInstance.isMinimized && (
               <CardContent className={cn(
-                  "flex-1 relative overflow-y-auto",
+                  "flex-1 relative overflow-y-auto", // Changed from flex-grow, added overflow-y-auto
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
-                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none z-10"
+                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none z-10" // Added z-10
                         onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
                         title="Resize"
                     >
@@ -481,3 +485,4 @@ export default function Workspace() {
     </div>
   );
 }
+

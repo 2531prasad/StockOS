@@ -26,9 +26,14 @@ interface HistoryItem {
   timestamp: number;
 }
 
+interface MCCalculatorProps {
+  isFocused: boolean;
+  isMinimized: boolean;
+}
+
 const MAX_HISTORY_ITEMS = 20;
 
-export default function MCCalculator() {
+export default function MCCalculator({ isFocused, isMinimized }: MCCalculatorProps) {
   const [expression, setExpression] = useState("");
   const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
@@ -41,6 +46,7 @@ export default function MCCalculator() {
 
   const acRef = useRef<HTMLButtonElement>(null);
   const calcRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -73,6 +79,12 @@ export default function MCCalculator() {
     setSubmittedExpression("");
     setSubmittedIterations(0);
   };
+
+  useEffect(() => {
+    if (isFocused && !isMinimized && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused, isMinimized]);
 
   useEffect(() => {
     if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
@@ -145,6 +157,8 @@ export default function MCCalculator() {
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (!isFocused || isMinimized) return;
+
       if (e.key === "Enter") {
         e.preventDefault();
         calcRef.current?.click();
@@ -159,7 +173,7 @@ export default function MCCalculator() {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handleCalculate, handleAllClear]); // Added handlers to dependency array
+  }, [isFocused, isMinimized, handleCalculate, handleAllClear]);
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
@@ -241,6 +255,7 @@ export default function MCCalculator() {
       <div className="overflow-clip p-4 space-y-4 min-h-0">
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
+            ref={inputRef}
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
             className="grow text-base h-10"
