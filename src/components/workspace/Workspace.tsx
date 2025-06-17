@@ -382,7 +382,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-clip",
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden", // Reverted to overflow-hidden
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover" 
               )}
             style={{

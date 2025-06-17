@@ -188,7 +188,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="p-4 space-y-4 min-h-0 overflow-y-auto">
+      <div className="p-4 space-y-4 min-h-0 overflow-clip"> {/* Changed overflow-y-auto to overflow-clip */}
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
           <Input
