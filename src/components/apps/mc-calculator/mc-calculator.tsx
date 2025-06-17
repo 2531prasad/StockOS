@@ -6,26 +6,16 @@ import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Alert,
   AlertDescription,
   AlertTitle
 } from "@/components/ui/alert";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, History as HistoryIcon, Trash2 } from "lucide-react";
-import { format as formatTimeAgo } from 'timeago.js';
+import { Terminal } from "lucide-react";
 
-interface HistoryEntry {
-  id: string;
-  expression: string;
-  resultDisplay: string;
-  timestamp: number;
-}
-
-const MAX_HISTORY_ITEMS = 20;
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("");
@@ -36,10 +26,6 @@ export default function MCCalculator() {
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -49,6 +35,17 @@ export default function MCCalculator() {
     submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
+
+  const handleCalculate = () => {
+    if (!expression.trim()) {
+      setSubmittedExpression(""); 
+      setSubmittedIterations(0); 
+      return;
+    }
+    setSubmittedExpression(expression);
+    setSubmittedIterations(iterations);
+    setSubmittedHistogramBins(histogramBins);
+  };
 
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
@@ -73,43 +70,10 @@ export default function MCCalculator() {
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
 
-  const handleCalculate = () => {
-    if (!expression.trim()) {
-      setSubmittedExpression(""); 
-      setSubmittedIterations(0); 
-      return;
-    }
-    setSubmittedExpression(expression);
-    setSubmittedIterations(iterations);
-    setSubmittedHistogramBins(histogramBins);
-  };
-
-  useEffect(() => {
-    if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
-      let resultDisplay = "N/A";
-      if (result.isDeterministic && result.results[0] !== undefined && !isNaN(result.results[0])) {
-        resultDisplay = formatDetailedNumber(result.results[0]);
-      } else if (!result.isDeterministic && result.mean !== undefined && !isNaN(result.mean)) {
-        resultDisplay = `μ: ${formatNumber(result.mean)}`;
-      }
-
-      if (resultDisplay !== "N/A") {
-        const newEntry: HistoryEntry = {
-          id: crypto.randomUUID(),
-          expression: submittedExpression,
-          resultDisplay: resultDisplay,
-          timestamp: Date.now(),
-        };
-        setHistory(prev => [newEntry, ...prev.filter(item => item.expression !== newEntry.expression)].slice(0, MAX_HISTORY_ITEMS));
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result.results, result.error, result.isDeterministic, result.mean, submittedExpression]);
-
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
-      {formatDetailedNumber(calcResult.results[0])}
+      {formatNumber(calcResult.results[0])}
     </div>
   );
 
@@ -120,7 +84,7 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
       {/* Left Column: Controls and Statistics */}
-      <div className="flex flex-col space-y-4 text-xs">
+      <div className="space-y-4 text-xs">
         
         {/* Controls Section */}
         <div className="space-y-3">
@@ -136,8 +100,8 @@ export default function MCCalculator() {
                 step="1000"
               />
             </div>
-            <div className="flex flex-col">
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap mb-1">
+            <div>
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">
                 Bars: {histogramBins}
               </Label>
               <Slider
@@ -147,7 +111,7 @@ export default function MCCalculator() {
                 step={1}
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
-                className="w-full"
+                className="w-full mt-1"
               />
             </div>
         </div>
@@ -188,9 +152,9 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="p-4 space-y-4 min-h-0 overflow-clip">
+      <div className="overflow-hidden p-4 space-y-4 min-h-0">
         {/* Inputs and Calculate Button Section */}
-        <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
+        <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
@@ -199,58 +163,9 @@ export default function MCCalculator() {
             aria-label="Expression Input"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
-          <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
-          <Popover open={showHistory} onOpenChange={setShowHistory}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
-                <HistoryIcon className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[350px] p-0 z-[925]" align="end" sideOffset={5}>
-              <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
-                {history.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4 text-sm">No history yet.</p>
-                )}
-                {history.length > 0 && (
-                  <>
-                    <div className="space-y-1">
-                      {history.map((item) => (
-                        <div
-                          key={item.id}
-                          className="cursor-pointer hover:bg-accent/75 p-2 rounded-md flex justify-between items-start gap-2"
-                          onClick={() => {
-                            setExpression(item.expression);
-                            setShowHistory(false);
-                          }}
-                          title={`Click to use: ${item.expression}`}
-                        >
-                          <div className="flex-grow min-w-0">
-                            <p className="text-xs text-muted-foreground truncate" title={item.expression}>{item.expression}</p>
-                            <p className="text-sm font-medium text-foreground">{item.resultDisplay}</p>
-                          </div>
-                          <span className="text-xs text-muted-foreground/80 flex-shrink-0 pt-0.5 whitespace-nowrap">
-                            {isClient ? formatTimeAgo(item.timestamp) : '...'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-2"
-                        onClick={() => {
-                          setHistory([]);
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Clear History
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center space-x-1">
+            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+          </div>
         </div>
 
         {/* Control Row: True Range */}
@@ -289,4 +204,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-

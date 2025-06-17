@@ -241,14 +241,11 @@ export default function Workspace() {
       let newViewportX = e.clientX - activeDrag.offsetX;
       let newViewportY = e.clientY - activeDrag.offsetY;
 
-      // Convert viewport coordinates to coordinates relative to the scrollable workspace
-      let newRelativeX = newViewportX - workspaceRect.left + workspaceRef.current.scrollLeft;
-      let newRelativeY = newViewportY - workspaceRect.top + workspaceRef.current.scrollTop;
+      let newRelativeX = newViewportX - workspaceRect.left;
+      let newRelativeY = newViewportY - workspaceRect.top;
 
-
-      newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRef.current.scrollWidth - appRect.width));
-      newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRef.current.scrollHeight - appRect.height));
-
+      newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width));
+      newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height));
 
       setApps(prevApps =>
         prevApps.map(app =>
@@ -311,15 +308,15 @@ export default function Workspace() {
       newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
       newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
       
+      const workspaceRect = workspaceRef.current.getBoundingClientRect();
       const appPos = currentApp.position;
       
-      if (appPos.x + newWidth > workspaceRef.current.scrollWidth) {
-        newWidth = workspaceRef.current.scrollWidth - appPos.x;
+      if (appPos.x + newWidth > workspaceRect.width) {
+        newWidth = workspaceRect.width - appPos.x;
       }
-      if (appPos.y + newHeight > workspaceRef.current.scrollHeight) {
-        newHeight = workspaceRef.current.scrollHeight - appPos.y;
+      if (appPos.y + newHeight > workspaceRect.height) {
+        newHeight = workspaceRect.height - appPos.y;
       }
-
 
       setApps(prevApps =>
         prevApps.map(app =>
@@ -385,7 +382,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-auto", 
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover" 
               )}
             style={{
@@ -412,6 +409,7 @@ export default function Workspace() {
               )}
               onMouseDown={(e) => {
                 if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
+                // e.stopPropagation(); // Already handled by handleDragStart if needed
                 handleDragStart(e, appInstance.id);
               }}
             >
@@ -452,7 +450,7 @@ export default function Workspace() {
             </CardHeader>
             {!appInstance.isMinimized && (
               <CardContent className={cn(
-                  "flex-grow relative", 
+                  "flex-grow relative overflow-hidden", 
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
@@ -477,4 +475,3 @@ export default function Workspace() {
     </div>
   );
 }
-
