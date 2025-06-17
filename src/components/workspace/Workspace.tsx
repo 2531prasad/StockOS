@@ -37,8 +37,8 @@ interface AppInstance {
     height: string;
     minWidth?: number;
     minHeight?: number;
-    maxWidth: string; 
-    maxHeight: string; 
+    maxWidth: string;
+    maxHeight: string;
   };
   appType: AppType;
   contentPadding?: string; // Optional: to control padding for CardContent
@@ -46,7 +46,7 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920; // Max z-index for system apps
-const ALERT_DIALOG_Z_MIN = 921; 
+const ALERT_DIALOG_Z_MIN = 921;
 const ALERT_DIALOG_Z_MAX = 940; // Max z-index for alert dialogs
 
 
@@ -136,15 +136,15 @@ export default function Workspace() {
         isMinimized: false,
         previousSize: null,
         size: {
-            width: '450px', 
-            height: '175px', 
+            width: '450px',
+            height: '175px',
             minWidth: 400,
-            minHeight: 175, 
-            maxWidth: 'none', 
-            maxHeight: 'none'
+            minHeight: 175,
+            maxWidth: 'none',
+            maxHeight: '625px' // Updated maxHeight
         },
         appType: 'system',
-        contentPadding: 'p-0', 
+        contentPadding: 'p-0',
       },
       {
         id: "husky-image-viewer",
@@ -156,15 +156,15 @@ export default function Workspace() {
         isMinimized: false,
         previousSize: null,
         size: {
-            width: '300px', 
-            height: '300px', 
+            width: '300px',
+            height: '300px',
             minWidth: 150,
-            minHeight: 150, 
-            maxWidth: 'none', 
+            minHeight: 150,
+            maxWidth: 'none',
             maxHeight: 'none'
         },
         appType: 'system',
-        contentPadding: 'p-0', 
+        contentPadding: 'p-0',
       },
     ];
     setApps(initialApps);
@@ -176,23 +176,23 @@ export default function Workspace() {
       prevApps.map(app => {
         if (app.id === id) {
           const isCurrentlyMinimized = app.isMinimized;
-          if (!isCurrentlyMinimized) { 
+          if (!isCurrentlyMinimized) {
             return {
               ...app,
               isMinimized: true,
               previousSize: { width: app.size.width, height: app.size.height },
-              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' } 
+              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' }
             };
-          } else { 
-            bringToFront(id); 
+          } else {
+            bringToFront(id);
             return {
               ...app,
               isMinimized: false,
               size: {
                 ...app.size,
-                width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'), 
+                width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                 height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                maxHeight: 'none' 
+                maxHeight: app.id === "mc-calculator" ? '625px' : 'none' // Restore original maxHeight
               },
               previousSize: null
             };
@@ -213,7 +213,7 @@ export default function Workspace() {
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
       const currentApp = apps.find(app => app.id === appId);
-      if(currentApp) { 
+      if(currentApp) {
         const rect = appElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
@@ -230,22 +230,26 @@ export default function Workspace() {
       if (!appElement) return;
 
       const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData) { 
+      if (!appData) {
         setActiveDrag(null);
         return;
       }
 
       const appRect = appElement.getBoundingClientRect();
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      const scrollX = workspaceRef.current.scrollLeft;
+      const scrollY = workspaceRef.current.scrollTop;
 
       let newViewportX = e.clientX - activeDrag.offsetX;
       let newViewportY = e.clientY - activeDrag.offsetY;
 
-      let newRelativeX = newViewportX - workspaceRect.left;
-      let newRelativeY = newViewportY - workspaceRect.top;
+      let newRelativeX = newViewportX - workspaceRect.left + scrollX;
+      let newRelativeY = newViewportY - workspaceRect.top + scrollY;
 
-      newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width));
-      newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height));
+
+      newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width + scrollX));
+      newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height + scrollY));
+
 
       setApps(prevApps =>
         prevApps.map(app =>
@@ -269,11 +273,11 @@ export default function Workspace() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps, bringToFront]); 
+  }, [activeDrag, apps, bringToFront]);
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
     e.preventDefault(); // Prevent text selection during resize
-    e.stopPropagation(); 
+    e.stopPropagation();
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     const currentApp = apps.find(app => app.id === appId);
@@ -283,8 +287,8 @@ export default function Workspace() {
         appId,
         initialMouseX: e.clientX,
         initialMouseY: e.clientY,
-        initialWidth: rect.width, 
-        initialHeight: rect.height, 
+        initialWidth: rect.width,
+        initialHeight: rect.height,
       });
     }
   };
@@ -307,25 +311,28 @@ export default function Workspace() {
 
       newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
       newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
-      
+
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
+      const scrollX = workspaceRef.current.scrollLeft;
+      const scrollY = workspaceRef.current.scrollTop;
       const appPos = currentApp.position;
-      
-      if (appPos.x + newWidth > workspaceRect.width) {
-        newWidth = workspaceRect.width - appPos.x;
+
+      if (appPos.x + newWidth > workspaceRect.width + scrollX) {
+        newWidth = workspaceRect.width - appPos.x + scrollX;
       }
-      if (appPos.y + newHeight > workspaceRect.height) {
-        newHeight = workspaceRect.height - appPos.y;
+      if (appPos.y + newHeight > workspaceRect.height + scrollY) {
+        newHeight = workspaceRect.height - appPos.y + scrollY;
       }
+
 
       setApps(prevApps =>
         prevApps.map(app =>
           app.id === activeResize.appId
             ? {
                 ...app,
-                size: { 
+                size: {
                   ...app.size,
-                  width: `${newWidth}px`, 
+                  width: `${newWidth}px`,
                   height: `${newHeight}px`,
                 },
               }
@@ -382,17 +389,17 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
-                isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover" 
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-auto", // Changed overflow-hidden to overflow-auto
+                isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover"
               )}
             style={{
               left: `${appInstance.position.x}px`,
               top: `${appInstance.position.y}px`,
               zIndex: appInstance.zIndex,
               width: appInstance.size.width,
-              height: appInstance.isMinimized ? 'auto' : appInstance.size.height, 
+              height: appInstance.isMinimized ? 'auto' : appInstance.size.height,
               maxWidth: appInstance.size.maxWidth,
-              maxHeight: appInstance.isMinimized ? 'auto' : appInstance.size.maxHeight, 
+              maxHeight: appInstance.isMinimized ? 'auto' : appInstance.size.maxHeight,
               minWidth: `${appInstance.size.minWidth || 0}px`,
               minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
               userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
@@ -409,7 +416,6 @@ export default function Workspace() {
               )}
               onMouseDown={(e) => {
                 if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
-                // e.stopPropagation(); // Already handled by handleDragStart if needed
                 handleDragStart(e, appInstance.id);
               }}
             >
@@ -422,8 +428,8 @@ export default function Workspace() {
                         <HelpCircle className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent 
-                        className="z-[930]" 
+                    <AlertDialogContent
+                        className="z-[930]"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                         onCloseAutoFocus={(e) => e.preventDefault()}
                         onPointerDownOutside={(e) => e.preventDefault()}
@@ -449,8 +455,8 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className={cn(
-                  "flex-grow relative overflow-hidden", 
+              <CardContent className={cn( // Removed overflow-hidden from here
+                  "flex-grow relative",
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
@@ -467,7 +473,7 @@ export default function Workspace() {
               </CardContent>
             )}
              {appInstance.isMinimized && (
-                <div className="h-2"></div> 
+                <div className="h-2"></div>
              )}
           </Card>
         );
@@ -475,3 +481,5 @@ export default function Workspace() {
     </div>
   );
 }
+
+    
