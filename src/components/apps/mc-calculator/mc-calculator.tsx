@@ -90,6 +90,13 @@ export default function MCCalculator() {
     setSubmittedHistogramBins(histogramBins);
   };
 
+  const handleAllClear = () => {
+    setExpression("");
+    setSubmittedExpression("");
+    setSubmittedIterations(0);
+    // Optionally, clear other states if needed, e.g., if there were specific error messages tied to the cleared input.
+  };
+
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
 
@@ -201,7 +208,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-clip p-4 space-y-4 min-h-0">
+      <div className="p-4 space-y-4 min-h-0 overflow-clip">
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
@@ -212,13 +219,65 @@ export default function MCCalculator() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
           <div className="flex items-center space-x-1">
+            <Popover open={showHistory} onOpenChange={setShowHistory}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Toggle History">
+                  <History className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-[400px] p-0 z-[925]" 
+                align="end"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
+                  {history.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          className="cursor-pointer hover:bg-muted p-2 rounded-md"
+                          onClick={() => handleHistoryItemClick(item.expression)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-foreground truncate pr-2" title={item.expression}>
+                              {item.expression.length > 35 ? `${item.expression.substring(0, 32)}...` : item.expression}
+                            </span>
+                            <span className="text-xs text-primary whitespace-nowrap">{item.resultDisplay}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{format(item.timestamp)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                    {history.length > 0 && (
+                    <>
+                      <hr className="my-2 border-border/50" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-center text-xs"
+                        onClick={handleClearHistory}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1.5" />
+                        Clear History
+                      </Button>
+                    </>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+            <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm">AC</Button>
             <button
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="p-[3px] relative"
+              className="p-[3px] relative h-10 flex items-center justify-center" // Ensure consistent height
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
-              <div className="px-8 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent">
+              <div className="px-4 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent flex items-center justify-center">
                 <CornerDownLeft className="h-5 w-5" />
               </div>
             </button>
@@ -249,59 +308,7 @@ export default function MCCalculator() {
           </Alert>
         )}
 
-        <div className="space-y-2 relative">
-          <Popover open={showHistory} onOpenChange={setShowHistory}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="absolute top-1 right-1 h-7 w-7 z-10" aria-label="Toggle History">
-                <History className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-[400px] p-0 z-[925]" 
-              align="end"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
-                {history.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {history.map((item) => (
-                      <div
-                        key={item.id}
-                        className="cursor-pointer hover:bg-muted p-2 rounded-md"
-                        onClick={() => handleHistoryItemClick(item.expression)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-foreground truncate pr-2" title={item.expression}>
-                            {item.expression.length > 35 ? `${item.expression.substring(0, 32)}...` : item.expression}
-                          </span>
-                          <span className="text-xs text-primary whitespace-nowrap">{item.resultDisplay}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{format(item.timestamp)}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                  {history.length > 0 && (
-                  <>
-                    <hr className="my-2 border-border/50" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-center text-xs"
-                      onClick={handleClearHistory}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1.5" />
-                      Clear History
-                    </Button>
-                  </>
-                )}
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
-
+        <div className="space-y-2">
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
@@ -309,3 +316,6 @@ export default function MCCalculator() {
     </div>
   );
 }
+
+
+    
