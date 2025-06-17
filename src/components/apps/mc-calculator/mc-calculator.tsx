@@ -6,6 +6,7 @@ import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Alert,
   AlertDescription,
@@ -211,27 +212,29 @@ export default function MCCalculator() {
                   <p className="text-muted-foreground text-center py-4 text-sm">No history yet.</p>
                 )}
                 {history.length > 0 && (
-                  <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                    {history.map((item) => (
-                      <div
-                        key={item.id}
-                        className="cursor-pointer hover:bg-accent/75 p-2 rounded-md flex justify-between items-start gap-2"
-                        onClick={() => {
-                          setExpression(item.expression);
-                          setShowHistory(false);
-                        }}
-                        title={`Click to use: ${item.expression}`}
-                      >
-                        <div className="flex-grow min-w-0">
-                          <p className="text-xs text-muted-foreground truncate" title={item.expression}>{item.expression}</p>
-                          <p className="text-sm font-medium text-foreground">{item.resultDisplay}</p>
+                  <ScrollArea className="h-auto max-h-[250px] rounded-md">
+                    <div className="space-y-1">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          className="cursor-pointer hover:bg-accent/75 p-2 rounded-md flex justify-between items-start gap-2"
+                          onClick={() => {
+                            setExpression(item.expression);
+                            setShowHistory(false);
+                          }}
+                          title={`Click to use: ${item.expression}`}
+                        >
+                          <div className="flex-grow min-w-0">
+                            <p className="text-xs text-muted-foreground truncate" title={item.expression}>{item.expression}</p>
+                            <p className="text-sm font-medium text-foreground">{item.resultDisplay}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground/80 flex-shrink-0 pt-0.5 whitespace-nowrap">
+                            {isClient ? formatTimeAgo(item.timestamp) : '...'}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground/80 flex-shrink-0 pt-0.5 whitespace-nowrap">
-                          {isClient ? formatTimeAgo(item.timestamp) : '...'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
                 {history.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-border">
