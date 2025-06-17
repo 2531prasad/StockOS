@@ -272,7 +272,7 @@ export default function MCCalculator() {
               variant="outline"
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="h-10 px-3 text-sm hover:bg-orange-800"
+              className="h-10 px-3 text-sm hover:bg-orange-600"
             >
               <CornerDownLeft className="h-5 w-5" />
             </Button>
@@ -311,3 +311,5 @@ export default function MCCalculator() {
     </div>
   );
 }
+
+    
