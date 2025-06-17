@@ -11,11 +11,20 @@ import {
   AlertDescription,
   AlertTitle
 } from "@/components/ui/alert";
-
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal } from "lucide-react";
+import { Terminal, History as HistoryIcon, Trash2 } from "lucide-react";
+import { format as formatTimeAgo } from 'timeago.js';
 
+interface HistoryEntry {
+  id: string;
+  expression: string;
+  resultDisplay: string;
+  timestamp: number;
+}
+
+const MAX_HISTORY_ITEMS = 20;
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("");
@@ -26,6 +35,10 @@ export default function MCCalculator() {
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
 
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -35,17 +48,6 @@ export default function MCCalculator() {
     submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
-
-  const handleCalculate = () => {
-    if (!expression.trim()) {
-      setSubmittedExpression(""); 
-      setSubmittedIterations(0); 
-      return;
-    }
-    setSubmittedExpression(expression);
-    setSubmittedIterations(iterations);
-    setSubmittedHistogramBins(histogramBins);
-  };
 
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
@@ -69,6 +71,39 @@ export default function MCCalculator() {
     if (num === undefined || isNaN(num)) return "N/A";
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
+
+  const handleCalculate = () => {
+    if (!expression.trim()) {
+      setSubmittedExpression(""); 
+      setSubmittedIterations(0); 
+      return;
+    }
+    setSubmittedExpression(expression);
+    setSubmittedIterations(iterations);
+    setSubmittedHistogramBins(histogramBins);
+  };
+
+  useEffect(() => {
+    if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
+      let resultDisplay = "N/A";
+      if (result.isDeterministic && result.results[0] !== undefined && !isNaN(result.results[0])) {
+        resultDisplay = formatNumber(result.results[0]);
+      } else if (!result.isDeterministic && result.mean !== undefined && !isNaN(result.mean)) {
+        resultDisplay = `μ: ${formatNumber(result.mean)}`;
+      }
+
+      if (resultDisplay !== "N/A") {
+        const newEntry: HistoryEntry = {
+          id: crypto.randomUUID(),
+          expression: submittedExpression,
+          resultDisplay: resultDisplay,
+          timestamp: Date.now(),
+        };
+        setHistory(prev => [newEntry, ...prev.filter(item => item.expression !== newEntry.expression)].slice(0, MAX_HISTORY_ITEMS));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result.results, result.error, result.isDeterministic, result.mean, submittedExpression]);
 
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
@@ -152,9 +187,9 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-hidden p-4 space-y-4 min-h-0">
+      <div className="p-4 space-y-4 min-h-0 overflow-y-auto">
         {/* Inputs and Calculate Button Section */}
-        <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-end">
           <Input
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
@@ -163,9 +198,58 @@ export default function MCCalculator() {
             aria-label="Expression Input"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
-          <div className="flex items-center space-x-1">
-            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
-          </div>
+          <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+          <Popover open={showHistory} onOpenChange={setShowHistory}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
+                <HistoryIcon className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[350px] p-0 z-[100]" align="end" sideOffset={5}>
+              <div className="p-2">
+                {history.length === 0 && (
+                  <p className="text-muted-foreground text-center py-4 text-sm">No history yet.</p>
+                )}
+                {history.length > 0 && (
+                  <div className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
+                    {history.map((item) => (
+                      <div
+                        key={item.id}
+                        className="cursor-pointer hover:bg-accent/75 p-2 rounded-md flex justify-between items-start gap-2"
+                        onClick={() => {
+                          setExpression(item.expression);
+                          setShowHistory(false);
+                        }}
+                        title={`Click to use: ${item.expression}`}
+                      >
+                        <div className="flex-grow min-w-0">
+                          <p className="text-xs text-muted-foreground truncate" title={item.expression}>{item.expression}</p>
+                          <p className="text-sm font-medium text-foreground">{item.resultDisplay}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground/80 flex-shrink-0 pt-0.5 whitespace-nowrap">
+                          {isClient ? formatTimeAgo(item.timestamp) : '...'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {history.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-2"
+                      onClick={() => {
+                        setHistory([]);
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-3.5 w-3.5" /> Clear History
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Control Row: True Range */}
