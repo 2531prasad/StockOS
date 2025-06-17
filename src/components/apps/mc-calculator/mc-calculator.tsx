@@ -47,7 +47,6 @@ export default function MCCalculator() {
     setSubmittedHistogramBins(histogramBins);
   };
 
-  // For simulation stats (Mean, StdDev, Percentiles)
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
 
@@ -63,11 +62,9 @@ export default function MCCalculator() {
     if (absNum >= 1_000) {
       return sign + (absNum / 1_000).toFixed(1) + "K";
     }
-    // Default formatting for numbers less than a thousand or for deterministic output
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
   
-  // For True Range, which needs more precision and no K/M/B
   const formatDetailedNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
@@ -81,69 +78,72 @@ export default function MCCalculator() {
   );
 
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
-  // True Range should only show for probabilistic calculations where analytical min/max are valid
   const showTrueRangeConditionally = showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
 
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-2 pt-2 text-xs">
-        <p><strong>Simulated Range:</strong> {formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left Column: All Statistics */}
+      <div className="lg:w-[220px] space-y-1 text-xs pr-2">
+        <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
         <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
-        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mb-4 text-xs">
+        <hr className="my-2 border-border/50"/>
         <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
         <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
+        <p><strong>P25:</strong> {formatNumber(calcResult.p25)}</p>
+        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
+        <p><strong>P75:</strong> {formatNumber(calcResult.p75)}</p>
         <p><strong>P90:</strong> {formatNumber(calcResult.p90)}</p>
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-        <div className="w-full h-[450px] min-h-[300px]">
-          <Histogram
-            data={calcResult.histogram as HistogramDataEntry[]}
-            title="Outcome Distribution"
-            meanValue={calcResult.mean}
-            medianValue={calcResult.p50}
-            stdDevValue={calcResult.stdDev}
-          />
-        </div>
-      ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
-      
-      {!result.isDeterministic && (
-        <div className="flex flex-row justify-center items-start gap-x-8 mt-6">
-          <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
-            <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
-              Bars: {histogramBins}
-            </Label>
-            <Slider
-              id="histogram-bins-slider-ctrl-prob"
-              min={5}
-              max={50}
-              step={1}
-              value={[histogramBins]}
-              onValueChange={(value) => setHistogramBins(value[0])}
-              className="relative flex w-full touch-none select-none items-center mt-1"
+      {/* Right Column: Histogram and Controls */}
+      <div className="flex-1 flex flex-col min-w-0"> {/* Added min-w-0 here for flex child */}
+        {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
+          <div className="w-full h-[450px] min-h-[300px]"> {/* Ensure this div can shrink if needed */}
+            <Histogram
+              data={calcResult.histogram as HistogramDataEntry[]}
+              title="Outcome Distribution"
+              meanValue={calcResult.mean}
+              medianValue={calcResult.p50}
+              stdDevValue={calcResult.stdDev}
             />
           </div>
-          <div className="flex flex-col space-y-1 items-center">
-            <Label htmlFor="iterations-input-ctrl-prob" className="text-muted-foreground text-base">Iterations</Label>
-            <Input
-              id="iterations-input-ctrl-prob"
-              type="number"
-              value={iterations}
-              onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-              className="w-24 h-9 text-base mt-1"
-              min="100"
-              step="1000"
-            />
+        ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
+        
+        {!result.isDeterministic && (
+          <div className="flex flex-row justify-center items-start gap-x-8 mt-6">
+            <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
+                Bars: {histogramBins}
+              </Label>
+              <Slider
+                id="histogram-bins-slider-ctrl-prob"
+                min={5}
+                max={50}
+                step={1}
+                value={[histogramBins]}
+                onValueChange={(value) => setHistogramBins(value[0])}
+                className="relative flex w-full touch-none select-none items-center mt-1"
+              />
+            </div>
+            <div className="flex flex-col space-y-1 items-center">
+              <Label htmlFor="iterations-input-ctrl-prob" className="text-muted-foreground text-base">Iterations</Label>
+              <Input
+                id="iterations-input-ctrl-prob"
+                type="number"
+                value={iterations}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                className="w-24 h-9 text-base mt-1"
+                min="100"
+                step="1000"
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   );
   
 
@@ -167,7 +167,6 @@ export default function MCCalculator() {
 
         {/* Control Row: True Range */}
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
-            {/* True Range Column */}
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
                 <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>

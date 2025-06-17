@@ -14,7 +14,9 @@ export interface CalculatorResults {
   stdDev: number;
   p5: number;
   p10: number;
+  p25: number; // Added P25
   p50: number; // Median
+  p75: number; // Added P75
   p90: number;
   p95: number;
   histogram: HistogramDataEntry[];
@@ -34,7 +36,9 @@ const defaultInitialResults: CalculatorResults = {
   stdDev: NaN,
   p5: NaN,
   p10: NaN,
+  p25: NaN, // Added P25
   p50: NaN,
+  p75: NaN, // Added P75
   p90: NaN,
   p95: NaN,
   histogram: [],
@@ -238,6 +242,13 @@ export function useCalculator(submittedExpression: string, iterations: number = 
     const calculatedMean = getMean(finalValidResults);
     const calculatedStdDev = getStandardDeviation(finalValidResults);
     const calculatedP50 = getPercentile(finalValidResults, 50);
+    const calculatedP5 = getPercentile(finalValidResults, 5);
+    const calculatedP10 = getPercentile(finalValidResults, 10);
+    const calculatedP25 = getPercentile(finalValidResults, 25);
+    const calculatedP75 = getPercentile(finalValidResults, 75);
+    const calculatedP90 = getPercentile(finalValidResults, 90);
+    const calculatedP95 = getPercentile(finalValidResults, 95);
+
 
     setData({
       results: finalValidResults.length > 0 ? finalValidResults : (processedMonteCarloData?.error || generalError || substitutionError) ? [NaN] : [],
@@ -245,11 +256,13 @@ export function useCalculator(submittedExpression: string, iterations: number = 
       max: calculatedSimMax,
       mean: calculatedMean,
       stdDev: calculatedStdDev,
-      p5: getPercentile(finalValidResults, 5),
-      p10: getPercentile(finalValidResults, 10),
+      p5: calculatedP5,
+      p10: calculatedP10,
+      p25: calculatedP25,
       p50: calculatedP50,
-      p90: getPercentile(finalValidResults, 90),
-      p95: getPercentile(finalValidResults, 95),
+      p75: calculatedP75,
+      p90: calculatedP90,
+      p95: calculatedP95,
       histogram: getHistogram(finalValidResults, histogramBinCount, calculatedMean, calculatedStdDev),
       error: generalError,
       isDeterministic: isDeterministicCalculation,
