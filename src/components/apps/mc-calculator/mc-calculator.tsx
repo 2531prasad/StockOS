@@ -5,7 +5,9 @@ import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "
 import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+// Button component is no longer used for the calculate button, but might be used elsewhere.
+// Keeping the import if other buttons exist or might be added.
+import { Button } from "@/components/ui/button"; 
 import {
   Alert,
   AlertDescription,
@@ -14,8 +16,19 @@ import {
 
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, CornerDownLeft } from "lucide-react";
+import { Terminal, CornerDownLeft, History, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from 'timeago.js';
 
+interface HistoryItem {
+  id: string;
+  expression: string;
+  resultDisplay: string;
+  timestamp: number;
+}
+
+const MAX_HISTORY_ITEMS = 20;
 
 export default function MCCalculator() {
   const [expression, setExpression] = useState("");
@@ -25,9 +38,17 @@ export default function MCCalculator() {
   const [submittedIterations, setSubmittedIterations] = useState(0);
   const [submittedHistogramBins, setSubmittedHistogramBins] = useState(histogramBins);
   const [isClient, setIsClient] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
+    // Load history from localStorage if available
+    const storedHistory = localStorage.getItem("mcCalculatorHistory");
+    if (storedHistory) {
+      setHistory(JSON.parse(storedHistory));
+    }
   }, []);
 
   const result = useCalculator(
@@ -35,6 +56,31 @@ export default function MCCalculator() {
     submittedIterations > 0 ? submittedIterations : 1, 
     submittedHistogramBins
   );
+
+  useEffect(() => {
+    if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
+      let resultDisplay = "N/A";
+      if (result.isDeterministic) {
+        resultDisplay = formatDetailedNumber(result.results[0]);
+      } else if (result.results && result.results.length > 0 && !isNaN(result.mean)) {
+        resultDisplay = `μ: ${formatNumber(result.mean)}`;
+      }
+
+      if (resultDisplay !== "N/A") {
+        setHistory(prevHistory => {
+          const newHistoryItem: HistoryItem = {
+            id: Date.now().toString(), // Unique ID for key prop
+            expression: submittedExpression,
+            resultDisplay,
+            timestamp: Date.now(),
+          };
+          const updatedHistory = [newHistoryItem, ...prevHistory.filter(item => item.expression !== submittedExpression)].slice(0, MAX_HISTORY_ITEMS);
+          localStorage.setItem("mcCalculatorHistory", JSON.stringify(updatedHistory));
+          return updatedHistory;
+        });
+      }
+    }
+  }, [result, submittedExpression]);
 
   const handleCalculate = () => {
     if (!expression.trim()) {
@@ -70,6 +116,16 @@ export default function MCCalculator() {
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
 
+  const handleHistoryItemClick = (expr: string) => {
+    setExpression(expr);
+    setShowHistory(false); // Close popover on selection
+  };
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem("mcCalculatorHistory");
+    setShowHistory(false); // Close popover after clearing
+  };
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
@@ -84,7 +140,7 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
       {/* Left Column: Controls and Statistics */}
-      <div className="space-y-4 text-xs">
+      <div className="lg:w-[180px] lg:pr-0 space-y-4 text-xs shrink-0">
         
         {/* Controls Section */}
         <div className="space-y-3">
@@ -164,14 +220,68 @@ export default function MCCalculator() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
           <div className="flex items-center space-x-1">
-            <Button 
-              onClick={handleCalculate} 
-              className="h-10 px-3" // Adjusted padding for icon button
-              style={{ backgroundColor: 'oklch(0.7436 0.1692 50.13)' }}
+            <Popover open={showHistory} onOpenChange={setShowHistory}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Toggle History">
+                  <History className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-[400px] p-0 z-[925]" 
+                align="end"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
+                  {history.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          className="cursor-pointer hover:bg-muted p-2 rounded-md"
+                          onClick={() => handleHistoryItemClick(item.expression)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-foreground truncate pr-2" title={item.expression}>
+                              {item.expression.length > 35 ? `${item.expression.substring(0, 32)}...` : item.expression}
+                            </span>
+                            <span className="text-xs text-primary whitespace-nowrap">{item.resultDisplay}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{format(item.timestamp)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                   {history.length > 0 && (
+                    <>
+                      <hr className="my-2 border-border/50" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-center text-xs"
+                        onClick={handleClearHistory}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1.5" />
+                        Clear History
+                      </Button>
+                    </>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+            
+            <button
+              onClick={handleCalculate}
               aria-label="Calculate"
+              className="p-[3px] relative"
             >
-              <CornerDownLeft className="h-5 w-5" />
-            </Button>
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
+              <div className="px-8 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent">
+                <CornerDownLeft className="h-5 w-5" />
+              </div>
+            </button>
           </div>
         </div>
 
@@ -211,4 +321,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
