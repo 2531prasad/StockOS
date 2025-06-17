@@ -84,23 +84,24 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left Column: Controls and Statistics */}
-      <div className="space-y-3 text-xs pr-2">
+      <div className="space-y-4 text-xs pr-2">
+        
         {/* Controls Section */}
-        <div className="flex flex-col items-center gap-y-4">
-            <div className="flex flex-col space-y-1 items-center">
-              <Label htmlFor="iterations-input-ctrl-prob" className="text-muted-foreground text-base">Iterations</Label>
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="iterations-input-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">Iterations</Label>
               <Input
                 id="iterations-input-ctrl-prob"
                 type="number"
                 value={iterations}
                 onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                className="w-24 h-9 text-base mt-1"
+                className="w-24 h-8 text-xs"
                 min="100"
                 step="1000"
               />
             </div>
-            <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">
                 Bars: {histogramBins}
               </Label>
               <Slider
@@ -110,7 +111,7 @@ export default function MCCalculator() {
                 step={1}
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
-                className="relative flex w-full touch-none select-none items-center mt-1"
+                className="w-[120px]"
               />
             </div>
         </div>
@@ -151,7 +152,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed from overflow-y-auto */}
+      <div className="overflow-hidden p-4 space-y-4 min-h-0">
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
