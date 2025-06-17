@@ -84,9 +84,21 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left Column: Controls and Statistics */}
-      <div className="space-y-3 text-xs pr-2"> {/* Removed lg:w-[220px] */}
+      <div className="space-y-3 text-xs pr-2">
         {/* Controls Section */}
         <div className="flex flex-col items-center gap-y-4">
+            <div className="flex flex-col space-y-1 items-center">
+              <Label htmlFor="iterations-input-ctrl-prob" className="text-muted-foreground text-base">Iterations</Label>
+              <Input
+                id="iterations-input-ctrl-prob"
+                type="number"
+                value={iterations}
+                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
+                className="w-24 h-9 text-base mt-1"
+                min="100"
+                step="1000"
+              />
+            </div>
             <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
               <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
                 Bars: {histogramBins}
@@ -99,18 +111,6 @@ export default function MCCalculator() {
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
                 className="relative flex w-full touch-none select-none items-center mt-1"
-              />
-            </div>
-            <div className="flex flex-col space-y-1 items-center">
-              <Label htmlFor="iterations-input-ctrl-prob" className="text-muted-foreground text-base">Iterations</Label>
-              <Input
-                id="iterations-input-ctrl-prob"
-                type="number"
-                value={iterations}
-                onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                className="w-24 h-9 text-base mt-1"
-                min="100"
-                step="1000"
               />
             </div>
         </div>
