@@ -83,37 +83,10 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-6">
-      {/* Left Column: All Statistics */}
-      <div className="lg:w-[220px] space-y-1 text-xs pr-2">
-        <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
-        <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
-        <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
-        <hr className="my-2 border-border/50"/>
-        <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
-        <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
-        <p><strong>P25:</strong> {formatNumber(calcResult.p25)}</p>
-        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
-        <p><strong>P75:</strong> {formatNumber(calcResult.p75)}</p>
-        <p><strong>P90:</strong> {formatNumber(calcResult.p90)}</p>
-        <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
-      </div>
-
-      {/* Right Column: Histogram and Controls */}
-      <div className="flex-1 flex flex-col min-w-0"> {/* Added min-w-0 here for flex child */}
-        {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
-          <div className="w-full h-[450px] min-h-[300px]"> {/* Ensure this div can shrink if needed */}
-            <Histogram
-              data={calcResult.histogram as HistogramDataEntry[]}
-              title="Outcome Distribution"
-              meanValue={calcResult.mean}
-              medianValue={calcResult.p50}
-              stdDevValue={calcResult.stdDev}
-            />
-          </div>
-        ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
-        
-        {!result.isDeterministic && (
-          <div className="flex flex-row justify-center items-start gap-x-8 mt-6">
+      {/* Left Column: Controls and Statistics */}
+      <div className="lg:w-[220px] space-y-3 text-xs pr-2">
+        {/* Controls Section */}
+        <div className="flex flex-col items-center gap-y-4">
             <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
               <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
                 Bars: {histogramBins}
@@ -140,8 +113,37 @@ export default function MCCalculator() {
                 step="1000"
               />
             </div>
+        </div>
+        
+        <hr className="my-2 border-border/50"/>
+
+        {/* Statistics Section */}
+        <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
+        <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
+        <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
+        <hr className="my-2 border-border/50"/>
+        <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
+        <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
+        <p><strong>P25:</strong> {formatNumber(calcResult.p25)}</p>
+        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
+        <p><strong>P75:</strong> {formatNumber(calcResult.p75)}</p>
+        <p><strong>P90:</strong> {formatNumber(calcResult.p90)}</p>
+        <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
+      </div>
+
+      {/* Right Column: Histogram */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
+          <div className="w-full h-[450px] min-h-[300px]">
+            <Histogram
+              data={calcResult.histogram as HistogramDataEntry[]}
+              title="Outcome Distribution"
+              meanValue={calcResult.mean}
+              medianValue={calcResult.p50}
+              stdDevValue={calcResult.stdDev}
+            />
           </div>
-        )}
+        ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
       </div>
     </div>
   );
@@ -201,3 +203,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
