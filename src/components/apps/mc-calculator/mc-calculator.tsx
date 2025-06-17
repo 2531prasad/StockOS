@@ -100,7 +100,7 @@ export default function MCCalculator() {
                 step="1000"
               />
             </div>
-            <div className="flex items-center justify-between">
+            <div>
               <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">
                 Bars: {histogramBins}
               </Label>
@@ -111,7 +111,7 @@ export default function MCCalculator() {
                 step={1}
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
-                className="w-[120px]"
+                className="w-full mt-1"
               />
             </div>
         </div>
