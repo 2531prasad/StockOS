@@ -60,7 +60,10 @@ export default function MCCalculator() {
     if (absNum >= 1_000_000) {
       return sign + (absNum / 1_000_000).toFixed(1) + "M";
     }
-    // Default formatting for numbers less than a million or for deterministic output
+    if (absNum >= 1_000) {
+      return sign + (absNum / 1_000).toFixed(1) + "K";
+    }
+    // Default formatting for numbers less than a thousand or for deterministic output
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
   
@@ -80,8 +83,6 @@ export default function MCCalculator() {
   const showResultsArea = submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)));
   // True Range should only show for probabilistic calculations where analytical min/max are valid
   const showTrueRangeConditionally = showResultsArea && !result.isDeterministic && (!isNaN(result.analyticalMin) || !isNaN(result.analyticalMax));
-  // Advanced controls (Iterations, Bars) only for probabilistic results
-  const showAdvancedControlsConditionally = showResultsArea && !result.isDeterministic;
 
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
@@ -112,7 +113,7 @@ export default function MCCalculator() {
         </div>
       ) : submittedExpression && !result.error && !result.isDeterministic ? <p className="text-muted-foreground text-xs">Distribution chart data is not available. Results might be too uniform or an error occurred.</p> : null}
       
-      {showAdvancedControlsConditionally && (
+      {!result.isDeterministic && (
         <div className="flex flex-row justify-center items-start gap-x-8 mt-6">
           <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
             <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-muted-foreground text-base self-center">
@@ -148,7 +149,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed overflow-y-auto to overflow-hidden here */}
+      <div className="overflow-hidden p-4 space-y-4 min-h-0">
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -201,4 +202,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
