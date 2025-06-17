@@ -82,9 +82,9 @@ export default function MCCalculator() {
 
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="flex flex-col lg:flex-row gap-0">
       {/* Left Column: Controls and Statistics */}
-      <div className="space-y-4 text-xs pr-2">
+      <div className="space-y-4 text-xs">
         
         {/* Controls Section */}
         <div className="space-y-3">
@@ -172,7 +172,7 @@ export default function MCCalculator() {
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
-                <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>
+                <Label htmlFor="true-range-display" className="text-muted-foreground text-lg">True Range</Label>
                 <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-lg">
                     {formatDetailedNumber(result.analyticalMin)} ~ {formatDetailedNumber(result.analyticalMax)}
                 </p>
