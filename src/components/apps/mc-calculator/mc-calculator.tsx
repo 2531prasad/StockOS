@@ -5,7 +5,7 @@ import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "
 import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button"; 
+import { Button } from "@/components/ui/button";
 import {
   Alert,
   AlertDescription,
@@ -16,7 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Terminal, CornerDownLeft, History, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { format } from 'timeago.js';
 
 interface HistoryItem {
@@ -50,7 +50,7 @@ export default function MCCalculator() {
 
   const result = useCalculator(
     submittedExpression,
-    submittedIterations > 0 ? submittedIterations : 1, 
+    submittedIterations > 0 ? submittedIterations : 1,
     submittedHistogramBins
   );
 
@@ -66,7 +66,7 @@ export default function MCCalculator() {
       if (resultDisplay !== "N/A") {
         setHistory(prevHistory => {
           const newHistoryItem: HistoryItem = {
-            id: Date.now().toString(), 
+            id: Date.now().toString(),
             expression: submittedExpression,
             resultDisplay,
             timestamp: Date.now(),
@@ -81,8 +81,8 @@ export default function MCCalculator() {
 
   const handleCalculate = () => {
     if (!expression.trim()) {
-      setSubmittedExpression(""); 
-      setSubmittedIterations(0); 
+      setSubmittedExpression("");
+      setSubmittedIterations(0);
       return;
     }
     setSubmittedExpression(expression);
@@ -113,7 +113,7 @@ export default function MCCalculator() {
     }
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
-  
+
   const formatDetailedNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
@@ -121,13 +121,13 @@ export default function MCCalculator() {
 
   const handleHistoryItemClick = (expr: string) => {
     setExpression(expr);
-    setShowHistory(false); 
+    setShowHistory(false);
   };
 
   const handleClearHistory = () => {
     setHistory([]);
     localStorage.removeItem("mcCalculatorHistory");
-    setShowHistory(false); 
+    setShowHistory(false);
   };
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
@@ -143,7 +143,7 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
       <div className="lg:w-[180px] space-y-4 text-xs shrink-0">
-        
+
         <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label htmlFor="iterations-input-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">Iterations</Label>
@@ -172,7 +172,7 @@ export default function MCCalculator() {
               />
             </div>
         </div>
-        
+
         <hr className="my-2 border-border/50"/>
 
         <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
@@ -203,7 +203,7 @@ export default function MCCalculator() {
       </div>
     </div>
   );
-  
+
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -212,7 +212,7 @@ export default function MCCalculator() {
           <Input
             value={expression}
             onChange={(e) => setExpression(e.target.value)}
-            className="grow text-base h-10" 
+            className="grow text-base h-10"
             placeholder="e.g., 50~60 * 10 + (100~120)/2"
             aria-label="Expression Input"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
@@ -224,7 +224,7 @@ export default function MCCalculator() {
                   <History className="h-5 w-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent 
+              <PopoverContent
                 className="w-[400px] z-[925] p-2 max-h-[266px] overflow-y-auto"
                 align="end"
                 onOpenAutoFocus={(e) => e.preventDefault()}
@@ -267,18 +267,21 @@ export default function MCCalculator() {
                   )}
               </PopoverContent>
             </Popover>
-            <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm">AC</Button>
+            <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm hover:bg-red-900">AC</Button>
             <Button
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="h-10 px-3" 
+              className="h-10 px-3"
             >
               <CornerDownLeft className="h-5 w-5" />
             </Button>
           </div>
         </div>
-        
+
         <div className="space-y-2 relative">
+           <div className="absolute top-1 right-1 z-10">
+             {/* Intentionally empty or for future use, history button was here */}
+           </div>
             <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
                 {showTrueRangeConditionally && (
                     <div className="flex flex-col space-y-1">
@@ -302,7 +305,7 @@ export default function MCCalculator() {
                 <AlertDescription>{result.error}</AlertDescription>
             </Alert>
             )}
-            
+
             {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
             {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
@@ -310,4 +313,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
