@@ -269,9 +269,10 @@ export default function MCCalculator() {
             </Popover>
             <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm hover:bg-red-900">AC</Button>
             <Button
+              variant="outline"
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="h-10 px-3"
+              className="h-10 px-3 text-sm hover:bg-orange-800"
             >
               <CornerDownLeft className="h-5 w-5" />
             </Button>
@@ -279,9 +280,6 @@ export default function MCCalculator() {
         </div>
 
         <div className="space-y-2 relative">
-           <div className="absolute top-1 right-1 z-10">
-             {/* Intentionally empty or for future use, history button was here */}
-           </div>
             <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
                 {showTrueRangeConditionally && (
                     <div className="flex flex-col space-y-1">
