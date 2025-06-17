@@ -45,9 +45,9 @@ interface AppInstance {
 }
 
 const SYSTEM_APP_Z_MIN = 901;
-const SYSTEM_APP_Z_MAX = 920;
+const SYSTEM_APP_Z_MAX = 920; // Max z-index for system apps
 const ALERT_DIALOG_Z_MIN = 921; 
-const ALERT_DIALOG_Z_MAX = 940; 
+const ALERT_DIALOG_Z_MAX = 940; // Max z-index for alert dialogs
 
 
 export default function Workspace() {
@@ -65,46 +65,61 @@ export default function Workspace() {
   const bringToFront = useCallback((id: string) => {
     setApps((prevApps) => {
       const appToFocus = prevApps.find(app => app.id === id);
-      if (!appToFocus) return prevApps;
+      if (!appToFocus || !appToFocus.isOpen) return prevApps;
 
-      let minZForType: number;
-      let maxZForType: number;
-      let baseZForType: number;
+      const appTypeToFocus = appToFocus.appType;
+      let baseZIndexForType: number;
 
-      switch (appToFocus.appType) {
+      switch (appTypeToFocus) {
         case 'system':
-          minZForType = SYSTEM_APP_Z_MIN;
-          maxZForType = SYSTEM_APP_Z_MAX;
-          baseZForType = SYSTEM_APP_Z_MIN -1;
+          baseZIndexForType = SYSTEM_APP_Z_MIN;
           break;
-        case 'alertDialog': 
-          minZForType = ALERT_DIALOG_Z_MIN;
-          maxZForType = ALERT_DIALOG_Z_MAX;
-          baseZForType = ALERT_DIALOG_Z_MIN -1;
+        case 'alertDialog':
+          baseZIndexForType = ALERT_DIALOG_Z_MIN;
           break;
-        default: 
-          const globalMaxZOfOthers = prevApps
-            .filter(app => app.id !== id)
+        default:
+          // Fallback for unmanaged types: simple increment to bring to very top
+          const maxZOfAllOtherApps = prevApps
+            .filter(app => app.id !== id && app.isOpen)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
-          const newZIndexForAppToFocusDefault = globalMaxZOfOthers + 1;
-          if (appToFocus.zIndex === newZIndexForAppToFocusDefault) return prevApps;
-          return prevApps.map(app => app.id === id ? { ...app, zIndex: newZIndexForAppToFocusDefault } : app);
+          const newZForUnmanagedType = maxZOfAllOtherApps + 1;
+          if (appToFocus.zIndex === newZForUnmanagedType) return prevApps; // Already at the top
+          return prevApps.map(app => app.id === id ? { ...app, zIndex: newZForUnmanagedType } : app);
       }
 
-      const maxZOfOtherSimilarApps = prevApps
-        .filter(app => app.appType === appToFocus.appType && app.id !== id)
-        .reduce((max, app) => Math.max(max, app.zIndex), baseZForType);
+      // Get all open apps of the same type as the one being focused
+      const appsOfType = prevApps.filter(app => app.appType === appTypeToFocus && app.isOpen);
 
-      let targetZ = maxZOfOtherSimilarApps + 1;
-      const newZIndexForAppToFocus = Math.min(maxZForType, Math.max(minZForType, targetZ));
+      // Separate the app to be focused from the others of its type
+      const otherAppsInType = appsOfType.filter(app => app.id !== id);
 
-      if (appToFocus.zIndex === newZIndexForAppToFocus) {
-        return prevApps;
-      }
+      // Sort the other apps by their current zIndex to maintain relative order among them
+      otherAppsInType.sort((a, b) => a.zIndex - b.zIndex);
 
-      return prevApps.map((app) =>
-        app.id === id ? { ...app, zIndex: newZIndexForAppToFocus } : app
-      );
+      // The new stacking order for this type: other apps, then the focused app on top
+      const newlyOrderedAppsForType = [...otherAppsInType, appToFocus];
+
+      // Create a map for quick lookup of new z-indexes for the affected type
+      const newZIndexMap = new Map<string, number>();
+      newlyOrderedAppsForType.forEach((app, index) => {
+        // Ensure z-index stays within defined max for the type, though with re-ordering this shouldn't be strictly necessary if count <= range size
+        let maxZForType = appTypeToFocus === 'system' ? SYSTEM_APP_Z_MAX : ALERT_DIALOG_Z_MAX;
+        newZIndexMap.set(app.id, Math.min(baseZIndexForType + index, maxZForType));
+      });
+
+      let changesMade = false;
+      const updatedApps = prevApps.map(app => {
+        if (app.appType === appTypeToFocus && app.isOpen) { // Ensure we only modify open apps of the current type
+          const newZ = newZIndexMap.get(app.id);
+          if (newZ !== undefined && app.zIndex !== newZ) {
+            changesMade = true;
+            return { ...app, zIndex: newZ };
+          }
+        }
+        return app;
+      });
+
+      return changesMade ? updatedApps : prevApps;
     });
   }, []);
 
@@ -379,7 +394,7 @@ export default function Workspace() {
               minWidth: `${appInstance.size.minWidth || 0}px`,
               minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
               userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
-              transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out, box-shadow 0.2s ease-out',
+              transition: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity 0.2s ease-out, box-shadow 0.2s ease-out, background-color 0.2s ease-out',
             }}
             onMouseDown={() => {
               bringToFront(appInstance.id);
@@ -458,3 +473,4 @@ export default function Workspace() {
     </div>
   );
 }
+
