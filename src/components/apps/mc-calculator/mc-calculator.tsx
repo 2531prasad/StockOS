@@ -5,8 +5,6 @@ import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "
 import Histogram from "./components/Histogram";
 
 import { Input } from "@/components/ui/input";
-// Button component is no longer used for the calculate button, but might be used elsewhere.
-// Keeping the import if other buttons exist or might be added.
 import { Button } from "@/components/ui/button"; 
 import {
   Alert,
@@ -44,7 +42,6 @@ export default function MCCalculator() {
 
   useEffect(() => {
     setIsClient(true);
-    // Load history from localStorage if available
     const storedHistory = localStorage.getItem("mcCalculatorHistory");
     if (storedHistory) {
       setHistory(JSON.parse(storedHistory));
@@ -69,7 +66,7 @@ export default function MCCalculator() {
       if (resultDisplay !== "N/A") {
         setHistory(prevHistory => {
           const newHistoryItem: HistoryItem = {
-            id: Date.now().toString(), // Unique ID for key prop
+            id: Date.now().toString(), 
             expression: submittedExpression,
             resultDisplay,
             timestamp: Date.now(),
@@ -118,13 +115,13 @@ export default function MCCalculator() {
 
   const handleHistoryItemClick = (expr: string) => {
     setExpression(expr);
-    setShowHistory(false); // Close popover on selection
+    setShowHistory(false); 
   };
 
   const handleClearHistory = () => {
     setHistory([]);
     localStorage.removeItem("mcCalculatorHistory");
-    setShowHistory(false); // Close popover after clearing
+    setShowHistory(false); 
   };
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
@@ -139,10 +136,8 @@ export default function MCCalculator() {
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
-      {/* Left Column: Controls and Statistics */}
-      <div className="lg:w-[180px] lg:pr-0 space-y-4 text-xs shrink-0">
+      <div className="lg:w-[180px] space-y-4 text-xs shrink-0">
         
-        {/* Controls Section */}
         <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label htmlFor="iterations-input-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">Iterations</Label>
@@ -174,7 +169,6 @@ export default function MCCalculator() {
         
         <hr className="my-2 border-border/50"/>
 
-        {/* Statistics Section */}
         <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
         <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
         <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
@@ -188,7 +182,6 @@ export default function MCCalculator() {
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
       </div>
 
-      {/* Right Column: Histogram */}
       <div className="flex-1 flex flex-col min-w-0">
         {isClient && calcResult.histogram && calcResult.histogram.length > 0 && !isNaN(calcResult.mean) && !isNaN(calcResult.stdDev) ? (
           <div className="w-full h-[450px] min-h-[300px]">
@@ -209,7 +202,6 @@ export default function MCCalculator() {
   return (
     <div className="h-full w-full flex flex-col">
       <div className="overflow-clip p-4 space-y-4 min-h-0">
-        {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
@@ -220,6 +212,16 @@ export default function MCCalculator() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
           <div className="flex items-center space-x-1">
+            <button
+              onClick={handleCalculate}
+              aria-label="Calculate"
+              className="p-[3px] relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
+              <div className="px-8 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent">
+                <CornerDownLeft className="h-5 w-5" />
+              </div>
+            </button>
             <Popover open={showHistory} onOpenChange={setShowHistory}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Toggle History">
@@ -271,21 +273,9 @@ export default function MCCalculator() {
                 </ScrollArea>
               </PopoverContent>
             </Popover>
-            
-            <button
-              onClick={handleCalculate}
-              aria-label="Calculate"
-              className="p-[3px] relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-400 rounded-lg" />
-              <div className="px-8 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent">
-                <CornerDownLeft className="h-5 w-5" />
-              </div>
-            </button>
           </div>
         </div>
 
-        {/* Control Row: True Range */}
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
@@ -302,8 +292,6 @@ export default function MCCalculator() {
             )}
         </div>
 
-
-        {/* Error Alert Section */}
         {result.error && (
           <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
@@ -312,7 +300,6 @@ export default function MCCalculator() {
           </Alert>
         )}
 
-        {/* Results and Histogram Section */}
         <div className="space-y-2">
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
