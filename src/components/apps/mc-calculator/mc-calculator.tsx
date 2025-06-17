@@ -14,7 +14,7 @@ import {
 
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal } from "lucide-react";
+import { Terminal, CornerDownLeft } from "lucide-react";
 
 
 export default function MCCalculator() {
@@ -73,7 +73,7 @@ export default function MCCalculator() {
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
-      {formatNumber(calcResult.results[0])}
+      {formatDetailedNumber(calcResult.results[0])}
     </div>
   );
 
@@ -152,7 +152,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-hidden p-4 space-y-4 min-h-0">
+      <div className="overflow-clip p-4 space-y-4 min-h-0">
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
@@ -164,7 +164,14 @@ export default function MCCalculator() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
           />
           <div className="flex items-center space-x-1">
-            <Button onClick={handleCalculate} className="text-base h-10">Calculate</Button>
+            <Button 
+              onClick={handleCalculate} 
+              className="h-10 px-3" // Adjusted padding for icon button
+              style={{ backgroundColor: 'oklch(0.7436 0.1692 50.13)' }}
+              aria-label="Calculate"
+            >
+              <CornerDownLeft className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 
@@ -204,3 +211,4 @@ export default function MCCalculator() {
     </div>
   );
 }
+
