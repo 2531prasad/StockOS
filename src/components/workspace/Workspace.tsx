@@ -102,7 +102,7 @@ export default function Workspace() {
       // Create a map for quick lookup of new z-indexes for the affected type
       const newZIndexMap = new Map<string, number>();
       newlyOrderedAppsForType.forEach((app, index) => {
-        // Ensure z-index stays within defined max for the type, though with re-ordering this shouldn't be strictly necessary if count <= range size
+        // Ensure z-index stays within defined max for the type
         let maxZForType = appTypeToFocus === 'system' ? SYSTEM_APP_Z_MAX : ALERT_DIALOG_Z_MAX;
         newZIndexMap.set(app.id, Math.min(baseZIndexForType + index, maxZForType));
       });
@@ -208,6 +208,7 @@ export default function Workspace() {
   };
 
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
+    e.preventDefault(); // Prevent text selection
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
@@ -271,6 +272,7 @@ export default function Workspace() {
   }, [activeDrag, apps, bringToFront]); 
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
+    e.preventDefault(); // Prevent text selection during resize
     e.stopPropagation(); 
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
@@ -402,12 +404,12 @@ export default function Workspace() {
           >
             <CardHeader
               className={cn(
-                "p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50",
+                "p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50 select-none",
                 isFocused ? "bg-card/80" : "bg-popover"
               )}
               onMouseDown={(e) => {
                 if ((e.target as HTMLElement).closest('.resize-handle') || (e.target as HTMLElement).closest('[role="button"]')) return;
-                e.stopPropagation();
+                // e.stopPropagation(); // Already handled by handleDragStart if needed
                 handleDragStart(e, appInstance.id);
               }}
             >
@@ -455,7 +457,7 @@ export default function Workspace() {
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
-                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center"
+                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none"
                         onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
                         title="Resize"
                     >
