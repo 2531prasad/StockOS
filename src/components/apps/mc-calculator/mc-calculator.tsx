@@ -84,7 +84,7 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left Column: Controls and Statistics */}
-      <div className="lg:w-[220px] space-y-3 text-xs pr-2">
+      <div className="space-y-3 text-xs pr-2"> {/* Removed lg:w-[220px] */}
         {/* Controls Section */}
         <div className="flex flex-col items-center gap-y-4">
             <div className="flex flex-col space-y-1 w-full max-w-[180px] items-center">
@@ -151,7 +151,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-hidden p-4 space-y-4 min-h-0">
+      <div className="overflow-hidden p-4 space-y-4 min-h-0"> {/* Changed from overflow-y-auto */}
         {/* Inputs and Calculate Button Section */}
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
