@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Terminal, CornerDownLeft, History, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from 'timeago.js';
 
 interface HistoryItem {
@@ -206,7 +207,7 @@ export default function MCCalculator() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="overflow-clip p-4 space-y-4 min-h-0"> {/* Changed overflow-hidden to overflow-clip */}
+      <div className="overflow-clip p-4 space-y-4 min-h-0">
         <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
           <Input
             value={expression}
@@ -267,48 +268,46 @@ export default function MCCalculator() {
               </PopoverContent>
             </Popover>
             <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm">AC</Button>
-            <button
+            <Button
               onClick={handleCalculate}
               aria-label="Calculate"
-              className="p-[3px] relative h-10 flex items-center justify-center"
+              className="h-10 px-3" 
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
-              <div className="px-4 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent flex items-center justify-center">
-                <CornerDownLeft className="h-5 w-5" />
-              </div>
-            </button>
+              <CornerDownLeft className="h-5 w-5" />
+            </Button>
           </div>
         </div>
-
-         <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
-            {showTrueRangeConditionally && (
-                <div className="flex flex-col space-y-1">
-                <Label htmlFor="true-range-display" className="text-muted-foreground text-lg">True Range</Label>
-                <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-lg">
-                    {formatDetailedNumber(result.analyticalMin)} ~ {formatDetailedNumber(result.analyticalMax)}
-                </p>
-                {result.analyticalError && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
-                        {result.analyticalError}
+        
+        <div className="space-y-2 relative">
+            <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
+                {showTrueRangeConditionally && (
+                    <div className="flex flex-col space-y-1">
+                    <Label htmlFor="true-range-display" className="text-muted-foreground text-lg">True Range</Label>
+                    <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-lg">
+                        {formatDetailedNumber(result.analyticalMin)} ~ {formatDetailedNumber(result.analyticalMax)}
                     </p>
+                    {result.analyticalError && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
+                            {result.analyticalError}
+                        </p>
+                    )}
+                    </div>
                 )}
-                </div>
+            </div>
+
+            {result.error && (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{result.error}</AlertDescription>
+            </Alert>
             )}
-        </div>
-
-        {result.error && (
-          <Alert variant="destructive">
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{result.error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-2 relative"> {/* Added relative for history popover positioning if it were inside */}
-          {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
-          {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
+            
+            {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
+            {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
       </div>
     </div>
   );
 }
+
