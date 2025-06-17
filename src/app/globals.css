@@ -375,6 +375,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background-color: oklch(0.5 0 0); /* lighter on hover */
 }
-    
 
-  
+.hover-flash {
+  animation: hoverFlash 0.15s ease-in-out;
+}
+
+@keyframes hoverFlash {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}

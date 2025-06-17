@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useCalculator, type CalculatorResults, type HistogramDataEntry } from "./hooks/useCalculator";
 import Histogram from "./components/Histogram";
 
@@ -39,6 +39,9 @@ export default function MCCalculator() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  const acRef = useRef<HTMLButtonElement>(null);
+  const calcRef = useRef<HTMLButtonElement>(null);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -53,6 +56,23 @@ export default function MCCalculator() {
     submittedIterations > 0 ? submittedIterations : 1,
     submittedHistogramBins
   );
+
+  const handleCalculate = () => {
+    if (!expression.trim()) {
+      setSubmittedExpression("");
+      setSubmittedIterations(0);
+      return;
+    }
+    setSubmittedExpression(expression);
+    setSubmittedIterations(iterations);
+    setSubmittedHistogramBins(histogramBins);
+  };
+
+  const handleAllClear = () => {
+    setExpression("");
+    setSubmittedExpression("");
+    setSubmittedIterations(0);
+  };
 
   useEffect(() => {
     if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
@@ -79,22 +99,6 @@ export default function MCCalculator() {
     }
   }, [result, submittedExpression]);
 
-  const handleCalculate = () => {
-    if (!expression.trim()) {
-      setSubmittedExpression("");
-      setSubmittedIterations(0);
-      return;
-    }
-    setSubmittedExpression(expression);
-    setSubmittedIterations(iterations);
-    setSubmittedHistogramBins(histogramBins);
-  };
-
-  const handleAllClear = () => {
-    setExpression("");
-    setSubmittedExpression("");
-    setSubmittedIterations(0);
-  };
 
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
@@ -129,6 +133,33 @@ export default function MCCalculator() {
     localStorage.removeItem("mcCalculatorHistory");
     setShowHistory(false);
   };
+
+  const flashHover = (ref: React.RefObject<HTMLElement>) => {
+    if (!ref.current) return;
+    ref.current.classList.add("ring-2", "ring-offset-1", "hover-flash");
+
+    setTimeout(() => {
+      ref.current?.classList.remove("ring-2", "ring-offset-1", "hover-flash");
+    }, 150);
+  };
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        calcRef.current?.click();
+        flashHover(calcRef);
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        acRef.current?.click();
+        flashHover(acRef);
+      }
+    }
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleCalculate, handleAllClear]); // Added handlers to dependency array
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
@@ -215,7 +246,7 @@ export default function MCCalculator() {
             className="grow text-base h-10"
             placeholder="e.g., 50~60 * 10 + (100~120)/2"
             aria-label="Expression Input"
-            onKeyDown={(e) => { if (e.key === 'Enter') handleCalculate(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); calcRef.current?.click(); flashHover(calcRef); } }}
           />
           <div className="flex items-center space-x-1">
             <Popover open={showHistory} onOpenChange={setShowHistory}>
@@ -267,8 +298,9 @@ export default function MCCalculator() {
                   )}
               </PopoverContent>
             </Popover>
-            <Button variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm hover:bg-red-900">AC</Button>
+            <Button ref={acRef} variant="outline" onClick={handleAllClear} className="h-10 px-4 text-sm hover:bg-red-900">AC</Button>
             <Button
+              ref={calcRef}
               variant="outline"
               onClick={handleCalculate}
               aria-label="Calculate"
@@ -311,5 +343,3 @@ export default function MCCalculator() {
     </div>
   );
 }
-
-    
