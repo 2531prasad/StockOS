@@ -277,7 +277,7 @@ export default function MCCalculator() {
               aria-label="Calculate"
               className="p-[3px] relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg" />
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-400 rounded-lg" />
               <div className="px-8 py-2 bg-black rounded-[6px] relative group transition duration-200 text-white hover:bg-transparent">
                 <CornerDownLeft className="h-5 w-5" />
               </div>
