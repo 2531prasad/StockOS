@@ -47,6 +47,7 @@ export default function MCCalculator() {
     setSubmittedHistogramBins(histogramBins);
   };
 
+  // For simulation stats (Mean, StdDev, Percentiles)
   const formatNumber = (num: number | undefined): string => {
     if (num === undefined || isNaN(num)) return "N/A";
 
@@ -59,8 +60,16 @@ export default function MCCalculator() {
     if (absNum >= 1_000_000) {
       return sign + (absNum / 1_000_000).toFixed(1) + "M";
     }
+    // Default formatting for numbers less than a million or for deterministic output
     return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   };
+  
+  // For True Range, which needs more precision and no K/M/B
+  const formatDetailedNumber = (num: number | undefined): string => {
+    if (num === undefined || isNaN(num)) return "N/A";
+    return num.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  };
+
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
@@ -155,14 +164,14 @@ export default function MCCalculator() {
           </div>
         </div>
 
-        {/* Control Row: True Range, Bars, Iterations */}
+        {/* Control Row: True Range */}
          <div className="flex flex-row items-start gap-x-6 gap-y-4 mt-3">
             {/* True Range Column */}
             {showTrueRangeConditionally && (
                 <div className="flex flex-col space-y-1">
                 <Label htmlFor="true-range-display" className="text-muted-foreground text-base">True Range</Label>
                 <p id="true-range-display" className="text-foreground font-medium whitespace-nowrap text-lg">
-                    {formatNumber(result.analyticalMin)} ~ {formatNumber(result.analyticalMax)}
+                    {formatDetailedNumber(result.analyticalMin)} ~ {formatDetailedNumber(result.analyticalMax)}
                 </p>
                 {result.analyticalError && (
                     <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5 max-w-[200px] truncate" title={result.analyticalError}>
