@@ -281,6 +281,25 @@ export default function Histogram({
           font: {
             family: FONT_FAMILY_VICTOR_MONO,
             size: 10,
+          },
+          callback: function(valueTickLabel: string | number, index: number) {
+            const originalBinCenter = data[index]?.binCenter;
+            if (originalBinCenter === undefined || isNaN(originalBinCenter)) {
+              return String(valueTickLabel); // Fallback to original Chart.js label
+            }
+          
+            const num = originalBinCenter;
+            const absNum = Math.abs(num);
+            const sign = num < 0 ? "-" : "";
+          
+            if (absNum >= 1_000_000_000) return sign + (absNum / 1_000_000_000).toFixed(1) + "B";
+            if (absNum >= 1_000_000) return sign + (absNum / 1_000_000).toFixed(1) + "M";
+            if (absNum >= 1_000) return sign + (absNum / 1_000).toFixed(0) + "K";
+            
+            if (num === 0) return "0";
+            if (absNum < 0.01) return num.toExponential(0); 
+            if (absNum < 1) return num.toFixed(1); 
+            return num.toFixed(0); 
           }
         },
       },
@@ -331,9 +350,12 @@ export default function Histogram({
           title: function(tooltipItems: any) {
             const originalBinIndex = tooltipItems[0].dataIndex;
             if (data && data[originalBinIndex]) {
-                return `Bin Range: ${data[originalBinIndex].label} (Center: ${tooltipItems[0].label})`;
+                // tooltipItems[0].label here is the (potentially abbreviated) x-axis label from the callback
+                // For more detail in tooltip, use formatNumberForLabel with original binCenter
+                const detailedBinCenter = formatNumberForLabel(data[originalBinIndex].binCenter, 2);
+                return `Bin Range: ${data[originalBinIndex].label} (Center: ${detailedBinCenter})`;
             }
-            return `Bin Center: ${tooltipItems[0].label}`;
+            return `Bin Center: ${tooltipItems[0].label}`; // Fallback
           },
           label: function(context: any) {
             let label = context.dataset.label || '';
