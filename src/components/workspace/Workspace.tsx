@@ -141,7 +141,7 @@ export default function Workspace() {
             minWidth: 400,
             minHeight: 175,
             maxWidth: 'none',
-            maxHeight: '625px' // Updated maxHeight
+            maxHeight: '625px'
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -192,7 +192,7 @@ export default function Workspace() {
                 ...app.size,
                 width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                 height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                maxHeight: app.id === "mc-calculator" ? '625px' : 'none' // Restore original maxHeight
+                maxHeight: app.id === "mc-calculator" ? '625px' : 'none'
               },
               previousSize: null
             };
@@ -389,7 +389,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-auto", // Changed overflow-hidden to overflow-auto
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover"
               )}
             style={{
@@ -455,15 +455,15 @@ export default function Workspace() {
               </div>
             </CardHeader>
             {!appInstance.isMinimized && (
-              <CardContent className={cn( // Removed overflow-hidden from here
-                  "flex-grow relative",
+              <CardContent className={cn(
+                  "flex-1 relative overflow-y-auto",
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
-                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none"
+                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none z-10"
                         onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
                         title="Resize"
                     >
@@ -481,5 +481,3 @@ export default function Workspace() {
     </div>
   );
 }
-
-    
