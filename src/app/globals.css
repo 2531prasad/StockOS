@@ -357,4 +357,24 @@
 }
 */
 
+/* Custom WebKit Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: oklch(0.1398 0 0); /* super dark gray */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: oklch(0.4 0 0); /* medium-dark gray thumb */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.5 0 0); /* lighter on hover */
+}
     
+
+  
