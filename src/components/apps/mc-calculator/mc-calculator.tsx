@@ -220,7 +220,7 @@ export default function MCCalculator() {
           <div className="flex items-center space-x-1">
             <Popover open={showHistory} onOpenChange={setShowHistory}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Toggle History">
+                <Button variant="outline" size="icon" className="h-10 w-10 hover:bg-green-900" aria-label="Toggle History">
                   <History className="h-5 w-5" />
                 </Button>
               </PopoverTrigger>
