@@ -222,57 +222,6 @@ export default function MCCalculator() {
                 <CornerDownLeft className="h-5 w-5" />
               </div>
             </button>
-            <Popover open={showHistory} onOpenChange={setShowHistory}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Toggle History">
-                  <History className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-[400px] p-0 z-[925]" 
-                align="end"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-                onCloseAutoFocus={(e) => e.preventDefault()}
-              >
-                <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
-                  {history.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {history.map((item) => (
-                        <div
-                          key={item.id}
-                          className="cursor-pointer hover:bg-muted p-2 rounded-md"
-                          onClick={() => handleHistoryItemClick(item.expression)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-foreground truncate pr-2" title={item.expression}>
-                              {item.expression.length > 35 ? `${item.expression.substring(0, 32)}...` : item.expression}
-                            </span>
-                            <span className="text-xs text-primary whitespace-nowrap">{item.resultDisplay}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{format(item.timestamp)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                   {history.length > 0 && (
-                    <>
-                      <hr className="my-2 border-border/50" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-center text-xs"
-                        onClick={handleClearHistory}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1.5" />
-                        Clear History
-                      </Button>
-                    </>
-                  )}
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
 
@@ -300,7 +249,59 @@ export default function MCCalculator() {
           </Alert>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2 relative">
+          <Popover open={showHistory} onOpenChange={setShowHistory}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="absolute top-1 right-1 h-7 w-7 z-10" aria-label="Toggle History">
+                <History className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent 
+              className="w-[400px] p-0 z-[925]" 
+              align="end"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <ScrollArea className="p-2 h-auto max-h-[250px] rounded-md">
+                {history.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {history.map((item) => (
+                      <div
+                        key={item.id}
+                        className="cursor-pointer hover:bg-muted p-2 rounded-md"
+                        onClick={() => handleHistoryItemClick(item.expression)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-foreground truncate pr-2" title={item.expression}>
+                            {item.expression.length > 35 ? `${item.expression.substring(0, 32)}...` : item.expression}
+                          </span>
+                          <span className="text-xs text-primary whitespace-nowrap">{item.resultDisplay}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{format(item.timestamp)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                  {history.length > 0 && (
+                  <>
+                    <hr className="my-2 border-border/50" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-center text-xs"
+                      onClick={handleClearHistory}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1.5" />
+                      Clear History
+                    </Button>
+                  </>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+
           {showResultsArea && result.isDeterministic && renderDeterministicOutput(result)}
           {showResultsArea && !result.isDeterministic && renderProbabilisticOutput(result)}
         </div>
