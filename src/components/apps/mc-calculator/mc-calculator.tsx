@@ -119,7 +119,7 @@ export default function MCCalculator() {
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
       {/* Left Column: Controls and Statistics */}
-      <div className="space-y-4 text-xs">
+      <div className="flex flex-col space-y-4 text-xs">
         
         {/* Controls Section */}
         <div className="space-y-3">
@@ -135,8 +135,8 @@ export default function MCCalculator() {
                 step="1000"
               />
             </div>
-            <div>
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">
+            <div className="flex flex-col">
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap mb-1">
                 Bars: {histogramBins}
               </Label>
               <Slider
@@ -146,7 +146,7 @@ export default function MCCalculator() {
                 step={1}
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
-                className="w-full mt-1"
+                className="w-full"
               />
             </div>
         </div>
@@ -205,7 +205,7 @@ export default function MCCalculator() {
                 <HistoryIcon className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[350px] p-0 z-[100]" align="end" sideOffset={5}>
+            <PopoverContent className="w-[350px] p-0 z-[925]" align="end" sideOffset={5}>
               <div className="p-2">
                 {history.length === 0 && (
                   <p className="text-muted-foreground text-center py-4 text-sm">No history yet.</p>
