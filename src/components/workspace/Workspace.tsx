@@ -241,6 +241,7 @@ export default function Workspace() {
       let newViewportX = e.clientX - activeDrag.offsetX;
       let newViewportY = e.clientY - activeDrag.offsetY;
 
+      // Convert viewport coordinates to coordinates relative to the scrollable workspace
       let newRelativeX = newViewportX - workspaceRect.left + workspaceRef.current.scrollLeft;
       let newRelativeY = newViewportY - workspaceRect.top + workspaceRef.current.scrollTop;
 
@@ -365,7 +366,7 @@ export default function Workspace() {
 
 
   return (
-    <div ref={workspaceRef} className="relative w-full h-screen overflow-auto bg-background">
+    <div ref={workspaceRef} className="relative w-full h-screen overflow-hidden bg-background">
       <DottedBackground />
       {apps
         .filter((app) => app.isOpen)
@@ -384,7 +385,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden", 
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-auto", 
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover" 
               )}
             style={{
@@ -451,7 +452,7 @@ export default function Workspace() {
             </CardHeader>
             {!appInstance.isMinimized && (
               <CardContent className={cn(
-                  "flex-grow relative overflow-hidden", 
+                  "flex-grow relative", 
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
