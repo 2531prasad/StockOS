@@ -87,7 +87,7 @@ export default function MCCalculator() {
     if (submittedExpression && !result.error && (result.isDeterministic || (result.results && result.results.length > 0 && !result.results.every(isNaN)))) {
       let resultDisplay = "N/A";
       if (result.isDeterministic && result.results[0] !== undefined && !isNaN(result.results[0])) {
-        resultDisplay = formatNumber(result.results[0]);
+        resultDisplay = formatDetailedNumber(result.results[0]);
       } else if (!result.isDeterministic && result.mean !== undefined && !isNaN(result.mean)) {
         resultDisplay = `μ: ${formatNumber(result.mean)}`;
       }
@@ -108,7 +108,7 @@ export default function MCCalculator() {
 
   const renderDeterministicOutput = (calcResult: CalculatorResults) => (
     <div className="text-3xl font-bold text-primary py-4 bg-muted/30 p-6 rounded-md text-left shadow-inner">
-      {formatNumber(calcResult.results[0])}
+      {formatDetailedNumber(calcResult.results[0])}
     </div>
   );
 
