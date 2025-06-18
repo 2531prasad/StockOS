@@ -92,8 +92,12 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
       let resultDisplay = "N/A";
       if (result.isDeterministic) {
         resultDisplay = formatDetailedNumber(result.results[0]);
-      } else if (result.results && result.results.length > 0 && !isNaN(result.mean)) {
-        resultDisplay = `μ: ${formatNumber(result.mean)}`;
+      } else { // Probabilistic case
+        if (!isNaN(result.analyticalMin) && !isNaN(result.analyticalMax)) {
+          resultDisplay = `${formatDetailedNumber(result.analyticalMin)} ~ ${formatDetailedNumber(result.analyticalMax)}`;
+        } else if (result.results && result.results.length > 0 && !isNaN(result.mean)) {
+          resultDisplay = `μ: ${formatNumber(result.mean)}`;
+        }
       }
 
       if (resultDisplay !== "N/A") {
@@ -204,7 +208,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
               />
             </div>
             <div>
-              <Slider
+               <Slider
                 id="histogram-bins-slider-ctrl-prob"
                 min={5}
                 max={50}
@@ -213,7 +217,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
                 onValueChange={(value) => setHistogramBins(value[0])}
                 className="w-full"
               />
-               <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mt-1">
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mt-1">
                 Bars: {histogramBins}
               </Label>
             </div>
