@@ -228,7 +228,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
         <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
         <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
         <p><strong>P25:</strong> {formatNumber(calcResult.p25)}</p>
-        <p><strong>Median (P50):</strong> {formatNumber(calcResult.p50)}</p>
+        <p><strong>Median:</strong> {formatNumber(calcResult.p50)}</p>
         <p><strong>P75:</strong> {formatNumber(calcResult.p75)}</p>
         <p><strong>P90:</strong> {formatNumber(calcResult.p90)}</p>
         <p><strong>P95:</strong> {formatNumber(calcResult.p95)}</p>
@@ -359,4 +359,3 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
     </div>
   );
 }
-
