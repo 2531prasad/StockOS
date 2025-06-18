@@ -188,7 +188,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
 
   const renderProbabilisticOutput = (calcResult: CalculatorResults) => (
     <div className="flex flex-col lg:flex-row gap-0">
-      <div className="lg:w-[180px] space-y-4 text-xs shrink-0">
+      <div className="lg:w-[130px] space-y-4 text-xs shrink-0">
 
         <div className="space-y-3">
             <div>
