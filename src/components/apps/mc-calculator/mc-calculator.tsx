@@ -204,7 +204,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
               />
             </div>
             <div>
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mb-1">
                 Bars: {histogramBins}
               </Label>
               <Slider
@@ -359,6 +359,3 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
     </div>
   );
 }
-
-
-    
