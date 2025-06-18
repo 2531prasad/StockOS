@@ -137,19 +137,13 @@ export default function Workspace() {
       }
 
       if (existingDialog) {
-         // If exists, ensure it's open and bring to front
         const updatedApps = prevApps.map(app => app.id === dialogId ? { ...app, isOpen: true } : app);
-        // Manually trigger bringToFront here after state update ensures it has the latest z-indices
-        // However, bringToFront is complex with setApps, so direct z-index manipulation might be safer
-        // For now, we rely on the effect of bringToFront called from where openDialogApp is used, 
-        // or we could just set its zIndex to max here if that's simpler.
-        // Let's assume bringToFront will be called after this by the initiator.
         return updatedApps;
       } else {
         const newDialogApp: AppInstance = {
           ...blueprint,
           isOpen: true,
-          zIndex: ALERT_DIALOG_Z_MIN, // Start at min, bringToFront will adjust
+          zIndex: ALERT_DIALOG_Z_MIN, 
           position: undefined, 
           component: (props: { closeDialog: () => void }) => (
             <>
@@ -438,7 +432,7 @@ export default function Workspace() {
                 >
                   <CardHeader
                     className={cn(
-                      "p-1 space-y-1 flex flex-row items-center justify-between cursor-grab border-b border-border/50 select-none",
+                      "p-1 space-y-0 flex flex-row items-center justify-between cursor-grab border-b border-border/50 select-none",
                       isFocused ? "bg-card/80" : "bg-popover"
                     )}
                     onMouseDown={(e) => {
@@ -522,3 +516,4 @@ export default function Workspace() {
     </div>
   );
 }
+
