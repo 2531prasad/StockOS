@@ -45,8 +45,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 930; // Increased
-const ALERT_DIALOG_Z_MAX = 950; // Increased
+const ALERT_DIALOG_Z_MIN = 930; 
+const ALERT_DIALOG_Z_MAX = 950; 
 
 const dialogAppBlueprints: Omit<AppInstance, 'isOpen' | 'zIndex' | 'position' | 'component' | 'contentPadding'> & { contentComponent: React.FC<any> }[] = [
   {
@@ -137,12 +137,19 @@ export default function Workspace() {
       }
 
       if (existingDialog) {
-        return prevApps.map(app => app.id === dialogId ? { ...app, isOpen: true } : app);
+         // If exists, ensure it's open and bring to front
+        const updatedApps = prevApps.map(app => app.id === dialogId ? { ...app, isOpen: true } : app);
+        // Manually trigger bringToFront here after state update ensures it has the latest z-indices
+        // However, bringToFront is complex with setApps, so direct z-index manipulation might be safer
+        // For now, we rely on the effect of bringToFront called from where openDialogApp is used, 
+        // or we could just set its zIndex to max here if that's simpler.
+        // Let's assume bringToFront will be called after this by the initiator.
+        return updatedApps;
       } else {
         const newDialogApp: AppInstance = {
           ...blueprint,
           isOpen: true,
-          zIndex: ALERT_DIALOG_Z_MIN, 
+          zIndex: ALERT_DIALOG_Z_MIN, // Start at min, bringToFront will adjust
           position: undefined, 
           component: (props: { closeDialog: () => void }) => (
             <>
@@ -431,7 +438,7 @@ export default function Workspace() {
                 >
                   <CardHeader
                     className={cn(
-                      "p-2 flex flex-row items-center justify-between cursor-grab border-b border-border/50 select-none",
+                      "p-1 space-y-1 flex flex-row items-center justify-between cursor-grab border-b border-border/50 select-none",
                       isFocused ? "bg-card/80" : "bg-popover"
                     )}
                     onMouseDown={(e) => {
@@ -490,7 +497,7 @@ export default function Workspace() {
                   }}
                 >
                   <AlertDialogContent
-                    className={cn("flex flex-col")} // Ensure flex layout
+                    className={cn("flex flex-col")} 
                     style={{
                         width: appInstance.size.width,
                         maxWidth: appInstance.size.maxWidth,
@@ -501,7 +508,7 @@ export default function Workspace() {
                     onCloseAutoFocus={(e) => e.preventDefault()}
                     onPointerDownOutside={(e) => {
                         if ((e.target as HTMLElement).closest('[data-radix-alert-dialog-content]') === null) {
-                             e.preventDefault(); // Prevent closing if click is outside actual content (e.g. on overlay)
+                             e.preventDefault();
                         }
                     }}
                   >
@@ -515,5 +522,3 @@ export default function Workspace() {
     </div>
   );
 }
-
-    
