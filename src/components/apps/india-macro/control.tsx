@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { systemAppTheme } from "@/components/theme/system-app-theme";
+import { cn } from "@/lib/utils";
 
 export default function IndiaMacroControl() {
   const {
@@ -64,11 +66,17 @@ export default function IndiaMacroControl() {
   };
   
   return (
-    <div className="p-4 bg-zinc-900/80 backdrop-blur-sm text-white rounded-b-lg border-t border-zinc-700/50 shadow w-full h-full flex flex-col space-y-3 overflow-y-auto">
-      <h2 className="text-base font-semibold text-zinc-300 text-center border-b border-zinc-700/80 pb-2 sticky top-0 bg-zinc-900/80 z-10 pt-1 -mt-1">Macro Controls</h2>
+    <div className={cn("p-4 w-full h-full flex flex-col space-y-3 overflow-y-auto", systemAppTheme.typography.baseText)}>
+      <h2 className={cn(
+          systemAppTheme.typography.heading,
+          "text-base text-center border-b border-border pb-2 sticky top-0 bg-card/80 backdrop-blur-sm z-10 pt-1 -mt-1"
+        )}
+      >
+        Macro Controls
+      </h2>
 
       <div className="space-y-1.5">
-        <Label htmlFor="baseGDPInput" className="block text-xs text-zinc-400">Base GDP (Nominal, USD)</Label>
+        <Label htmlFor="baseGDPInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Base GDP (Nominal, USD)</Label>
         <Input
           id="baseGDPInput"
           type="text"
@@ -76,26 +84,26 @@ export default function IndiaMacroControl() {
           onChange={(e) => handleInputChange(setLocalGDP, e.target.value)}
           onBlur={() => setLocalGDP(formatForDisplay(localGDP.replace(/,/g, '')))}
           onFocus={(e) => setLocalGDP(e.target.value.replace(/,/g, ''))}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="growthRateInput" className="block text-xs text-zinc-400">Nominal GDP Growth Rate (%)</Label>
+        <Label htmlFor="growthRateInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Nominal GDP Growth Rate (%)</Label>
         <Input
           id="growthRateInput"
           type="number"
           value={localGrowth}
           onChange={(e) => setLocalGrowth(e.target.value)}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
           step="0.1"
         />
       </div>
       
-      <hr className="border-zinc-700/60 my-2"/>
+      <hr className="border-border/60 my-2"/>
 
       <div className="space-y-1.5">
-        <Label htmlFor="basePopulationInput" className="block text-xs text-zinc-400">Base Population</Label>
+        <Label htmlFor="basePopulationInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Base Population</Label>
         <Input
           id="basePopulationInput"
           type="text"
@@ -103,26 +111,26 @@ export default function IndiaMacroControl() {
           onChange={(e) => handleInputChange(setLocalPop, e.target.value)}
           onBlur={() => setLocalPop(formatForDisplay(localPop.replace(/,/g, '')))}
           onFocus={(e) => setLocalPop(e.target.value.replace(/,/g, ''))}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="populationGrowthRateInput" className="block text-xs text-zinc-400">Population Growth Rate (%)</Label>
+        <Label htmlFor="populationGrowthRateInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Population Growth Rate (%)</Label>
         <Input
           id="populationGrowthRateInput"
           type="number"
           value={localPopGrowth}
           onChange={(e) => setLocalPopGrowth(e.target.value)}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
           step="0.01"
         />
       </div>
       
-      <hr className="border-zinc-700/60 my-2"/>
+      <hr className="border-border/60 my-2"/>
 
       <div className="space-y-1.5">
-        <Label htmlFor="basePPPInput" className="block text-xs text-zinc-400">Base GDP (PPP, USD)</Label>
+        <Label htmlFor="basePPPInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Base GDP (PPP, USD)</Label>
         <Input
           id="basePPPInput"
           type="text"
@@ -130,18 +138,18 @@ export default function IndiaMacroControl() {
           onChange={(e) => handleInputChange(setLocalPPP, e.target.value)}
           onBlur={() => setLocalPPP(formatForDisplay(localPPP.replace(/,/g, '')))}
           onFocus={(e) => setLocalPPP(e.target.value.replace(/,/g, ''))}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="pppGrowthRateInput" className="block text-xs text-zinc-400">GDP (PPP) Growth Rate (%)</Label>
+        <Label htmlFor="pppGrowthRateInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>GDP (PPP) Growth Rate (%)</Label>
         <Input
           id="pppGrowthRateInput"
           type="number"
           value={localPPPGrowth}
           onChange={(e) => setLocalPPPGrowth(e.target.value)}
-          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
           step="0.1"
         />
       </div>

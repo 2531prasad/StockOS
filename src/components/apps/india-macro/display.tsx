@@ -10,6 +10,8 @@ import {
   formatUSD,
   formatCompact
 } from "./utils";
+import { systemAppTheme } from "@/components/theme/system-app-theme";
+import { cn } from "@/lib/utils";
 
 const UPDATE_INTERVAL_MS = 100;
 
@@ -41,27 +43,27 @@ export default function IndiaMacroDisplay() {
   const gdpPerCapitaPPP = populationNow > 0 ? gdpPPPValueNow / populationNow : 0;
 
   return (
-    <div className="p-4 bg-zinc-900/80 backdrop-blur-sm text-white rounded-b-lg border-t border-zinc-700/50 shadow-lg w-full h-full flex flex-col justify-center space-y-3">
-      <p className="text-xs text-zinc-400 tracking-wider uppercase text-center">🇮🇳 India Macro Dashboard</p>
+    <div className={cn("p-4 w-full h-full flex flex-col justify-center space-y-3", systemAppTheme.typography.baseText)}>
+      <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard</p>
 
       <div className="text-center mb-2">
-        <div className="text-zinc-400 text-xs mb-0.5 whitespace-nowrap">Nominal GDP</div>
-        <div className="text-2xl font-mono font-semibold tabular-nums text-zinc-100">{formatUSD(gdpNow)}</div>
+        <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Nominal GDP</div>
+        <div className={cn(systemAppTheme.typography.monospace, "text-2xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
       </div>
 
-      <div className="grid grid-cols-3 gap-x-3 gap-y-2 font-mono tabular-nums text-xs text-zinc-200">
+      <div className={cn("grid grid-cols-3 gap-x-3 gap-y-2", systemAppTheme.typography.monospace, "text-xs text-card-foreground")}>
         <div className="text-center">
-          <div className="text-zinc-400 text-[11px] mb-0.5 whitespace-nowrap">GDP (PPP)</div>
+          <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>GDP (PPP)</div>
           <div className="text-sm font-semibold">{formatUSD(gdpPPPValueNow)}</div>
         </div>
 
         <div className="text-center">
-          <div className="text-zinc-400 text-[11px] mb-0.5 whitespace-nowrap">Population</div>
+          <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>Population</div>
           <div className="text-sm font-semibold">{formatCompact(populationNow)}</div>
         </div>
 
         <div className="text-center">
-          <div className="text-zinc-400 text-[11px] mb-0.5 whitespace-nowrap">GDP/Cap (PPP)</div>
+          <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>GDP/Cap (PPP)</div>
           <div className="text-sm font-semibold">{formatUSD(gdpPerCapitaPPP, 0)}</div>
         </div>
       </div>
