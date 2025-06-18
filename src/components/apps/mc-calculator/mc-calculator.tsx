@@ -198,7 +198,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
                 type="number"
                 value={iterations}
                 onChange={(e) => setIterations(Math.max(100, parseInt(e.target.value, 10) || 100000))}
-                className="w-24 h-8 text-xs"
+                className="w-full h-8 text-xs"
                 min="100"
                 step="1000"
               />
