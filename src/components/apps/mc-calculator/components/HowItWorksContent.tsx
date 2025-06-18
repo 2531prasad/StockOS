@@ -4,7 +4,7 @@ import React from 'react';
 
 export default function HowItWorksContent() {
   return (
-    <div className="max-h-[calc(75vh-80px)] overflow-y-auto">
+    <div> 
       <div className="text-sm text-muted-foreground text-left p-4 space-y-4">
         <div>
           <h3 className="font-semibold text-base mb-1 text-card-foreground">🚀 What This Calculator Does</h3>
@@ -84,3 +84,4 @@ export default function HowItWorksContent() {
     </div>
   );
 }
+
