@@ -350,6 +350,15 @@
   }
 }
 
+/* Custom Shadow Definitions */
+.shadow-lg {
+    --tw-shadow: 0 10px 15px -3px #00000080, 0 4px 6px -4px var(--tw-shadow-color, #0000009c);
+}
+.shadow-2xl {
+    --tw-shadow: 0 25px 50px -12px #000000d4;
+}
+
+
 /* Custom utility to hide native scrollbars */
 /*
 @utility no-scrollbar {
@@ -385,3 +394,4 @@
   50%  { filter: brightness(1.4); }
   100% { filter: brightness(1); }
 }
+
