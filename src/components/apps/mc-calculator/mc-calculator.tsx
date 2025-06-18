@@ -14,7 +14,7 @@ import {
 
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Terminal, CornerDownLeft, History, Trash2 } from "lucide-react";
+import { Terminal, CornerDownLeft, History, Trash2, HelpCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { format } from 'timeago.js';
@@ -29,7 +29,7 @@ interface HistoryItem {
 interface MCCalculatorProps {
   isFocused: boolean;
   isMinimized?: boolean;
-  openDialogApp: (dialogId: string) => void; // New prop
+  openDialogApp: (dialogId: string) => void;
 }
 
 const MAX_HISTORY_ITEMS = 20;
@@ -191,8 +191,8 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
       <div className="lg:w-[180px] space-y-4 text-xs shrink-0">
 
         <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="iterations-input-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap">Iterations</Label>
+            <div>
+              <Label htmlFor="iterations-input-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mb-1">Iterations</Label>
               <Input
                 id="iterations-input-ctrl-prob"
                 type="number"
@@ -359,3 +359,6 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
     </div>
   );
 }
+
+
+    
