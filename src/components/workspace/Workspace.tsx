@@ -45,8 +45,8 @@ interface AppInstance {
 
 const SYSTEM_APP_Z_MIN = 901;
 const SYSTEM_APP_Z_MAX = 920;
-const ALERT_DIALOG_Z_MIN = 921;
-const ALERT_DIALOG_Z_MAX = 940;
+const ALERT_DIALOG_Z_MIN = 930; // Increased
+const ALERT_DIALOG_Z_MAX = 950; // Increased
 
 const dialogAppBlueprints: Omit<AppInstance, 'isOpen' | 'zIndex' | 'position' | 'component' | 'contentPadding'> & { contentComponent: React.FC<any> }[] = [
   {
@@ -145,17 +145,17 @@ export default function Workspace() {
           zIndex: ALERT_DIALOG_Z_MIN, 
           position: undefined, 
           component: (props: { closeDialog: () => void }) => (
-            <div className="flex flex-col h-full"> 
+            <>
               <AlertDialogHeader>
                 <AlertDialogTitle>{blueprint.title}</AlertDialogTitle>
               </AlertDialogHeader>
-              <div className="flex-1 overflow-y-auto"> 
+              <div className="flex-1 overflow-y-auto py-4"> 
                 <blueprint.contentComponent />
               </div>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={props.closeDialog}>Close</AlertDialogCancel>
               </AlertDialogFooter>
-            </div>
+            </>
           ),
           contentPadding: 'p-0', 
         };
@@ -458,7 +458,7 @@ export default function Workspace() {
                   </CardHeader>
                   {!appInstance.isMinimized && (
                     <CardContent className={cn(
-                        "flex-1 relative overflow-y-auto", // Changed from flex-grow
+                        "flex-1 relative overflow-y-auto", 
                         appInstance.contentPadding || "p-4",
                          isFocused ? "bg-card/80" : "bg-popover"
                       )}>
@@ -490,18 +490,18 @@ export default function Workspace() {
                   }}
                 >
                   <AlertDialogContent
+                    className={cn("flex flex-col")} // Ensure flex layout
                     style={{
                         width: appInstance.size.width,
                         maxWidth: appInstance.size.maxWidth,
                         maxHeight: appInstance.size.maxHeight,
                         zIndex: appInstance.zIndex, 
                     }}
-                    
                     onOpenAutoFocus={(e) => e.preventDefault()}
                     onCloseAutoFocus={(e) => e.preventDefault()}
                     onPointerDownOutside={(e) => {
                         if ((e.target as HTMLElement).closest('[data-radix-alert-dialog-content]') === null) {
-                            e.preventDefault(); 
+                             e.preventDefault(); // Prevent closing if click is outside actual content (e.g. on overlay)
                         }
                     }}
                   >
@@ -516,3 +516,4 @@ export default function Workspace() {
   );
 }
 
+    
