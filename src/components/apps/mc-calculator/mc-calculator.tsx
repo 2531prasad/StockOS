@@ -28,12 +28,13 @@ interface HistoryItem {
 
 interface MCCalculatorProps {
   isFocused: boolean;
-  isMinimized: boolean;
+  isMinimized?: boolean;
+  openDialogApp: (dialogId: string) => void; // New prop
 }
 
 const MAX_HISTORY_ITEMS = 20;
 
-export default function MCCalculator({ isFocused, isMinimized }: MCCalculatorProps) {
+export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: MCCalculatorProps) {
   const [expression, setExpression] = useState("");
   const [iterations, setIterations] = useState(100000);
   const [histogramBins, setHistogramBins] = useState(23);
