@@ -131,11 +131,15 @@ export default function Workspace() {
          const unminimizedApp = {
             ...appToFocusPotentiallyOpened,
             isMinimized: false,
-            size: {
+            size: { // Restore previous size or default min size
                 ...appToFocusPotentiallyOpened.size,
                 width: appToFocusPotentiallyOpened.previousSize?.width || (appToFocusPotentiallyOpened.size.minWidth ? `${appToFocusPotentiallyOpened.size.minWidth}px` : '400px'),
                 height: appToFocusPotentiallyOpened.previousSize?.height || (appToFocusPotentiallyOpened.size.minHeight ? `${appToFocusPotentiallyOpened.size.minHeight}px` : '300px'),
-                maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : (appToFocusPotentiallyOpened.id === "india-gdp-control" ? '280px' : (appToFocusPotentiallyOpened.id === "india-gdp-display" ? '130px' : 'none')),
+                // Restore specific maxHeight for certain apps if needed
+                maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '480px' : // Updated maxHeight
+                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '220px' : // Updated maxHeight
+                           'none',
             },
             previousSize: null
          };
@@ -161,14 +165,13 @@ export default function Workspace() {
 
       if (existingDialog) {
         const updatedApps = prevApps.map(app => app.id === dialogId ? { ...app, isOpen: true } : app);
-        // No need to call bringToFront here, it will be called after setApps completes
         return updatedApps;
       } else {
         const newDialogApp: AppInstance = {
           ...blueprint,
           isOpen: true,
-          zIndex: ALERT_DIALOG_Z_MIN, // Initial z-index
-          position: undefined, // Centered by AlertDialog
+          zIndex: ALERT_DIALOG_Z_MIN, 
+          position: undefined, 
           component: (props: { closeDialog: () => void }) => (
             <>
               <AlertDialogHeader>
@@ -182,14 +185,11 @@ export default function Workspace() {
               </AlertDialogFooter>
             </>
           ),
-          contentPadding: 'p-0', // Content component handles its own padding
+          contentPadding: 'p-0',
         };
-        // No need to call bringToFront here
         return [...prevApps, newDialogApp];
       }
     });
-    // Call bringToFront after the state update that opens or adds the dialog
-    // This ensures it operates on the latest app list
     setTimeout(() => bringToFront(dialogId), 0);
   }, [bringToFront]);
 
@@ -242,7 +242,7 @@ export default function Workspace() {
       },
       {
         id: "india-gdp-display",
-        title: "India GDP (Live)",
+        title: "India Macro Dashboard",
         component: (props) => <IndiaMacroDisplay {...props} />,
         isOpen: true,
         position: { x: 50, y: 250 },
@@ -251,31 +251,31 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '350px',
-            height: '130px',
-            minWidth: 280,
-            minHeight: 120,
-            maxWidth: '500px',
-            maxHeight: '130px'
+            height: '220px', // Adjusted height
+            minWidth: 320,    // Adjusted minWidth
+            minHeight: 200,   // Adjusted minHeight
+            maxWidth: '550px', // Adjusted maxWidth
+            maxHeight: '220px' // Adjusted maxHeight
         },
         appType: 'system',
         contentPadding: 'p-0',
       },
       {
         id: "india-gdp-control",
-        title: "GDP Controls",
+        title: "Macro Controls",
         component: (props) => <IndiaMacroControl {...props} />,
         isOpen: true,
-        position: { x: 450, y: 250 },
+        position: { x: 450, y: 250 }, // Positioned next to display
         zIndex: SYSTEM_APP_Z_MIN + 3,
         isMinimized: false,
         previousSize: null,
         size: {
             width: '300px',
-            height: '280px',
-            minWidth: 250,
-            minHeight: 260,
+            height: '480px', // Adjusted height
+            minWidth: 280,    // Adjusted minWidth
+            minHeight: 450,   // Adjusted minHeight
             maxWidth: '400px',
-            maxHeight: '280px'
+            maxHeight: '480px' // Adjusted maxHeight
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -291,44 +291,39 @@ export default function Workspace() {
         if (app.id === id && app.appType === 'system') {
           const isCurrentlyMinimized = app.isMinimized;
           if (!isCurrentlyMinimized) {
-            // Minimizing the app
             return {
               ...app,
               isMinimized: true,
-              previousSize: { width: app.size.width, height: app.size.height }, // Save current size
-              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' } // Minimized size
+              previousSize: { width: app.size.width, height: app.size.height }, 
+              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' } 
             };
           } else {
-            // Unminimizing the app - call bringToFront as it handles unminimizing and z-index
-            // bringToFront will handle restoring size and setting isMinimized to false.
-            // No direct state change here, let bringToFront manage it.
-            // The actual unminimizing logic is now inside bringToFront for focused apps.
-            // For non-focused apps, we directly unminimize:
             if(apps.find(a => a.id === id)?.zIndex !== findTopmostZByType(prevApps, 'system')) {
-                bringToFront(id); // This will also unminimize
-                return app; // placeholder, will be updated by bringToFront
+                // Defer to bringToFront which will unminimize
+            } else {
+              // If already top, unminimize directly
+              return {
+                ...app,
+                isMinimized: false,
+                size: {
+                  ...app.size,
+                  width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
+                  height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
+                  maxHeight: app.id === "mc-calculator" ? '625px' : 
+                             app.id === "india-gdp-control" ? '480px' : 
+                             app.id === "india-gdp-display" ? '220px' : 
+                             'none',
+                },
+                previousSize: null
+              };
             }
-            // If it's already the top one, bringToFront won't re-trigger unminimize, so do it here
-            return {
-              ...app,
-              isMinimized: false,
-              size: {
-                ...app.size,
-                width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
-                height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                maxHeight: app.id === "mc-calculator" ? '625px' : (app.id === "india-gdp-control" ? '280px' : (app.id === "india-gdp-display" ? '130px' : 'none')),
-              },
-              previousSize: null
-            };
           }
         }
         return app;
       })
     );
-     // If we just minimized an app, it doesn't need to be brought to front.
-     // If we unminimized, bringToFront will be called or was called.
      const appInstance = apps.find(a=>a.id === id);
-     if (appInstance && !appInstance.isMinimized){
+     if (appInstance && !appInstance.isMinimized){ // If unminimized (or was already unminimized)
         bringToFront(id);
      }
   };
@@ -354,7 +349,7 @@ export default function Workspace() {
     e.preventDefault();
 
     const appToDrag = apps.find(app => app.id === appId);
-    if (!appToDrag || appToDrag.appType !== 'system' || appToDrag.isMinimized) return; // Don't drag minimized apps
+    if (!appToDrag || appToDrag.appType !== 'system' || appToDrag.isMinimized) return; 
 
     const isAnyAlertDialogFocused = apps.some(
       (app) => app.appType === 'alertDialog' && app.isOpen && app.zIndex === topmostAlertDialogZ
@@ -447,7 +442,6 @@ export default function Workspace() {
         newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
         newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
         
-        // Respect maxWidth and maxHeight if they are not 'none'
         if (currentApp.size.maxWidth !== 'none') {
             newWidth = Math.min(newWidth, parseFloat(currentApp.size.maxWidth));
         }
@@ -502,7 +496,7 @@ export default function Workspace() {
                   key={appInstance.id}
                   id={`app-${appInstance.id}`}
                   className={cn(
-                      "absolute flex flex-col border-border rounded-xl overflow-hidden",
+                      "absolute flex flex-col border-border rounded-xl overflow-hidden transition-shadow duration-150",
                       isFocused
                         ? "bg-card backdrop-blur-[8px] shadow-2xl"
                         : "bg-popover shadow-lg hover:shadow-xl"
@@ -518,7 +512,7 @@ export default function Workspace() {
                     minWidth: `${appInstance.size.minWidth || 0}px`,
                     minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
                     userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
-                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color, width, height',
+                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color, width, height', // Removed ring properties
                     transitionDuration: '0.15s',
                     transitionTimingFunction: 'ease-out',
                   }}
@@ -555,7 +549,7 @@ export default function Workspace() {
                   </CardHeader>
                   {!appInstance.isMinimized && (
                     <CardContent className={cn(
-                        "flex-1 relative overflow-hidden", // Changed from overflow-y-auto to overflow-hidden
+                        "flex-1 relative overflow-hidden", 
                         appInstance.contentPadding || "p-4",
                          isFocused ? "bg-card/60" : "bg-popover/60 backdrop-blur-sm"
                       )}>
@@ -572,7 +566,7 @@ export default function Workspace() {
                     </CardContent>
                   )}
                    {appInstance.isMinimized && (
-                      <div className="h-2"></div> // Small space for minimized title bar aesthetic
+                      <div className="h-2"></div> 
                    )}
                 </Card>
               );
@@ -587,29 +581,24 @@ export default function Workspace() {
                   }}
                 >
                   <AlertDialogContent
-                    className={cn("flex flex-col", appInstance.contentPadding === 'p-0' ? 'p-0' : '')} // Apply p-0 if specified
+                    className={cn("flex flex-col", appInstance.contentPadding === 'p-0' ? 'p-0' : '')} 
                     style={{
                         width: appInstance.size.width,
                         maxWidth: appInstance.size.maxWidth,
                         maxHeight: appInstance.size.maxHeight,
                         zIndex: appInstance.zIndex,
                     }}
-                    onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on first element
-                    onCloseAutoFocus={(e) => e.preventDefault()} // Prevent focus trap on close
+                    onOpenAutoFocus={(e) => e.preventDefault()} 
+                    onCloseAutoFocus={(e) => e.preventDefault()} 
                     onPointerDownOutside={(e) => {
-                        // Allow clicks on other ShadCN popovers/selects/dialogs without closing this one
                         if ((e.target as HTMLElement).closest('[data-radix-popper-content-wrapper], [data-radix-select-content], [data-radix-dialog-content], [data-radix-alert-dialog-content]') && !(e.target as HTMLElement).closest(`#alert-dialog-${appInstance.id}`)) {
-                             // If clicking on another dialog/popover that isn't this one, do nothing.
                         } else if ((e.target as HTMLElement).closest(`#alert-dialog-${appInstance.id}`)) {
-                            // Click is inside this dialog, do nothing.
                         }
                          else {
-                             // e.preventDefault(); // Prevent closing if click is outside but not on another interactive element
                         }
                     }}
                     id={`alert-dialog-${appInstance.id}`}
                   >
-                    {/* Remove AlertDialogHeader/Footer from here, handle in component */}
                     <DialogContentComponent closeDialog={() => closeDialogApp(appInstance.id)} />
                   </AlertDialogContent>
                 </AlertDialog>
@@ -620,3 +609,4 @@ export default function Workspace() {
     </div>
   );
 }
+
