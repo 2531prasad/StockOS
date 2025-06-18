@@ -26,7 +26,7 @@ type AppType = 'system' | 'alertDialog';
 interface AppInstance {
   id: string;
   title: string;
-  component: React.ReactNode; // This will now be a function that accepts props
+  component: (props: { isFocused: boolean; isMinimized?: boolean }) => React.ReactNode;
   isOpen: boolean;
   position: { x: number; y: number };
   zIndex: number;
@@ -78,38 +78,28 @@ export default function Workspace() {
           baseZIndexForType = ALERT_DIALOG_Z_MIN;
           break;
         default:
-          // Fallback for unmanaged types: simple increment to bring to very top
           const maxZOfAllOtherApps = prevApps
             .filter(app => app.id !== id && app.isOpen)
             .reduce((max, app) => Math.max(max, app.zIndex), 0);
           const newZForUnmanagedType = maxZOfAllOtherApps + 1;
-          if (appToFocus.zIndex === newZForUnmanagedType) return prevApps; // Already at the top
+          if (appToFocus.zIndex === newZForUnmanagedType) return prevApps;
           return prevApps.map(app => app.id === id ? { ...app, zIndex: newZForUnmanagedType } : app);
       }
 
-      // Get all open apps of the same type as the one being focused
       const appsOfType = prevApps.filter(app => app.appType === appTypeToFocus && app.isOpen);
-
-      // Separate the app to be focused from the others of its type
       const otherAppsInType = appsOfType.filter(app => app.id !== id);
-
-      // Sort the other apps by their current zIndex to maintain relative order among them
       otherAppsInType.sort((a, b) => a.zIndex - b.zIndex);
 
-      // The new stacking order for this type: other apps, then the focused app on top
       const newlyOrderedAppsForType = [...otherAppsInType, appToFocus];
-
-      // Create a map for quick lookup of new z-indexes for the affected type
       const newZIndexMap = new Map<string, number>();
       newlyOrderedAppsForType.forEach((app, index) => {
-        // Ensure z-index stays within defined max for the type
         let maxZForType = appTypeToFocus === 'system' ? SYSTEM_APP_Z_MAX : ALERT_DIALOG_Z_MAX;
         newZIndexMap.set(app.id, Math.min(baseZIndexForType + index, maxZForType));
       });
 
       let changesMade = false;
       const updatedApps = prevApps.map(app => {
-        if (app.appType === appTypeToFocus && app.isOpen) { // Ensure we only modify open apps of the current type
+        if (app.appType === appTypeToFocus && app.isOpen) {
           const newZ = newZIndexMap.get(app.id);
           if (newZ !== undefined && app.zIndex !== newZ) {
             changesMade = true;
@@ -129,7 +119,7 @@ export default function Workspace() {
       {
         id: "mc-calculator",
         title: "Monte Carlo Calculator",
-        component: (props: any) => <MCCalculator {...props} />,
+        component: (props) => <MCCalculator {...props} />,
         isOpen: true,
         position: { x: 50, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN,
@@ -149,7 +139,7 @@ export default function Workspace() {
       {
         id: "husky-image-viewer",
         title: "Husky",
-        component: (props: any) => <ImageViewer {...props} />,
+        component: (props) => <ImageViewer {...props} />,
         isOpen: true,
         position: { x: 550, y: 50 },
         zIndex: SYSTEM_APP_Z_MIN + 1,
@@ -192,7 +182,7 @@ export default function Workspace() {
                 ...app.size,
                 width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                 height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                maxHeight: app.id === "mc-calculator" ? '625px' : 'none' // Retain original maxHeight logic
+                maxHeight: app.id === "mc-calculator" ? '625px' : 'none'
               },
               previousSize: null
             };
@@ -208,7 +198,7 @@ export default function Workspace() {
   };
 
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
-    e.preventDefault(); // Prevent text selection
+    e.preventDefault();
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
     if (appElement) {
@@ -222,18 +212,16 @@ export default function Workspace() {
     }
   };
 
-  useEffect(() => {
+ useEffect(() => {
+    if (!activeDrag) {
+      return;
+    }
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!activeDrag || !workspaceRef.current) return;
+      if (!workspaceRef.current || !activeDrag) return;
 
       const appElement = document.getElementById(`app-${activeDrag.appId}`);
       if (!appElement) return;
-
-      const appData = apps.find(app => app.id === activeDrag.appId);
-      if (!appData) {
-        setActiveDrag(null);
-        return;
-      }
 
       const appRect = appElement.getBoundingClientRect();
       const workspaceRect = workspaceRef.current.getBoundingClientRect();
@@ -246,10 +234,8 @@ export default function Workspace() {
       let newRelativeX = newViewportX - workspaceRect.left + scrollX;
       let newRelativeY = newViewportY - workspaceRect.top + scrollY;
 
-
       newRelativeX = Math.max(0, Math.min(newRelativeX, workspaceRect.width - appRect.width + scrollX));
       newRelativeY = Math.max(0, Math.min(newRelativeY, workspaceRect.height - appRect.height + scrollY));
-
 
       setApps(prevApps =>
         prevApps.map(app =>
@@ -264,19 +250,18 @@ export default function Workspace() {
       setActiveDrag(null);
     };
 
-    if (activeDrag) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, apps, bringToFront]);
+  }, [activeDrag, setActiveDrag]);
+
 
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, appId: string) => {
-    e.preventDefault(); // Prevent text selection during resize
+    e.preventDefault();
     e.stopPropagation();
     bringToFront(appId);
     const appElement = document.getElementById(`app-${appId}`);
@@ -294,39 +279,40 @@ export default function Workspace() {
   };
 
   useEffect(() => {
+    if (!activeResize) {
+      return;
+    }
     const handleMouseMoveResize = (e: MouseEvent) => {
-      if (!activeResize || !workspaceRef.current) return;
+      if (!workspaceRef.current || !activeResize) return;
 
-      const currentApp = apps.find(app => app.id === activeResize.appId);
-      if (!currentApp || currentApp.isMinimized) {
-        setActiveResize(null);
-        return;
-      }
+      setApps(prevApps => {
+        const currentApp = prevApps.find(app => app.id === activeResize.appId);
+        if (!currentApp || currentApp.isMinimized) {
+          return prevApps;
+        }
 
-      const deltaX = e.clientX - activeResize.initialMouseX;
-      const deltaY = e.clientY - activeResize.initialMouseY;
+        const deltaX = e.clientX - activeResize.initialMouseX;
+        const deltaY = e.clientY - activeResize.initialMouseY;
 
-      let newWidth = activeResize.initialWidth + deltaX;
-      let newHeight = activeResize.initialHeight + deltaY;
+        let newWidth = activeResize.initialWidth + deltaX;
+        let newHeight = activeResize.initialHeight + deltaY;
 
-      newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
-      newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
+        newWidth = Math.max(currentApp.size.minWidth || 0, newWidth);
+        newHeight = Math.max(currentApp.size.minHeight || 0, newHeight);
 
-      const workspaceRect = workspaceRef.current.getBoundingClientRect();
-      const scrollX = workspaceRef.current.scrollLeft;
-      const scrollY = workspaceRef.current.scrollTop;
-      const appPos = currentApp.position;
+        const workspaceRect = workspaceRef.current.getBoundingClientRect();
+        const scrollX = workspaceRef.current.scrollLeft;
+        const scrollY = workspaceRef.current.scrollTop;
+        const appPos = currentApp.position;
 
-      if (appPos.x + newWidth > workspaceRect.width + scrollX) {
-        newWidth = workspaceRect.width - appPos.x + scrollX;
-      }
-      if (appPos.y + newHeight > workspaceRect.height + scrollY) {
-        newHeight = workspaceRect.height - appPos.y + scrollY;
-      }
+        if (appPos.x + newWidth > workspaceRect.width + scrollX) {
+          newWidth = workspaceRect.width - appPos.x + scrollX;
+        }
+        if (appPos.y + newHeight > workspaceRect.height + scrollY) {
+          newHeight = workspaceRect.height - appPos.y + scrollY;
+        }
 
-
-      setApps(prevApps =>
-        prevApps.map(app =>
+        return prevApps.map(app =>
           app.id === activeResize.appId
             ? {
                 ...app,
@@ -337,23 +323,21 @@ export default function Workspace() {
                 },
               }
             : app
-        )
-      );
+        );
+      });
     };
 
     const handleMouseUpResize = () => {
       setActiveResize(null);
     };
 
-    if (activeResize) {
-      window.addEventListener('mousemove', handleMouseMoveResize);
-      window.addEventListener('mouseup', handleMouseUpResize);
-    }
+    window.addEventListener('mousemove', handleMouseMoveResize);
+    window.addEventListener('mouseup', handleMouseUpResize);
     return () => {
       window.removeEventListener('mousemove', handleMouseMoveResize);
       window.removeEventListener('mouseup', handleMouseUpResize);
     };
-  }, [activeResize, apps, bringToFront]);
+  }, [activeResize, setActiveResize]);
 
   const findTopmostZByType = (appsList: AppInstance[], type: AppType): number => {
     let initialZ = 0;
@@ -382,10 +366,7 @@ export default function Workspace() {
                 isFocused = appInstance.zIndex === topmostAlertDialogZ;
             }
 
-            // Render the component by calling the function with props
-            const componentToRender = typeof appInstance.component === 'function'
-              ? appInstance.component({ isFocused, isMinimized: appInstance.isMinimized })
-              : appInstance.component;
+            const componentToRender = appInstance.component({ isFocused, isMinimized: appInstance.isMinimized });
 
 
             return (
@@ -393,7 +374,7 @@ export default function Workspace() {
             key={appInstance.id}
             id={`app-${appInstance.id}`}
             className={cn(
-                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden", // Changed from overflow-auto
+                "absolute shadow-2xl flex flex-col border-border rounded-lg overflow-hidden",
                 isFocused ? "bg-card backdrop-blur-[8px]" : "bg-popover"
               )}
             style={{
@@ -436,7 +417,6 @@ export default function Workspace() {
                         className="z-[930]"
                         onOpenAutoFocus={(e) => e.preventDefault()}
                         onCloseAutoFocus={(e) => e.preventDefault()}
-                        onPointerDownOutside={(e) => e.preventDefault()}
                     >
                       <AlertDialogHeader>
                         <AlertDialogTitle>How This Calculator Works</AlertDialogTitle>
@@ -460,14 +440,14 @@ export default function Workspace() {
             </CardHeader>
             {!appInstance.isMinimized && (
               <CardContent className={cn(
-                  "flex-1 relative overflow-y-auto", // Changed from flex-grow, added overflow-y-auto
+                  "flex-1 relative overflow-y-auto",
                   appInstance.contentPadding || "p-4",
                   isFocused ? "bg-card/80" : "bg-popover"
                 )}>
                 {componentToRender}
                  {!appInstance.isMinimized && (
                     <div
-                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none z-10" // Added z-10
+                        className="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100 flex items-center justify-center select-none z-10"
                         onMouseDown={(e) => handleResizeStart(e, appInstance.id)}
                         title="Resize"
                     >
@@ -485,4 +465,3 @@ export default function Workspace() {
     </div>
   );
 }
-
