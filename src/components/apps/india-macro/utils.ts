@@ -32,6 +32,21 @@ export function calculatePopulation(
   return basePop * Math.pow(growthFactor, elapsed / MS_IN_YEAR);
 }
 
+/**
+ * Calculates projected PPP GDP based on base amount, growth rate and elapsed time.
+ */
+export function calculatePPP(
+  basePPP: number,
+  pppGrowthRate: number,
+  start: number,
+  now: number = Date.now()
+): number {
+  const elapsed = now - start;
+  if (elapsed < 0) return basePPP;
+  const growthFactor = 1 + pppGrowthRate / 100;
+  return basePPP * Math.pow(growthFactor, elapsed / MS_IN_YEAR);
+}
+
 
 /**
  * Format a number as USD with commas.
@@ -50,13 +65,13 @@ export function formatUSD(value: number, maximumFractionDigits: number = 0): str
 export function formatCompact(value: number, style: 'decimal' | 'currency' = 'decimal', currency?: string): string {
   const options: Intl.NumberFormatOptions = {
     notation: "compact",
-    maximumFractionDigits: 1, // Compact can have a bit more precision
+    maximumFractionDigits: 1, 
   };
   if (style === 'currency' && currency) {
     options.style = 'currency';
     options.currency = currency;
   } else {
-    options.style = 'decimal'; // Default to decimal for population
+    options.style = 'decimal'; 
   }
   return new Intl.NumberFormat("en-US", options).format(value);
 }

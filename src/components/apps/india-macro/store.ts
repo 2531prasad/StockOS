@@ -7,28 +7,32 @@ type IndiaMacroStore = {
   startTime: number;
 
   basePopulation: number;
-  populationGrowthRate: number; // e.g., 0.8
+  populationGrowthRate: number; 
   basePPP: number;
+  pppGrowthRate: number;
 
   updateBase: (value: number) => void;
   updateGrowth: (value: number) => void;
   updatePopulation: (value: number) => void;
   updatePopulationGrowth: (value: number) => void;
   updatePPP: (value: number) => void;
+  updatePPPGrowth: (value: number) => void;
 };
 
 export const useIndiaMacroStore = create<IndiaMacroStore>((set) => ({
-  baseGDP: 4011550143837, // Approx. 4.01 Trillion USD
-  growthRate: 7.4, // Annual growth rate in %
+  baseGDP: 4011550143837, 
+  growthRate: 7.4, 
   startTime: Date.now(),
 
   basePopulation: 1427108234,
-  populationGrowthRate: 0.8, // percent
-  basePPP: 13119000000000, // USD PPP
+  populationGrowthRate: 0.8, 
+  basePPP: 13119000000000, 
+  pppGrowthRate: 6.5, // Default PPP growth rate
 
   updateBase: (value) => set({ baseGDP: value, startTime: Date.now() }),
-  updateGrowth: (value) => set({ growthRate: value, startTime: Date.now() }), // Also reset startTime
-  updatePopulation: (value) => set({ basePopulation: value, startTime: Date.now() }), // Reset startTime for consistency
-  updatePopulationGrowth: (value) => set({ populationGrowthRate: value, startTime: Date.now() }), // Reset startTime
-  updatePPP: (value) => set({ basePPP: value }), // PPP is static for now, no startTime reset needed unless it becomes dynamic
+  updateGrowth: (value) => set({ growthRate: value, startTime: Date.now() }), 
+  updatePopulation: (value) => set({ basePopulation: value, startTime: Date.now() }), 
+  updatePopulationGrowth: (value) => set({ populationGrowthRate: value, startTime: Date.now() }), 
+  updatePPP: (value) => set({ basePPP: value, startTime: Date.now() }), 
+  updatePPPGrowth: (value) => set({ pppGrowthRate: value, startTime: Date.now()}),
 }));

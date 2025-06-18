@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 export default function IndiaMacroControl() {
   const {
     baseGDP, growthRate,
-    basePopulation, populationGrowthRate, basePPP,
+    basePopulation, populationGrowthRate, basePPP, pppGrowthRate,
     updateBase, updateGrowth,
-    updatePopulation, updatePopulationGrowth, updatePPP
+    updatePopulation, updatePopulationGrowth, updatePPP, updatePPPGrowth
   } = useIndiaMacroStore();
 
   const [localGDP, setLocalGDP] = useState(baseGDP.toString());
@@ -20,12 +20,14 @@ export default function IndiaMacroControl() {
   const [localPop, setLocalPop] = useState(basePopulation.toString());
   const [localPopGrowth, setLocalPopGrowth] = useState(populationGrowthRate.toString());
   const [localPPP, setLocalPPP] = useState(basePPP.toString());
+  const [localPPPGrowth, setLocalPPPGrowth] = useState(pppGrowthRate.toString());
 
   useEffect(() => setLocalGDP(baseGDP.toString()), [baseGDP]);
   useEffect(() => setLocalGrowth(growthRate.toString()), [growthRate]);
   useEffect(() => setLocalPop(basePopulation.toString()), [basePopulation]);
   useEffect(() => setLocalPopGrowth(populationGrowthRate.toString()), [populationGrowthRate]);
   useEffect(() => setLocalPPP(basePPP.toString()), [basePPP]);
+  useEffect(() => setLocalPPPGrowth(pppGrowthRate.toString()), [pppGrowthRate]);
 
   const formatForDisplay = (numStr: string) => {
     const num = parseFloat(numStr.replace(/,/g, ''));
@@ -56,6 +58,9 @@ export default function IndiaMacroControl() {
 
     const parsedPPP = cleanAndParse(localPPP);
     if (!isNaN(parsedPPP) && parsedPPP > 0) updatePPP(parsedPPP);
+
+    const parsedPPPGrowth = parseFloat(localPPPGrowth);
+    if (!isNaN(parsedPPPGrowth)) updatePPPGrowth(parsedPPPGrowth);
   };
   
   return (
@@ -126,6 +131,18 @@ export default function IndiaMacroControl() {
           onBlur={() => setLocalPPP(formatForDisplay(localPPP.replace(/,/g, '')))}
           onFocus={(e) => setLocalPPP(e.target.value.replace(/,/g, ''))}
           className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="pppGrowthRateInput" className="block text-xs text-zinc-400">GDP (PPP) Growth Rate (%)</Label>
+        <Input
+          id="pppGrowthRateInput"
+          type="number"
+          value={localPPPGrowth}
+          onChange={(e) => setLocalPPPGrowth(e.target.value)}
+          className="w-full h-9 text-sm p-2 rounded bg-zinc-800 border-zinc-600 font-mono text-right"
+          step="0.1"
         />
       </div>
       
