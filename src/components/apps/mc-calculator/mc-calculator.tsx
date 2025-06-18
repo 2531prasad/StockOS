@@ -204,9 +204,6 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
               />
             </div>
             <div>
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mb-1">
-                Bars: {histogramBins}
-              </Label>
               <Slider
                 id="histogram-bins-slider-ctrl-prob"
                 min={5}
@@ -214,8 +211,11 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
                 step={1}
                 value={[histogramBins]}
                 onValueChange={(value) => setHistogramBins(value[0])}
-                className="w-full mt-1"
+                className="w-full"
               />
+              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mt-1">
+                Bars: {histogramBins}
+              </Label>
             </div>
         </div>
 
@@ -359,3 +359,4 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
     </div>
   );
 }
+
