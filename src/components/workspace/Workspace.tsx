@@ -413,7 +413,7 @@ export default function Workspace() {
                       "absolute flex flex-col border-border rounded-xl overflow-hidden",
                       "transition-shadow duration-150",
                       isFocused
-                        ? "bg-card backdrop-blur-[8px] shadow-2xl ring-1 ring-zinc-400/30"
+                        ? "bg-card backdrop-blur-[8px] shadow-2xl"
                         : "bg-popover shadow-lg hover:shadow-xl"
                     )}
                   style={{
@@ -427,7 +427,7 @@ export default function Workspace() {
                     minWidth: `${appInstance.size.minWidth || 0}px`,
                     minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
                     userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
-                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color, ring-color, ring-width',
+                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color',
                     transitionDuration: '0.15s',
                     transitionTimingFunction: 'ease-out',
                   }}
