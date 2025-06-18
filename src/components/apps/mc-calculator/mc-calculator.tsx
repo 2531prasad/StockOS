@@ -213,7 +213,7 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
                 onValueChange={(value) => setHistogramBins(value[0])}
                 className="w-full"
               />
-              <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mt-1">
+               <Label htmlFor="histogram-bins-slider-ctrl-prob" className="text-xs text-muted-foreground whitespace-nowrap block mt-1">
                 Bars: {histogramBins}
               </Label>
             </div>
@@ -222,8 +222,8 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
         <hr className="my-2 border-border/50"/>
 
         <p><strong>Simulated Range:</strong><br/>{formatNumber(calcResult.min)} ~ {formatNumber(calcResult.max)}</p>
-        <p><strong>Mean (μ):</strong> {formatNumber(calcResult.mean)}</p>
-        <p><strong>Std Dev (σ):</strong> {formatNumber(calcResult.stdDev)}</p>
+        <p><strong>Mean (μ):</strong><br/>{formatNumber(calcResult.mean)}</p>
+        <p><strong>Std Dev (σ):</strong><br/>{formatNumber(calcResult.stdDev)}</p>
         <hr className="my-2 border-border/50"/>
         <p><strong>P5:</strong> {formatNumber(calcResult.p5)}</p>
         <p><strong>P10:</strong> {formatNumber(calcResult.p10)}</p>
@@ -359,3 +359,4 @@ export default function MCCalculator({ isFocused, isMinimized, openDialogApp }: 
     </div>
   );
 }
+
