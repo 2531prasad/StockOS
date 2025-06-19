@@ -1,3 +1,4 @@
+
 // components/apps/india-macro/display.tsx
 "use client";
 
@@ -13,7 +14,7 @@ import {
 import { systemAppTheme } from "@/components/theme/system-app-theme";
 import { cn } from "@/lib/utils";
 
-const UPDATE_INTERVAL_MS = 100;
+const UPDATE_INTERVAL_MS = 33.33;
 
 export default function IndiaMacroDisplay() {
   const {
@@ -70,3 +71,4 @@ export default function IndiaMacroDisplay() {
     </div>
   );
 }
+
