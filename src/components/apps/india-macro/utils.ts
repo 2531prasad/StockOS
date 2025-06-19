@@ -1,9 +1,7 @@
-
 // components/apps/india-macro/utils.ts
+import { imfIndicators } from "./imf-codes";
 
 const MS_IN_YEAR = 365.25 * 24 * 60 * 60 * 1000;
-// const IMF_API_BASE = "https://www.imf.org/external/datamapper/api/v1"; // No longer needed for direct client fetch
-// const COUNTRY_CODE = "IND"; // No longer needed for direct client fetch
 
 /**
  * Calculates projected GDP based on base amount, growth rate and elapsed time.
@@ -86,7 +84,12 @@ export async function fetchIMFData(indicatorCode: string): Promise<Record<string
   console.log(`Attempting to fetch IMF data via proxy: ${proxyUrl}`);
 
   try {
-    const res = await fetch(proxyUrl);
+    const res = await fetch(proxyUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'FloatCalc-IMF-Proxy/1.0',
+      }
+    });
 
     if (!res.ok) {
       let errorDetails = `Proxy request failed with status ${res.status}`;
@@ -94,7 +97,6 @@ export async function fetchIMFData(indicatorCode: string): Promise<Record<string
         const errorJson = await res.json();
         errorDetails += `: ${errorJson.error || 'Unknown proxy error'}${errorJson.details ? ' - ' + errorJson.details : ''}`;
       } catch (jsonError) {
-        // If parsing the error JSON fails, use the raw text
         const errorText = await res.text().catch(() => "Could not get error text from proxy response");
         errorDetails += `. Response body: ${errorText}`;
       }
@@ -145,11 +147,7 @@ export function getLatestValue(values: Record<string, number> | null): { year: n
   return entries.length > 0 ? entries[entries.length - 1] : null;
 }
 
-// Definition of IMF indicators we might want to fetch
-export const IMF_INDICATORS_TO_FETCH = [
-  { code: "NGDP_RPCH", label: "Real GDP Growth (%)" },
-  { code: "PCPIPCH", label: "Inflation Rate (%)" },
-  { code: "LUR", label: "Unemployment Rate (%)" },
-  { code: "GGXWDG_NGDP", label: "Debt (% of GDP)" },
-  { code: "BCA_NGDPD", label: "Current Account (% of GDP)"}
-];
+// Definition of IMF indicators to fetch, derived from imf-codes.ts
+export const IMF_INDICATORS_TO_FETCH = Object.entries(imfIndicators).map(
+  ([code, label]) => ({ code, label })
+);
