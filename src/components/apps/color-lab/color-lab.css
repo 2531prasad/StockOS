@@ -1,12 +1,12 @@
 /* components/apps/color-lab/color-lab.css */
 
-@property --primary {
+@property --primarygradient {
   syntax: "<color>";
   inherits: false;
   initial-value: #245784;
 }
 
-@property --secondary {
+@property --secondarygradient {
   syntax: "<color>";
   inherits: false;
   initial-value: #a82fac;
@@ -38,17 +38,17 @@
 
 .color-lab-left {
   background: linear-gradient(
-    var(--primary) 0%,
-    var(--secondary) var(--gradient-position),
-    var(--primary) 100%
+    var(--primarygradient) 0%,
+    var(--secondarygradient) var(--gradient-position),
+    var(--primarygradient) 100%
   );
 }
 
 .color-lab-right {
   background: linear-gradient(
     in oklch,
-    var(--primary) 0%,
-    var(--secondary) var(--gradient-position),
-    var(--primary) 100%
+    var(--primarygradient) 0%,
+    var(--secondarygradient) var(--gradient-position),
+    var(--primarygradient) 100%
   );
 }
