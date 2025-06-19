@@ -10,10 +10,9 @@ import {
   calculatePPP,
   formatUSD,
   formatCompact,
-  // fetchIMFData, // No longer imported here
   splitHistoricalAndForecast,
   getLatestValue,
-  IMF_INDICATORS_TO_FETCH // Still used to know *which* indicators to ask the store to fetch
+  IMF_INDICATORS_TO_FETCH
 } from "./utils";
 import { systemAppTheme } from "@/components/theme/system-app-theme";
 import { cn } from "@/lib/utils";
@@ -44,8 +43,9 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
 export default function IndiaMacroDisplay() {
   const {
     baseGDP, growthRate, startTime,
-    basePopulation, populationGrowthRate, basePPP, pppGrowthRate, updateIntervalMs,
-    imfData, setIMFData, resetIMFData, // setIMFData is now async and fetches data
+    basePopulation, populationGrowthRate, basePPP, pppGrowthRate,
+    nominalGdpUpdateIntervalMs, pppGdpUpdateIntervalMs, // Get new interval values
+    imfData, setIMFData, resetIMFData,
     isFetchingIMF, setIsFetchingIMF
   } = useIndiaMacroStore();
 
@@ -54,17 +54,29 @@ export default function IndiaMacroDisplay() {
   const [gdpPPPValueNow, setGdpPPPValueNow] = useState(() => calculatePPP(basePPP, pppGrowthRate, startTime));
 
 
+  // Effect for Nominal GDP and Population (uses nominalGdpUpdateIntervalMs)
   useEffect(() => {
-    const updateMetrics = () => {
+    const updateNominalAndPopulation = () => {
       const now = Date.now();
       setGDPNow(calculateGDP(baseGDP, growthRate, startTime, now));
       setPopulationNow(calculatePopulation(basePopulation, populationGrowthRate, startTime, now));
+    };
+    updateNominalAndPopulation(); // Initial call
+    const interval = setInterval(updateNominalAndPopulation, nominalGdpUpdateIntervalMs);
+    return () => clearInterval(interval);
+  }, [baseGDP, growthRate, basePopulation, populationGrowthRate, startTime, nominalGdpUpdateIntervalMs]);
+
+  // Effect for GDP PPP (uses pppGdpUpdateIntervalMs)
+  useEffect(() => {
+    const updatePPPValue = () => {
+      const now = Date.now();
       setGdpPPPValueNow(calculatePPP(basePPP, pppGrowthRate, startTime, now));
     };
-    updateMetrics();
-    const interval = setInterval(updateMetrics, updateIntervalMs);
+    updatePPPValue(); // Initial call
+    const interval = setInterval(updatePPPValue, pppGdpUpdateIntervalMs);
     return () => clearInterval(interval);
-  }, [baseGDP, growthRate, basePopulation, populationGrowthRate, basePPP, pppGrowthRate, startTime, updateIntervalMs]);
+  }, [basePPP, pppGrowthRate, startTime, pppGdpUpdateIntervalMs]);
+
 
   const gdpPerCapitaPPP = populationNow > 0 ? gdpPPPValueNow / populationNow : 0;
 
@@ -73,12 +85,9 @@ export default function IndiaMacroDisplay() {
     // resetIMFData(); // Optional: Clears old data before fetching new
     for (const indicator of IMF_INDICATORS_TO_FETCH) {
       try {
-        // Call the store action, which now handles the fetching
         await setIMFData(indicator.code, indicator.label);
         await new Promise(res => setTimeout(res, 300)); // Wait 300ms between triggering fetches
       } catch (err) {
-        // Error here would be if setIMFData itself threw, or if await failed.
-        // The store's setIMFData already has console.error for fetch issues.
         console.error(`Error dispatching fetch for ${indicator.code} (${indicator.label}):`, err);
         await new Promise(res => setTimeout(res, 300)); // Also wait on error
       }
@@ -123,14 +132,14 @@ export default function IndiaMacroDisplay() {
         {Object.keys(imfData).length === 0 && !isFetchingIMF && (
           <p className="text-xs text-muted-foreground text-center py-4">Click "Fetch IMF Data" to load indicators.</p>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Object.entries(imfData).map(([code, entry]) => {
             const { label, values } = entry;
-            const { historical, forecast, all } = splitHistoricalAndForecast(values, currentYear);
+            const { historical, forecast } = splitHistoricalAndForecast(values, currentYear); // Removed 'all' as it was unused
             const latest = getLatestValue(values);
 
             const chartData = [...historical.slice(-5), ...forecast.slice(0, 5)].map((d) => ({
-              year: d.year.toString(), 
+              year: d.year.toString(),
               value: d.value,
               isFuture: d.year > currentYear,
             }));
@@ -138,7 +147,7 @@ export default function IndiaMacroDisplay() {
             return (
               <div
                 key={code}
-                className="bg-popover/50 rounded-lg p-3 border border-border shadow-sm flex flex-col justify-between"
+                className="bg-popover/50 rounded-lg p-1 border border-border flex flex-col justify-between"
               >
                 <div>
                   <div className="text-muted-foreground font-medium truncate text-[11px] mb-0.5">{label}</div>
@@ -148,7 +157,7 @@ export default function IndiaMacroDisplay() {
                   </div>
                 </div>
 
-                <div className="mt-2 h-20">
+                <div className="mt-2 h-36">
                   {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: -10 }}>
@@ -191,4 +200,3 @@ export default function IndiaMacroDisplay() {
     </ScrollArea>
   );
 }
-
