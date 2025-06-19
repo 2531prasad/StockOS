@@ -10,26 +10,30 @@ export async function GET(request: NextRequest) {
   }
 
   const imfApiUrl = `https://www.imf.org/external/datamapper/api/v1/${code}/IND`;
+  console.log("→ Fetching IMF URL via proxy:", imfApiUrl);
 
   try {
-    // It's good practice to include an Accept header
     const response = await fetch(imfApiUrl, {
       headers: {
         'Accept': 'application/json',
+        'User-Agent': 'FloatCalc-IMF-Proxy/1.0', // Added User-Agent
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[API Route Error] IMF API request failed for code ${code}: ${response.status} ${response.statusText}. Response body: ${errorText}`);
-      return NextResponse.json({ error: "Upstream IMF API error", details: `Status: ${response.status}, Body: ${errorText}` }, { status: response.status });
+      // Forward the status from IMF if available, otherwise use a generic 502
+      const upstreamStatus = response.status || 502; 
+      return NextResponse.json({ error: "Upstream IMF API error", details: `Status: ${response.status}, Body: ${errorText}` }, { status: upstreamStatus });
     }
 
     const data = await response.json();
     return NextResponse.json(data, { status: 200 });
 
   } catch (e: any) {
-    console.error(`[API Route Error] Fetch failed for IMF API proxy (code ${code}):`, e);
-    return NextResponse.json({ error: "Fetch failed via proxy", details: e.message || String(e) }, { status: 500 });
+    console.error(`[API Route Error] Proxy fetch failed for IMF API (code ${code}):`, e.message, e);
+    // Use 504 for gateway timeout or general proxy failure
+    return NextResponse.json({ error: "Proxy request to IMF API failed", details: e.message || String(e) }, { status: 504 });
   }
 }
