@@ -1,6 +1,7 @@
 
 // components/apps/india-macro/store.ts
 import { create } from "zustand";
+import { fetchIMFData as fetchIMFDataUtility } from "@/lib/fetchIMFData"; // Renamed import for clarity
 
 type IMFIndicator = {
   code: string;
@@ -21,7 +22,7 @@ type IndiaMacroStore = {
 
   // IMF data
   imfData: Record<string, IMFIndicator>;
-  setIMFData: (code: string, label: string, values: Record<string, number>) => void;
+  setIMFData: (code: string, label: string) => Promise<void>; // Modified signature
   resetIMFData: () => void;
   isFetchingIMF: boolean;
   setIsFetchingIMF: (isFetching: boolean) => void;
@@ -37,26 +38,42 @@ type IndiaMacroStore = {
   updateUpdateIntervalMs: (value: number) => void;
 };
 
-export const useIndiaMacroStore = create<IndiaMacroStore>((set) => ({
+export const useIndiaMacroStore = create<IndiaMacroStore>((set, get) => ({
   baseGDP: 4011550143837,
   growthRate: 7.4,
-  basePopulation: 1428000000, // Example, slightly updated
-  populationGrowthRate: 0.81, // Example, slightly updated
-  basePPP: 13900000000000,    // Example, slightly updated
-  pppGrowthRate: 6.0,         // Example, slightly updated
+  basePopulation: 1428000000, 
+  populationGrowthRate: 0.81, 
+  basePPP: 13900000000000,    
+  pppGrowthRate: 6.0,         
   startTime: Date.now(),
   updateIntervalMs: 33.33,
 
   imfData: {},
   isFetchingIMF: false,
   setIsFetchingIMF: (isFetching) => set({ isFetchingIMF: isFetching }),
-  setIMFData: (code, label, values) =>
-    set((state) => ({
-      imfData: {
-        ...state.imfData,
-        [code]: { code, label, values },
-      },
-    })),
+  
+  setIMFData: async (code, label) => {
+    // No longer setIsFetchingIMF here, handle in component or specific fetch action
+    try {
+      const rawData = await fetchIMFDataUtility(code, "IND"); // Use the direct fetch utility
+      const values = rawData?.values?.[code]?.["IND"] ?? {};
+      set((state) => ({
+        imfData: {
+          ...state.imfData,
+          [code]: { code, label, values },
+        },
+      }));
+    } catch (error) {
+      console.error(`Error fetching/setting IMF data in store for ${code} (${label}):`, error);
+      // Optionally, update state to reflect error for this specific indicator
+      set((state) => ({
+        imfData: {
+          ...state.imfData,
+          [code]: { code, label, values: state.imfData[code]?.values || {} }, // Keep old data or empty
+        },
+      }));
+    }
+  },
   resetIMFData: () => set({ imfData: {}, isFetchingIMF: false }),
 
   updateBase: (value) => set({ baseGDP: value, startTime: Date.now() }),

@@ -77,52 +77,7 @@ export function formatCompact(value: number, style: 'decimal' | 'currency' = 'de
   return new Intl.NumberFormat("en-US", options).format(value);
 }
 
-// IMF Data Utilities
-
-export async function fetchIMFData(indicatorCode: string): Promise<Record<string, number> | null> {
-  const proxyUrl = `/api/imf?code=${indicatorCode}`;
-  console.log(`Attempting to fetch IMF data via proxy: ${proxyUrl}`);
-
-  try {
-    const res = await fetch(proxyUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'FloatCalc-IMF-Proxy/1.0',
-      }
-    });
-
-    if (!res.ok) {
-      let errorDetails = `Proxy request failed with status ${res.status}`;
-      try {
-        const errorJson = await res.json();
-        errorDetails += `: ${errorJson.error || 'Unknown proxy error'}${errorJson.details ? ' - ' + errorJson.details : ''}`;
-      } catch (jsonError) {
-        const errorText = await res.text().catch(() => "Could not get error text from proxy response");
-        errorDetails += `. Response body: ${errorText}`;
-      }
-      console.error(`fetchIMFData failed for ${indicatorCode}: ${errorDetails}`);
-      return null;
-    }
-
-    const json = await res.json();
-
-    if (json && json.values && json.values[indicatorCode] && json.values[indicatorCode]["IND"]) {
-      return json.values[indicatorCode]["IND"];
-    } else {
-      console.warn(`Data structure not as expected for ${indicatorCode} from proxy. Received:`, json);
-      return null;
-    }
-  } catch (e: any) {
-    console.error(`Error during fetch or processing for ${indicatorCode} via proxy: ${e.message}`, e);
-    if (e instanceof TypeError) {
-      console.error("This was a TypeError, possibly due to network issues with the proxy or the proxy itself having issues.");
-    } else if (e instanceof SyntaxError) {
-      console.error("This was a SyntaxError, meaning the proxy response was not valid JSON.");
-    }
-    return null;
-  }
-}
-
+// IMF Data Utilities (processing, not fetching)
 
 export function parseIMFValues(values: Record<string, number> | null): { year: number; value: number }[] {
   if (!values) return [];

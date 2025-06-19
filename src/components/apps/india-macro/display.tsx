@@ -10,10 +10,10 @@ import {
   calculatePPP,
   formatUSD,
   formatCompact,
-  fetchIMFData,
+  // fetchIMFData, // No longer imported here
   splitHistoricalAndForecast,
   getLatestValue,
-  IMF_INDICATORS_TO_FETCH
+  IMF_INDICATORS_TO_FETCH // Still used to know *which* indicators to ask the store to fetch
 } from "./utils";
 import { systemAppTheme } from "@/components/theme/system-app-theme";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,8 @@ export default function IndiaMacroDisplay() {
   const {
     baseGDP, growthRate, startTime,
     basePopulation, populationGrowthRate, basePPP, pppGrowthRate, updateIntervalMs,
-    imfData, setIMFData, resetIMFData, isFetchingIMF, setIsFetchingIMF
+    imfData, setIMFData, resetIMFData, // setIMFData is now async and fetches data
+    isFetchingIMF, setIsFetchingIMF
   } = useIndiaMacroStore();
 
   const [gdpNow, setGDPNow] = useState(() => calculateGDP(baseGDP, growthRate, startTime));
@@ -69,18 +70,17 @@ export default function IndiaMacroDisplay() {
 
   const handleFetchIMF = async () => {
     setIsFetchingIMF(true);
-    // Optional: resetIMFData(); // Clears old data before fetching new
+    // resetIMFData(); // Optional: Clears old data before fetching new
     for (const indicator of IMF_INDICATORS_TO_FETCH) {
       try {
-        const data = await fetchIMFData(indicator.code);
-        if (data) {
-          setIMFData(indicator.code, indicator.label, data);
-        }
-        await new Promise(res => setTimeout(res, 300)); // Wait 300ms
+        // Call the store action, which now handles the fetching
+        await setIMFData(indicator.code, indicator.label);
+        await new Promise(res => setTimeout(res, 300)); // Wait 300ms between triggering fetches
       } catch (err) {
-        console.error(`Failed to fetch or process data for ${indicator.code}:`, err);
-        // Optionally add to an error state in Zustand to display to user
-        await new Promise(res => setTimeout(res, 300)); // Also wait on error to not hammer
+        // Error here would be if setIMFData itself threw, or if await failed.
+        // The store's setIMFData already has console.error for fetch issues.
+        console.error(`Error dispatching fetch for ${indicator.code} (${indicator.label}):`, err);
+        await new Promise(res => setTimeout(res, 300)); // Also wait on error
       }
     }
     setIsFetchingIMF(false);
@@ -129,11 +129,8 @@ export default function IndiaMacroDisplay() {
             const { historical, forecast, all } = splitHistoricalAndForecast(values, currentYear);
             const latest = getLatestValue(values);
 
-            // Prepare data for chart, ensuring only last 5 historical and first 5 forecast are used
-            const last5Historical = historical.slice(-5);
-            const first5Forecast = forecast.slice(0, 5);
-            const chartData = [...last5Historical, ...first5Forecast].map((d) => ({
-              year: d.year.toString(), // XAxis needs string
+            const chartData = [...historical.slice(-5), ...forecast.slice(0, 5)].map((d) => ({
+              year: d.year.toString(), 
               value: d.value,
               isFuture: d.year > currentYear,
             }));
