@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
 
+  console.log("[IMF FETCH]", `→ /api/imf?code=${code}`);
   console.log("📦 Received IMF fetch request for:", code);
   console.log("🌐 Full URL to fetch:", `https://www.imf.org/external/datamapper/api/v1/${code}/IND`);
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       const errorText = await response.text();
       console.error(`[API Route Error] IMF API request failed for code ${code}: ${response.status} ${response.statusText}. Response body: ${errorText}`);
       // Forward the status from IMF if available, otherwise use a generic 502
-      const upstreamStatus = response.status || 502; 
+      const upstreamStatus = response.status || 502;
       return NextResponse.json({ error: "Upstream IMF API error", details: `Status: ${response.status}, Body: ${errorText}` }, { status: upstreamStatus });
     }
 
@@ -40,4 +41,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Proxy request to IMF API failed", details: e.message || String(e) }, { status: 504 });
   }
 }
-
