@@ -14,12 +14,10 @@ import {
 import { systemAppTheme } from "@/components/theme/system-app-theme";
 import { cn } from "@/lib/utils";
 
-const UPDATE_INTERVAL_MS = 33.33;
-
 export default function IndiaMacroDisplay() {
   const {
     baseGDP, growthRate, startTime,
-    basePopulation, populationGrowthRate, basePPP, pppGrowthRate
+    basePopulation, populationGrowthRate, basePPP, pppGrowthRate, updateIntervalMs
   } = useIndiaMacroStore();
 
   const [gdpNow, setGDPNow] = useState(() => calculateGDP(baseGDP, growthRate, startTime));
@@ -37,9 +35,9 @@ export default function IndiaMacroDisplay() {
     
     updateMetrics(); 
     
-    const interval = setInterval(updateMetrics, UPDATE_INTERVAL_MS);
+    const interval = setInterval(updateMetrics, updateIntervalMs);
     return () => clearInterval(interval);
-  }, [baseGDP, growthRate, basePopulation, populationGrowthRate, basePPP, pppGrowthRate, startTime]);
+  }, [baseGDP, growthRate, basePopulation, populationGrowthRate, basePPP, pppGrowthRate, startTime, updateIntervalMs]);
 
   const gdpPerCapitaPPP = populationNow > 0 ? gdpPPPValueNow / populationNow : 0;
 

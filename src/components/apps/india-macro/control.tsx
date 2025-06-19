@@ -1,3 +1,4 @@
+
 // components/apps/india-macro/control.tsx
 "use client";
 
@@ -12,9 +13,9 @@ import { cn } from "@/lib/utils";
 export default function IndiaMacroControl() {
   const {
     baseGDP, growthRate,
-    basePopulation, populationGrowthRate, basePPP, pppGrowthRate,
+    basePopulation, populationGrowthRate, basePPP, pppGrowthRate, updateIntervalMs,
     updateBase, updateGrowth,
-    updatePopulation, updatePopulationGrowth, updatePPP, updatePPPGrowth
+    updatePopulation, updatePopulationGrowth, updatePPP, updatePPPGrowth, updateUpdateIntervalMs
   } = useIndiaMacroStore();
 
   const [localGDP, setLocalGDP] = useState(baseGDP.toString());
@@ -23,6 +24,7 @@ export default function IndiaMacroControl() {
   const [localPopGrowth, setLocalPopGrowth] = useState(populationGrowthRate.toString());
   const [localPPP, setLocalPPP] = useState(basePPP.toString());
   const [localPPPGrowth, setLocalPPPGrowth] = useState(pppGrowthRate.toString());
+  const [localIntervalMs, setLocalIntervalMs] = useState(updateIntervalMs.toString());
 
   useEffect(() => setLocalGDP(baseGDP.toString()), [baseGDP]);
   useEffect(() => setLocalGrowth(growthRate.toString()), [growthRate]);
@@ -30,6 +32,7 @@ export default function IndiaMacroControl() {
   useEffect(() => setLocalPopGrowth(populationGrowthRate.toString()), [populationGrowthRate]);
   useEffect(() => setLocalPPP(basePPP.toString()), [basePPP]);
   useEffect(() => setLocalPPPGrowth(pppGrowthRate.toString()), [pppGrowthRate]);
+  useEffect(() => setLocalIntervalMs(updateIntervalMs.toString()), [updateIntervalMs]);
 
   const formatForDisplay = (numStr: string) => {
     const num = parseFloat(numStr.replace(/,/g, ''));
@@ -63,6 +66,9 @@ export default function IndiaMacroControl() {
 
     const parsedPPPGrowth = parseFloat(localPPPGrowth);
     if (!isNaN(parsedPPPGrowth)) updatePPPGrowth(parsedPPPGrowth);
+
+    const parsedIntervalMs = parseFloat(localIntervalMs);
+    if (!isNaN(parsedIntervalMs) && parsedIntervalMs > 0) updateUpdateIntervalMs(parsedIntervalMs);
   };
   
   return (
@@ -153,6 +159,21 @@ export default function IndiaMacroControl() {
           step="0.1"
         />
       </div>
+
+      <hr className="border-border/60 my-2"/>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="updateIntervalInput" className={cn("block text-xs", systemAppTheme.typography.statLabel)}>Update Interval (ms)</Label>
+        <Input
+          id="updateIntervalInput"
+          type="number"
+          value={localIntervalMs}
+          onChange={(e) => setLocalIntervalMs(e.target.value)}
+          className={cn("w-full h-9 text-sm p-2 rounded border text-right", systemAppTheme.typography.monospace)}
+          step="10"
+          min="10"
+        />
+      </div>
       
       <div className="mt-auto pt-2">
         <Button
@@ -166,3 +187,4 @@ export default function IndiaMacroControl() {
     </div>
   );
 }
+

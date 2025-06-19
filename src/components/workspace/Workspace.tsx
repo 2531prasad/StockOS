@@ -137,8 +137,8 @@ export default function Workspace() {
                 height: appToFocusPotentiallyOpened.previousSize?.height || (appToFocusPotentiallyOpened.size.minHeight ? `${appToFocusPotentiallyOpened.size.minHeight}px` : '300px'),
                 // Restore specific maxHeight for certain apps if needed
                 maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : 
-                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '480px' : // Updated maxHeight
-                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '220px' : // Updated maxHeight
+                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '550px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '220px' : 
                            'none',
             },
             previousSize: null
@@ -251,11 +251,11 @@ export default function Workspace() {
         previousSize: null,
         size: {
             width: '350px',
-            height: '220px', // Adjusted height
-            minWidth: 320,    // Adjusted minWidth
-            minHeight: 200,   // Adjusted minHeight
-            maxWidth: '550px', // Adjusted maxWidth
-            maxHeight: '220px' // Adjusted maxHeight
+            height: '220px',
+            minWidth: 320,    
+            minHeight: 200,   
+            maxWidth: '550px', 
+            maxHeight: '220px' 
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -265,17 +265,17 @@ export default function Workspace() {
         title: "Macro Controls",
         component: (props) => <IndiaMacroControl {...props} />,
         isOpen: true,
-        position: { x: 450, y: 250 }, // Positioned next to display
+        position: { x: 450, y: 250 }, 
         zIndex: SYSTEM_APP_Z_MIN + 3,
         isMinimized: false,
         previousSize: null,
         size: {
             width: '300px',
-            height: '480px', // Adjusted height
-            minWidth: 280,    // Adjusted minWidth
-            minHeight: 450,   // Adjusted minHeight
+            height: '550px', 
+            minWidth: 280,    
+            minHeight: 520,   
             maxWidth: '400px',
-            maxHeight: '480px' // Adjusted maxHeight
+            maxHeight: '550px' 
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -310,7 +310,7 @@ export default function Workspace() {
                   width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                   height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
                   maxHeight: app.id === "mc-calculator" ? '625px' : 
-                             app.id === "india-gdp-control" ? '480px' : 
+                             app.id === "india-gdp-control" ? '550px' : 
                              app.id === "india-gdp-display" ? '220px' : 
                              'none',
                 },
@@ -498,8 +498,8 @@ export default function Workspace() {
                   className={cn(
                       "absolute flex flex-col border-border rounded-xl overflow-hidden transition-shadow duration-150",
                       isFocused
-                        ? "bg-card backdrop-blur-[8px] shadow-2xl"
-                        : "bg-popover shadow-lg hover:shadow-xl"
+                        ? "bg-card backdrop-blur-[8px] shadow-2xl" 
+                        : "bg-popover shadow-lg hover:shadow-xl" 
                     )}
                   style={{
                     left: `${appInstance.position!.x}px`,
@@ -512,7 +512,7 @@ export default function Workspace() {
                     minWidth: `${appInstance.size.minWidth || 0}px`,
                     minHeight: appInstance.isMinimized ? 'auto' : `${appInstance.size.minHeight || 0}px`,
                     userSelect: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'auto',
-                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color, width, height', // Removed ring properties
+                    transitionProperty: (activeDrag?.appId === appInstance.id || activeResize?.appId === appInstance.id) ? 'none' : 'opacity, box-shadow, background-color, border-color, width, height',
                     transitionDuration: '0.15s',
                     transitionTimingFunction: 'ease-out',
                   }}
