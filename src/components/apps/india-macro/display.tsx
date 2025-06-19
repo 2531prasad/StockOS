@@ -48,7 +48,7 @@ export default function IndiaMacroDisplay() {
 
       <div className="text-center mb-2">
         <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Nominal GDP</div>
-        <div className={cn(systemAppTheme.typography.monospace, "text-2xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
+        <div className={cn(systemAppTheme.typography.monospace, "text-4xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
       </div>
 
       <div className={cn("grid grid-cols-3 gap-x-3 gap-y-2", systemAppTheme.typography.monospace, "text-xs text-card-foreground")}>

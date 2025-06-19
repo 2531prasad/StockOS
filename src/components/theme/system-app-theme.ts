@@ -24,7 +24,7 @@ export const systemAppTheme = {
 
   typography: {
     fontFamily: "font-sans", // Assuming 'Inter' is set as font-sans in tailwind.config or globals.css
-    monospace: "font-mono tabular-nums",
+    monospace: "font-body tabular-nums", // Changed from font-mono to font-body
     baseText: "text-sm text-card-foreground", // Added text-card-foreground
     heading: "text-lg font-semibold text-card-foreground", // Added text-card-foreground
     statLabel: "text-xs text-muted-foreground",
