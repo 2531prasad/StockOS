@@ -1,7 +1,7 @@
 
 // components/apps/india-macro/store.ts
 import { create } from "zustand";
-import { fetchIMFData as fetchIMFDataUtility } from "@/lib/fetchIMFData"; // Renamed import for clarity
+// Removed: import { fetchIMFData as fetchIMFDataUtility } from "@/lib/fetchIMFData";
 
 type IMFIndicator = {
   code: string;
@@ -22,7 +22,7 @@ type IndiaMacroStore = {
 
   // IMF data
   imfData: Record<string, IMFIndicator>;
-  setIMFData: (code: string, label: string) => Promise<void>; // Modified signature
+  setIMFData: (code: string, label: string) => Promise<void>;
   resetIMFData: () => void;
   isFetchingIMF: boolean;
   setIsFetchingIMF: (isFetching: boolean) => void;
@@ -53,9 +53,14 @@ export const useIndiaMacroStore = create<IndiaMacroStore>((set, get) => ({
   setIsFetchingIMF: (isFetching) => set({ isFetchingIMF: isFetching }),
   
   setIMFData: async (code, label) => {
-    // No longer setIsFetchingIMF here, handle in component or specific fetch action
     try {
-      const rawData = await fetchIMFDataUtility(code, "IND"); // Use the direct fetch utility
+      const response = await fetch(`/api/imf?code=${code}`);
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "Could not get error text from proxy response");
+        console.error(`Error fetching/setting IMF data in store for ${code} (${label}) via proxy: ${response.status}`, errorBody);
+        throw new Error(`Proxy request failed with status ${response.status}. Response body: ${errorBody}`);
+      }
+      const rawData = await response.json();
       const values = rawData?.values?.[code]?.["IND"] ?? {};
       set((state) => ({
         imfData: {
@@ -63,13 +68,12 @@ export const useIndiaMacroStore = create<IndiaMacroStore>((set, get) => ({
           [code]: { code, label, values },
         },
       }));
-    } catch (error) {
-      console.error(`Error fetching/setting IMF data in store for ${code} (${label}):`, error);
-      // Optionally, update state to reflect error for this specific indicator
+    } catch (error: any) {
+      console.error(`Error in setIMFData for ${code} (${label}):`, error.message);
       set((state) => ({
         imfData: {
           ...state.imfData,
-          [code]: { code, label, values: state.imfData[code]?.values || {} }, // Keep old data or empty
+          [code]: { code, label, values: state.imfData[code]?.values || {} }, 
         },
       }));
     }
