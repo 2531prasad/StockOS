@@ -195,11 +195,6 @@ export default function Workspace() {
     setTimeout(() => bringToFront(dialogId), 0);
   }, [bringToFront]);
 
-  const closeDialogApp = useCallback((dialogId: string) => {
-    setApps(prevApps => prevApps.map(app => (app.id === dialogId && app.appType === 'alertDialog') ? { ...app, isOpen: false } : app));
-  }, []);
-
-
   useEffect(() => {
     const initialSystemApps: AppInstance[] = [
       {
@@ -254,8 +249,8 @@ export default function Workspace() {
         size: {
             width: '500px', 
             height: '600px', 
-            minWidth: 400,
-            minHeight: 400,
+            minWidth: 0,
+            minHeight: 0,
             maxWidth: '650px',
             maxHeight: '700px' 
         },
@@ -274,8 +269,8 @@ export default function Workspace() {
         size: {
             width: '500px', 
             height: '600px', 
-            minWidth: 400,
-            minHeight: 400,
+            minWidth: 0,
+            minHeight: 0,
             maxWidth: '650px',
             maxHeight: '700px' 
         },

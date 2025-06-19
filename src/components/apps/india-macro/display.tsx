@@ -1,3 +1,4 @@
+
 // components/apps/india-macro/display.tsx
 "use client";
 
@@ -131,7 +132,7 @@ export default function IndiaMacroDisplay() {
         {Object.keys(imfData).length === 0 && !isFetchingIMF && (
           <p className="text-xs text-muted-foreground text-center py-4">Click "Fetch IMF Data" to load indicators.</p>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {Object.entries(imfData).map(([code, entry]) => {
             const { label, values } = entry;
             const { historical, forecast } = splitHistoricalAndForecast(values, currentYear);
