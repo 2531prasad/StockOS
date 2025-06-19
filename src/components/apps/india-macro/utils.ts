@@ -66,7 +66,7 @@ export function formatUSD(value: number, maximumFractionDigits: number = 0): str
 export function formatCompact(value: number, style: 'decimal' | 'currency' = 'decimal', currency?: string): string {
   const options: Intl.NumberFormatOptions = {
     notation: "compact",
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 2, // Updated to 2 for more precision e.g. 4.19T
   };
   if (style === 'currency' && currency) {
     options.style = 'currency';

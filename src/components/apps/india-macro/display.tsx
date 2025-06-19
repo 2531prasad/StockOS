@@ -1,4 +1,3 @@
-
 // components/apps/india-macro/display.tsx
 "use client";
 
@@ -44,7 +43,7 @@ export default function IndiaMacroDisplay() {
   const {
     baseGDP, growthRate, startTime,
     basePopulation, populationGrowthRate, basePPP, pppGrowthRate,
-    nominalGdpUpdateIntervalMs, pppGdpUpdateIntervalMs, // Get new interval values
+    nominalGdpUpdateIntervalMs, pppGdpUpdateIntervalMs,
     imfData, setIMFData, resetIMFData,
     isFetchingIMF, setIsFetchingIMF
   } = useIndiaMacroStore();
@@ -85,10 +84,12 @@ export default function IndiaMacroDisplay() {
     // resetIMFData(); // Optional: Clears old data before fetching new
     for (const indicator of IMF_INDICATORS_TO_FETCH) {
       try {
+        // The store's setIMFData action now handles the actual fetching via proxy
         await setIMFData(indicator.code, indicator.label);
         await new Promise(res => setTimeout(res, 300)); // Wait 300ms between triggering fetches
       } catch (err) {
         console.error(`Error dispatching fetch for ${indicator.code} (${indicator.label}):`, err);
+        // Optionally, update UI to show this specific indicator failed
         await new Promise(res => setTimeout(res, 300)); // Also wait on error
       }
     }
@@ -135,8 +136,21 @@ export default function IndiaMacroDisplay() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Object.entries(imfData).map(([code, entry]) => {
             const { label, values } = entry;
-            const { historical, forecast } = splitHistoricalAndForecast(values, currentYear); // Removed 'all' as it was unused
+            const { historical, forecast } = splitHistoricalAndForecast(values, currentYear);
             const latest = getLatestValue(values);
+
+            let displayValue = "N/A";
+            if (latest?.value !== undefined && latest?.value !== null) {
+              if (code === 'NGDPD' || code === 'PPPGDP') {
+                const fullValue = latest.value * 1_000_000_000;
+                displayValue = formatCompact(fullValue);
+              } else if (code === 'LP') {
+                const fullValue = latest.value * 1_000_000;
+                displayValue = formatCompact(fullValue);
+              } else {
+                displayValue = latest.value.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+              }
+            }
 
             const chartData = [...historical.slice(-5), ...forecast.slice(0, 5)].map((d) => ({
               year: d.year.toString(),
@@ -152,7 +166,7 @@ export default function IndiaMacroDisplay() {
                 <div>
                   <div className="text-muted-foreground font-medium truncate text-[11px] mb-0.5">{label}</div>
                   <div className="text-card-foreground text-sm font-semibold leading-none">
-                    {latest?.value?.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}
+                    {displayValue}
                     {latest?.year && <span className="ml-1 text-muted-foreground text-[10px]">({latest.year})</span>}
                   </div>
                 </div>
