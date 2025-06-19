@@ -1,0 +1,54 @@
+/* components/apps/color-lab/color-lab.css */
+
+@property --primary {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #245784;
+}
+
+@property --secondary {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #a82fac;
+}
+
+@property --gradient-position {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+@keyframes beam {
+  50% {
+    --gradient-position: 100%;
+  }
+}
+
+.color-lab-container {
+  display: flex;
+  flex-grow: 1;
+  height: 100%;
+  animation: beam 10s ease infinite;
+}
+
+.color-lab-panel {
+  flex: 1;
+  animation: beam 10s ease infinite; /* Apply animation to panels as well if direct background is animated */
+}
+
+.color-lab-left {
+  background: linear-gradient(
+    var(--primary) 0%,
+    var(--secondary) var(--gradient-position),
+    var(--primary) 100%
+  );
+}
+
+.color-lab-right {
+  background: linear-gradient(
+    in oklch,
+    var(--primary) 0%,
+    var(--secondary) var(--gradient-position),
+    var(--primary) 100%
+  );
+}

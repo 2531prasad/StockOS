@@ -7,6 +7,7 @@ import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItW
 import ImageViewer from "@/components/apps/image-viewer/ImageViewer";
 import IndiaMacroDisplay from "@/components/apps/india-macro/display";
 import IndiaMacroControl from "@/components/apps/india-macro/control";
+import ColorLab from "@/components/apps/color-lab/color-lab"; // Import the new app
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon, MoveDiagonal, HelpCircle } from "lucide-react";
@@ -276,6 +277,26 @@ export default function Workspace() {
             minHeight: 520,   
             maxWidth: '400px',
             maxHeight: '550px' 
+        },
+        appType: 'system',
+        contentPadding: 'p-0',
+      },
+      {
+        id: "color-lab-gradient-comparison",
+        title: "Hex vs OKLCH Gradient",
+        component: (props) => <ColorLab {...props} />,
+        isOpen: true,
+        position: { x: 900, y: 50 },
+        zIndex: SYSTEM_APP_Z_MIN + 4,
+        isMinimized: false,
+        previousSize: null,
+        size: {
+            width: '400px',
+            height: '250px',
+            minWidth: 200,
+            minHeight: 150,
+            maxWidth: 'none',
+            maxHeight: 'none'
         },
         appType: 'system',
         contentPadding: 'p-0',
