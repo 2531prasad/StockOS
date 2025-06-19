@@ -84,13 +84,11 @@ export default function IndiaMacroDisplay() {
     // resetIMFData(); // Optional: Clears old data before fetching new
     for (const indicator of IMF_INDICATORS_TO_FETCH) {
       try {
-        // The store's setIMFData action now handles the actual fetching via proxy
         await setIMFData(indicator.code, indicator.label);
-        await new Promise(res => setTimeout(res, 300)); // Wait 300ms between triggering fetches
+        await new Promise(res => setTimeout(res, 300)); 
       } catch (err) {
         console.error(`Error dispatching fetch for ${indicator.code} (${indicator.label}):`, err);
-        // Optionally, update UI to show this specific indicator failed
-        await new Promise(res => setTimeout(res, 300)); // Also wait on error
+        await new Promise(res => setTimeout(res, 300)); 
       }
     }
     setIsFetchingIMF(false);
@@ -98,7 +96,7 @@ export default function IndiaMacroDisplay() {
 
   return (
     <ScrollArea className="w-full h-full">
-    <div className={cn("p-1 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
+    <div className={cn("p-4 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
       <div>
         <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard</p>
         <div className="text-center mt-1 mb-3">
@@ -107,15 +105,15 @@ export default function IndiaMacroDisplay() {
         </div>
         <div className={cn("grid grid-cols-3 gap-x-3 gap-y-2", systemAppTheme.typography.monospace, "text-xs text-card-foreground")}>
           <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>GDP (PPP)</div>
+            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP (PPP)</div>
             <div className="text-sm font-semibold">{formatUSD(gdpPPPValueNow)}</div>
           </div>
           <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>Population</div>
+            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Population</div>
             <div className="text-sm font-semibold">{formatCompact(populationNow)}</div>
           </div>
           <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "text-[11px] mb-0.5 whitespace-nowrap")}>GDP/Cap (PPP)</div>
+            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP/Cap (PPP)</div>
             <div className="text-sm font-semibold">{formatUSD(gdpPerCapitaPPP, 0)}</div>
           </div>
         </div>
@@ -161,13 +159,13 @@ export default function IndiaMacroDisplay() {
             return (
               <div
                 key={code}
-                className="bg-popover/50 rounded-lg p-1 border border-border flex flex-col justify-between"
+                className="bg-background/50 dark:bg-muted/20 rounded-lg p-2 border border-border/50 flex flex-col justify-between"
               >
                 <div>
-                  <div className="text-muted-foreground font-medium truncate text-[11px] mb-0.5">{label}</div>
+                  <div className={cn(systemAppTheme.typography.statLabel, "font-medium truncate mb-0.5")}>{label}</div>
                   <div className="text-card-foreground text-sm font-semibold leading-none">
                     {displayValue}
-                    {latest?.year && <span className="ml-1 text-muted-foreground text-[10px]">({latest.year})</span>}
+                    {latest?.year && <span className="ml-1 text-muted-foreground text-xs">({latest.year})</span>}
                   </div>
                 </div>
 
