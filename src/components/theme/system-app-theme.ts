@@ -32,8 +32,10 @@ export const systemAppTheme = {
   },
 
   effects: {
-    shadow: "shadow-lg", // Default shadow, focused is shadow-2xl in Workspace
+    shadow: "shadow-2xl", // for default window elevation
+    shadowFocused: "shadow-[0_25px_50px_-12px_oklch(0.2_0_0_/0.9)]",
+    shadowHovered: "hover:shadow-[0_20px_25px_-5px_oklch(0_0_0_/0.1),0_8px_10px_-6px_oklch(0_0_0_/0.1)]",
+    transition: "transition-colors transition-shadow duration-150",
     blur: "backdrop-blur-sm", // This is applied by CardContent in Workspace for focused
-    transition: "transition-colors duration-150",
   }
 };
