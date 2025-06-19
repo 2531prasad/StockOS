@@ -83,18 +83,37 @@ export function formatCompact(value: number, style: 'decimal' | 'currency' = 'de
 
 export async function fetchIMFData(indicatorCode: string): Promise<Record<string, number> | null> {
   const url = `${IMF_API_BASE}/${indicatorCode}/${COUNTRY_CODE}`;
+  console.log(`Attempting to fetch IMF data from URL: ${url}`);
+
   try {
-    const res = await fetch(url);
+    const res = await fetch(url); // TypeError can occur here
+
     if (!res.ok) {
-      console.error(`IMF API request failed for ${indicatorCode} with status: ${res.status}`);
-      const errorBody = await res.text();
-      console.error("Error body:", errorBody);
-      throw new Error(`IMF API failed for ${indicatorCode}`);
+      console.error(`IMF API request failed for ${indicatorCode} at ${url}. Status: ${res.status} ${res.statusText}`);
+      try {
+        const errorBody = await res.text();
+        console.error("Error body from IMF API:", errorBody);
+      } catch (textError) {
+        console.error("Could not retrieve error body from IMF API:", textError);
+      }
+      return null;
     }
-    const json = await res.json();
-    return json?.values?.[indicatorCode]?.[COUNTRY_CODE] ?? null;
-  } catch (e) {
-    console.error(`Error fetching IMF data [${indicatorCode}]:`, e);
+
+    const json = await res.json(); // SyntaxError can occur here
+
+    if (json && json.values && json.values[indicatorCode] && json.values[indicatorCode][COUNTRY_CODE]) {
+      return json.values[indicatorCode][COUNTRY_CODE];
+    } else {
+      console.warn(`Data structure not as expected for ${indicatorCode} from ${url}. Received:`, json);
+      return null;
+    }
+  } catch (e: any) {
+    console.error(`Error during fetch or processing for ${indicatorCode} from ${url}: ${e.message}`, e);
+    if (e instanceof TypeError) {
+      console.error("This was a TypeError, possibly due to network issues or CORS policy. Ensure the API allows requests from this origin or check network connectivity.");
+    } else if (e instanceof SyntaxError) {
+      console.error("This was a SyntaxError, meaning the API response was not valid JSON.");
+    }
     return null;
   }
 }
@@ -130,3 +149,4 @@ export const IMF_INDICATORS_TO_FETCH = [
   { code: "GGXWDG_NGDP", label: "Debt (% of GDP)" },
   { code: "BCA_NGDPD", label: "Current Account (% of GDP)"}
 ];
+
