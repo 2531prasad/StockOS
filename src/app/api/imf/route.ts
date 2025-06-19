@@ -5,6 +5,9 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
 
+  console.log("📦 Received IMF fetch request for:", code);
+  console.log("🌐 Full URL to fetch:", `https://www.imf.org/external/datamapper/api/v1/${code}/IND`);
+
   if (!code) {
     return NextResponse.json({ error: "Indicator code is required" }, { status: 400 });
   }
@@ -37,3 +40,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Proxy request to IMF API failed", details: e.message || String(e) }, { status: 504 });
   }
 }
+
