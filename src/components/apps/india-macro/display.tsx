@@ -81,7 +81,7 @@ export default function IndiaMacroDisplay() {
 
   return (
     <ScrollArea className="w-full h-full">
-    <div className={cn("p-4 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
+    <div className={cn("p-1 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
       <div>
         <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard</p>
         <div className="text-center mt-1 mb-3">
