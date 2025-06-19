@@ -136,10 +136,9 @@ export default function Workspace() {
                 ...appToFocusPotentiallyOpened.size,
                 width: appToFocusPotentiallyOpened.previousSize?.width || (appToFocusPotentiallyOpened.size.minWidth ? `${appToFocusPotentiallyOpened.size.minWidth}px` : '400px'),
                 height: appToFocusPotentiallyOpened.previousSize?.height || (appToFocusPotentiallyOpened.size.minHeight ? `${appToFocusPotentiallyOpened.size.minHeight}px` : '300px'),
-                // Restore specific maxHeight for certain apps if needed
                 maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : 
-                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '550px' : 
-                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '220px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '600px' : // Adjusted
+                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '600px' : // Adjusted
                            'none',
             },
             previousSize: null
@@ -171,8 +170,8 @@ export default function Workspace() {
         const newDialogApp: AppInstance = {
           ...blueprint,
           isOpen: true,
-          zIndex: ALERT_DIALOG_Z_MIN, 
-          position: undefined, 
+          zIndex: ALERT_DIALOG_Z_MIN,
+          position: undefined,
           component: (props: { closeDialog: () => void }) => (
             <>
               <AlertDialogHeader>
@@ -251,12 +250,12 @@ export default function Workspace() {
         isMinimized: false,
         previousSize: null,
         size: {
-            width: '350px',
-            height: '220px',
-            minWidth: 320,    
-            minHeight: 200,   
-            maxWidth: '550px', 
-            maxHeight: '220px' 
+            width: '450px', // Adjusted width
+            height: '550px', // Adjusted height
+            minWidth: 400,
+            minHeight: 400,
+            maxWidth: '650px',
+            maxHeight: '700px' // Adjusted maxHeight
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -266,17 +265,17 @@ export default function Workspace() {
         title: "Macro Controls",
         component: (props) => <IndiaMacroControl {...props} />,
         isOpen: true,
-        position: { x: 450, y: 250 }, 
+        position: { x: 530, y: 250 }, // Adjusted x position
         zIndex: SYSTEM_APP_Z_MIN + 3,
         isMinimized: false,
         previousSize: null,
         size: {
             width: '300px',
-            height: '550px', 
-            minWidth: 280,    
-            minHeight: 520,   
+            height: '600px', // Adjusted height
+            minWidth: 280,
+            minHeight: 580, // Adjusted minHeight
             maxWidth: '400px',
-            maxHeight: '550px' 
+            maxHeight: '600px'
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -315,8 +314,8 @@ export default function Workspace() {
             return {
               ...app,
               isMinimized: true,
-              previousSize: { width: app.size.width, height: app.size.height }, 
-              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' } 
+              previousSize: { width: app.size.width, height: app.size.height },
+              size: { ...app.size, width: '250px', height: 'auto', maxHeight: 'auto' }
             };
           } else {
             if(apps.find(a => a.id === id)?.zIndex !== findTopmostZByType(prevApps, 'system')) {
@@ -330,9 +329,9 @@ export default function Workspace() {
                   ...app.size,
                   width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                   height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
-                  maxHeight: app.id === "mc-calculator" ? '625px' : 
-                             app.id === "india-gdp-control" ? '550px' : 
-                             app.id === "india-gdp-display" ? '220px' : 
+                  maxHeight: app.id === "mc-calculator" ? '625px' :
+                             app.id === "india-gdp-control" ? '600px' : // Adjusted
+                             app.id === "india-gdp-display" ? '700px' : // Adjusted
                              'none',
                 },
                 previousSize: null
@@ -370,7 +369,7 @@ export default function Workspace() {
     e.preventDefault();
 
     const appToDrag = apps.find(app => app.id === appId);
-    if (!appToDrag || appToDrag.appType !== 'system' || appToDrag.isMinimized) return; 
+    if (!appToDrag || appToDrag.appType !== 'system' || appToDrag.isMinimized) return;
 
     const isAnyAlertDialogFocused = apps.some(
       (app) => app.appType === 'alertDialog' && app.isOpen && app.zIndex === topmostAlertDialogZ
@@ -517,10 +516,10 @@ export default function Workspace() {
                   key={appInstance.id}
                   id={`app-${appInstance.id}`}
                   className={cn(
-                      "absolute flex flex-col border-border rounded-xl overflow-hidden transition-shadow duration-150",
+                      "absolute flex flex-col border-border rounded-xl overflow-hidden",
                       isFocused
-                        ? "bg-card backdrop-blur-[8px] shadow-2xl" 
-                        : "bg-popover shadow-lg hover:shadow-xl" 
+                        ? "bg-card backdrop-blur-[8px] shadow-2xl"
+                        : "bg-popover shadow-lg hover:shadow-xl"
                     )}
                   style={{
                     left: `${appInstance.position!.x}px`,
@@ -570,7 +569,7 @@ export default function Workspace() {
                   </CardHeader>
                   {!appInstance.isMinimized && (
                     <CardContent className={cn(
-                        "flex-1 relative overflow-hidden", 
+                        "flex-1 relative overflow-hidden",
                         appInstance.contentPadding || "p-4",
                          isFocused ? "bg-card/60" : "bg-popover/60 backdrop-blur-sm"
                       )}>
@@ -587,7 +586,7 @@ export default function Workspace() {
                     </CardContent>
                   )}
                    {appInstance.isMinimized && (
-                      <div className="h-2"></div> 
+                      <div className="h-2"></div>
                    )}
                 </Card>
               );
@@ -602,15 +601,15 @@ export default function Workspace() {
                   }}
                 >
                   <AlertDialogContent
-                    className={cn("flex flex-col", appInstance.contentPadding === 'p-0' ? 'p-0' : '')} 
+                    className={cn("flex flex-col", appInstance.contentPadding === 'p-0' ? 'p-0' : '')}
                     style={{
                         width: appInstance.size.width,
                         maxWidth: appInstance.size.maxWidth,
                         maxHeight: appInstance.size.maxHeight,
                         zIndex: appInstance.zIndex,
                     }}
-                    onOpenAutoFocus={(e) => e.preventDefault()} 
-                    onCloseAutoFocus={(e) => e.preventDefault()} 
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    onCloseAutoFocus={(e) => e.preventDefault()}
                     onPointerDownOutside={(e) => {
                         if ((e.target as HTMLElement).closest('[data-radix-popper-content-wrapper], [data-radix-select-content], [data-radix-dialog-content], [data-radix-alert-dialog-content]') && !(e.target as HTMLElement).closest(`#alert-dialog-${appInstance.id}`)) {
                         } else if ((e.target as HTMLElement).closest(`#alert-dialog-${appInstance.id}`)) {

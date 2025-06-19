@@ -3,13 +3,13 @@
 @property --primarygradient {
   syntax: "<color>";
   inherits: false;
-  initial-value: #245784;
+  initial-value: #6e979e;
 }
 
 @property --secondarygradient {
   syntax: "<color>";
   inherits: false;
-  initial-value: #a82fac;
+  initial-value: #ee0bff;
 }
 
 @property --gradient-position {
