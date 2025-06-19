@@ -2,8 +2,8 @@
 // components/apps/india-macro/utils.ts
 
 const MS_IN_YEAR = 365.25 * 24 * 60 * 60 * 1000;
-const IMF_API_BASE = "https://www.imf.org/external/datamapper/api/v1";
-const COUNTRY_CODE = "IND";
+// const IMF_API_BASE = "https://www.imf.org/external/datamapper/api/v1"; // No longer needed for direct client fetch
+// const COUNTRY_CODE = "IND"; // No longer needed for direct client fetch
 
 /**
  * Calculates projected GDP based on base amount, growth rate and elapsed time.
@@ -82,41 +82,45 @@ export function formatCompact(value: number, style: 'decimal' | 'currency' = 'de
 // IMF Data Utilities
 
 export async function fetchIMFData(indicatorCode: string): Promise<Record<string, number> | null> {
-  const url = `${IMF_API_BASE}/${indicatorCode}/${COUNTRY_CODE}`;
-  console.log(`Attempting to fetch IMF data from URL: ${url}`);
+  const proxyUrl = `/api/imf?code=${indicatorCode}`;
+  console.log(`Attempting to fetch IMF data via proxy: ${proxyUrl}`);
 
   try {
-    const res = await fetch(url); // TypeError can occur here
+    const res = await fetch(proxyUrl);
 
     if (!res.ok) {
-      console.error(`IMF API request failed for ${indicatorCode} at ${url}. Status: ${res.status} ${res.statusText}`);
+      let errorDetails = `Proxy request failed with status ${res.status}`;
       try {
-        const errorBody = await res.text();
-        console.error("Error body from IMF API:", errorBody);
-      } catch (textError) {
-        console.error("Could not retrieve error body from IMF API:", textError);
+        const errorJson = await res.json();
+        errorDetails += `: ${errorJson.error || 'Unknown proxy error'}${errorJson.details ? ' - ' + errorJson.details : ''}`;
+      } catch (jsonError) {
+        // If parsing the error JSON fails, use the raw text
+        const errorText = await res.text().catch(() => "Could not get error text from proxy response");
+        errorDetails += `. Response body: ${errorText}`;
       }
+      console.error(`fetchIMFData failed for ${indicatorCode}: ${errorDetails}`);
       return null;
     }
 
-    const json = await res.json(); // SyntaxError can occur here
+    const json = await res.json();
 
-    if (json && json.values && json.values[indicatorCode] && json.values[indicatorCode][COUNTRY_CODE]) {
-      return json.values[indicatorCode][COUNTRY_CODE];
+    if (json && json.values && json.values[indicatorCode] && json.values[indicatorCode]["IND"]) {
+      return json.values[indicatorCode]["IND"];
     } else {
-      console.warn(`Data structure not as expected for ${indicatorCode} from ${url}. Received:`, json);
+      console.warn(`Data structure not as expected for ${indicatorCode} from proxy. Received:`, json);
       return null;
     }
   } catch (e: any) {
-    console.error(`Error during fetch or processing for ${indicatorCode} from ${url}: ${e.message}`, e);
+    console.error(`Error during fetch or processing for ${indicatorCode} via proxy: ${e.message}`, e);
     if (e instanceof TypeError) {
-      console.error("This was a TypeError, possibly due to network issues or CORS policy. Ensure the API allows requests from this origin or check network connectivity.");
+      console.error("This was a TypeError, possibly due to network issues with the proxy or the proxy itself having issues.");
     } else if (e instanceof SyntaxError) {
-      console.error("This was a SyntaxError, meaning the API response was not valid JSON.");
+      console.error("This was a SyntaxError, meaning the proxy response was not valid JSON.");
     }
     return null;
   }
 }
+
 
 export function parseIMFValues(values: Record<string, number> | null): { year: number; value: number }[] {
   if (!values) return [];
@@ -149,4 +153,3 @@ export const IMF_INDICATORS_TO_FETCH = [
   { code: "GGXWDG_NGDP", label: "Debt (% of GDP)" },
   { code: "BCA_NGDPD", label: "Current Account (% of GDP)"}
 ];
-
