@@ -71,9 +71,16 @@ export default function IndiaMacroDisplay() {
     setIsFetchingIMF(true);
     // Optional: resetIMFData(); // Clears old data before fetching new
     for (const indicator of IMF_INDICATORS_TO_FETCH) {
-      const data = await fetchIMFData(indicator.code);
-      if (data) {
-        setIMFData(indicator.code, indicator.label, data);
+      try {
+        const data = await fetchIMFData(indicator.code);
+        if (data) {
+          setIMFData(indicator.code, indicator.label, data);
+        }
+        await new Promise(res => setTimeout(res, 300)); // Wait 300ms
+      } catch (err) {
+        console.error(`Failed to fetch or process data for ${indicator.code}:`, err);
+        // Optionally add to an error state in Zustand to display to user
+        await new Promise(res => setTimeout(res, 300)); // Also wait on error to not hammer
       }
     }
     setIsFetchingIMF(false);
@@ -187,3 +194,4 @@ export default function IndiaMacroDisplay() {
     </ScrollArea>
   );
 }
+
