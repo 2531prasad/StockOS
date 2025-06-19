@@ -6,8 +6,9 @@ import MCCalculator from "@/components/apps/mc-calculator/mc-calculator";
 import HowItWorksContent from "@/components/apps/mc-calculator/components/HowItWorksContent";
 import ImageViewer from "@/components/apps/image-viewer/ImageViewer";
 import IndiaMacroDisplay from "@/components/apps/india-macro/display";
+import IndiaMacroDisplay2 from "@/components/apps/india-macro/display2"; // Import the new Chart.js version
 import IndiaMacroControl from "@/components/apps/india-macro/control";
-import ColorLab from "@/components/apps/color-lab/color-lab"; // Import the new app
+import ColorLab from "@/components/apps/color-lab/color-lab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon, MoveDiagonal, HelpCircle } from "lucide-react";
@@ -137,8 +138,9 @@ export default function Workspace() {
                 width: appToFocusPotentiallyOpened.previousSize?.width || (appToFocusPotentiallyOpened.size.minWidth ? `${appToFocusPotentiallyOpened.size.minWidth}px` : '400px'),
                 height: appToFocusPotentiallyOpened.previousSize?.height || (appToFocusPotentiallyOpened.size.minHeight ? `${appToFocusPotentiallyOpened.size.minHeight}px` : '300px'),
                 maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : 
-                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '600px' : // Adjusted
-                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '600px' : // Adjusted
+                           appToFocusPotentiallyOpened.id === "india-gdp-control" ? '600px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-display" ? '700px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-display-chartjs" ? '700px' : 
                            'none',
             },
             previousSize: null
@@ -242,7 +244,7 @@ export default function Workspace() {
       },
       {
         id: "india-gdp-display",
-        title: "India Macro Dashboard",
+        title: "India Macro (Recharts)",
         component: (props) => <IndiaMacroDisplay {...props} />,
         isOpen: true,
         position: { x: 50, y: 250 },
@@ -250,12 +252,32 @@ export default function Workspace() {
         isMinimized: false,
         previousSize: null,
         size: {
-            width: '450px', // Adjusted width
-            height: '550px', // Adjusted height
+            width: '500px', 
+            height: '600px', 
             minWidth: 400,
             minHeight: 400,
             maxWidth: '650px',
-            maxHeight: '700px' // Adjusted maxHeight
+            maxHeight: '700px' 
+        },
+        appType: 'system',
+        contentPadding: 'p-0',
+      },
+      {
+        id: "india-gdp-display-chartjs",
+        title: "India Macro (Chart.js)",
+        component: (props) => <IndiaMacroDisplay2 {...props} />,
+        isOpen: true,
+        position: { x: 580, y: 250 }, // Positioned to the right of the Recharts version
+        zIndex: SYSTEM_APP_Z_MIN + 3,
+        isMinimized: false,
+        previousSize: null,
+        size: {
+            width: '500px', 
+            height: '600px', 
+            minWidth: 400,
+            minHeight: 400,
+            maxWidth: '650px',
+            maxHeight: '700px' 
         },
         appType: 'system',
         contentPadding: 'p-0',
@@ -265,15 +287,15 @@ export default function Workspace() {
         title: "Macro Controls",
         component: (props) => <IndiaMacroControl {...props} />,
         isOpen: true,
-        position: { x: 530, y: 250 }, // Adjusted x position
-        zIndex: SYSTEM_APP_Z_MIN + 3,
+        position: { x: 1110, y: 250 }, // Adjusted x position further right
+        zIndex: SYSTEM_APP_Z_MIN + 4,
         isMinimized: false,
         previousSize: null,
         size: {
             width: '300px',
-            height: '600px', // Adjusted height
+            height: '600px', 
             minWidth: 280,
-            minHeight: 580, // Adjusted minHeight
+            minHeight: 580, 
             maxWidth: '400px',
             maxHeight: '600px'
         },
@@ -286,7 +308,7 @@ export default function Workspace() {
         component: (props) => <ColorLab {...props} />,
         isOpen: true,
         position: { x: 900, y: 50 },
-        zIndex: SYSTEM_APP_Z_MIN + 4,
+        zIndex: SYSTEM_APP_Z_MIN + 5,
         isMinimized: false,
         previousSize: null,
         size: {
@@ -330,8 +352,9 @@ export default function Workspace() {
                   width: app.previousSize?.width || (app.size.minWidth ? `${app.size.minWidth}px` : '400px'),
                   height: app.previousSize?.height || (app.size.minHeight ? `${app.size.minHeight}px` : '300px'),
                   maxHeight: app.id === "mc-calculator" ? '625px' :
-                             app.id === "india-gdp-control" ? '600px' : // Adjusted
-                             app.id === "india-gdp-display" ? '700px' : // Adjusted
+                             app.id === "india-gdp-control" ? '600px' : 
+                             app.id === "india-gdp-display" ? '700px' : 
+                             app.id === "india-gdp-display-chartjs" ? '700px' : 
                              'none',
                 },
                 previousSize: null
@@ -629,4 +652,3 @@ export default function Workspace() {
     </div>
   );
 }
-
