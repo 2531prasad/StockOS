@@ -9,6 +9,7 @@ import IndiaMacroDisplay from "@/components/apps/india-macro/display";
 import IndiaMacroDisplay2 from "@/components/apps/india-macro/display2"; // Import the new Chart.js version
 import IndiaMacroControl from "@/components/apps/india-macro/control";
 import ColorLab from "@/components/apps/color-lab/color-lab";
+import ComponentTester from "@/components/apps/component-tester/ComponentTester"; // Import the new ComponentTester
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XIcon, MinusIcon, MoveDiagonal, HelpCircle } from "lucide-react";
@@ -140,7 +141,8 @@ export default function Workspace() {
                 maxHeight: appToFocusPotentiallyOpened.id === "mc-calculator" ? '625px' : 
                            appToFocusPotentiallyOpened.id === "india-gdp-control" ? '600px' : 
                            appToFocusPotentiallyOpened.id === "india-gdp-display" ? '700px' : 
-                           appToFocusPotentiallyOpened.id === "india-gdp-display-chartjs" ? '700px' : 
+                           appToFocusPotentiallyOpened.id === "india-gdp-display-chartjs" ? '700px' :
+                           appToFocusPotentiallyOpened.id === "component-tester" ? 'none' :
                            'none',
             },
             previousSize: null
@@ -262,7 +264,7 @@ export default function Workspace() {
         title: "India Macro (Chart.js)",
         component: (props) => <IndiaMacroDisplay2 {...props} />,
         isOpen: true,
-        position: { x: 580, y: 250 }, // Positioned to the right of the Recharts version
+        position: { x: 580, y: 250 }, 
         zIndex: SYSTEM_APP_Z_MIN + 3,
         isMinimized: false,
         previousSize: null,
@@ -282,7 +284,7 @@ export default function Workspace() {
         title: "Macro Controls",
         component: (props) => <IndiaMacroControl {...props} />,
         isOpen: true,
-        position: { x: 1110, y: 250 }, // Adjusted x position further right
+        position: { x: 1110, y: 250 }, 
         zIndex: SYSTEM_APP_Z_MIN + 4,
         isMinimized: false,
         previousSize: null,
@@ -316,7 +318,27 @@ export default function Workspace() {
         },
         appType: 'system',
         contentPadding: 'p-0',
-      }
+      },
+      {
+        id: "component-tester",
+        title: "Component Performance Tester",
+        component: (props: any) => <ComponentTester {...props} />,
+        isOpen: true,
+        position: { x: 1450, y: 50 },
+        zIndex: SYSTEM_APP_Z_MIN + 6,
+        isMinimized: false,
+        previousSize: null,
+        size: {
+            width: '500px',
+            height: '600px',
+            minWidth: 350,
+            minHeight: 300,
+            maxWidth: 'none',
+            maxHeight: 'none',
+        },
+        appType: 'system',
+        contentPadding: 'p-0',
+      },
     ];
     setApps(initialSystemApps);
   }, [openDialogApp]);
@@ -350,6 +372,7 @@ export default function Workspace() {
                              app.id === "india-gdp-control" ? '600px' : 
                              app.id === "india-gdp-display" ? '700px' : 
                              app.id === "india-gdp-display-chartjs" ? '700px' : 
+                             app.id === "component-tester" ? 'none' :
                              'none',
                 },
                 previousSize: null
@@ -368,6 +391,10 @@ export default function Workspace() {
 
   const closeApp = (id: string) => {
     setApps(prevApps => prevApps.map(app => (app.id === id && app.appType === 'system') ? { ...app, isOpen: false } : app));
+  };
+  
+  const closeDialogApp = (id: string) => {
+    setApps(prevApps => prevApps.map(app => (app.id === id && app.appType === 'alertDialog') ? { ...app, isOpen: false } : app));
   };
 
   const findTopmostZByType = (appsList: AppInstance[], type: AppType): number => {
