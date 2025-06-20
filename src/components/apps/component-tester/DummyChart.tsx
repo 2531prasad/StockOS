@@ -28,8 +28,8 @@ const dummyChartData = {
     {
       label: 'Dummy Data',
       data: Array.from({ length: 10 }, (_, i) => i + 2),
-      borderColor: 'hsl(var(--primary))',
-      backgroundColor: 'hsla(var(--primary-hsl), 0.2)',
+      borderColor: 'rgba(54, 162, 235, 1)', // Static blue color
+      backgroundColor: 'rgba(54, 162, 235, 0.2)', // Static transparent blue
       tension: 0.1,
       fill: true,
       pointRadius: 0,
