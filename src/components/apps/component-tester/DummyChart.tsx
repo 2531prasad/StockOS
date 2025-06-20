@@ -9,52 +9,56 @@ import {
   LinearScale,
   PointElement,
   LineElement,
-  Tooltip,
-  Filler,
+  // Tooltip, // Not registered if tooltips are disabled
+  // Filler,  // Not registered if fill is false
 } from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
-  LineElement,
-  Tooltip,
-  Filler
+  LineElement
 );
 
 const dummyChartData = {
-  labels: Array.from({ length: 10 }, (_, i) => (i + 1).toString()),
+  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], // Simple string labels
   datasets: [
     {
-      label: 'Dummy Data',
-      data: Array.from({ length: 10 }, (_, i) => i + 2),
-      borderColor: 'rgba(54, 162, 235, 1)', // Static blue color
-      backgroundColor: 'rgba(54, 162, 235, 0.2)', // Static transparent blue
-      tension: 0.1,
-      fill: true,
-      pointRadius: 0,
+      label: 'Dataset 1',
+      data: [10, 20, 15, 25, 30, 22], // Simple numerical data
+      borderColor: 'rgb(255, 99, 132)', // Bright red
+      backgroundColor: 'rgba(255, 99, 132, 0.5)', // Optional: for fill area if enabled
+      borderWidth: 2, // Make line clearly visible
+      // fill: false, // Default is false, let's keep it simple
+      // tension: 0.1, // Smooth curve, let's use straight lines for simplicity
     },
   ],
 };
 
 const dummyChartOptions: any = {
   responsive: true,
-  maintainAspectRatio: false,
+  maintainAspectRatio: false, // Important for fitting into various container sizes
   animation: false, // Disable animation for performance testing
   scales: {
     x: {
-      display: false, // Hide X-axis for simplicity
+      display: true, // Temporarily display to confirm axis rendering
       ticks: {
-        display: false,
+        display: true,
+         font: {
+          size: 8,
+        }
       },
       grid: {
         display: false,
       }
     },
     y: {
-      display: false, // Hide Y-axis for simplicity
+      display: true, // Temporarily display to confirm axis rendering
        ticks: {
-        display: false,
+        display: true,
+         font: {
+          size: 8,
+        }
       },
       grid: {
         display: false,
@@ -62,24 +66,24 @@ const dummyChartOptions: any = {
     },
   },
   plugins: {
+    legend: {
+      display: false, // Hide legend for simplicity
+    },
     tooltip: {
       enabled: false, // Disable tooltips for performance
     },
-    legend: {
-      display: false, // Hide legend
-    },
   },
   elements: {
-    line: {
-      borderWidth: 1.5,
-    },
     point: {
-      radius: 0,
-      hoverRadius: 0,
+      radius: 0, // Hide points on the line for a cleaner look
+    },
+    line: {
+      // tension: 0 // Makes lines straight, tension: 0.1 was there before
     }
   },
-  parsing: false, // Optimization if data is already parsed
-  normalized: true, // Optimization if data is already normalized
+  // Removed for simplicity, let Chart.js handle defaults:
+  // parsing: false, 
+  // normalized: true, 
 };
 
 interface DummyChartProps {
