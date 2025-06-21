@@ -1,7 +1,8 @@
+
 // components/apps/india-macro/display2.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useIndiaMacroStore } from "./store";
 import {
   calculateGDP,
@@ -34,16 +35,28 @@ const DeckGLChart = ({
   historicalData: { year: number; value: number }[];
   forecastData: { year: number; value: number }[];
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 300, height: 200 });
+
+  // Resize observer to track canvas size
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setSize({ width, height });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   const allData = [...historicalData, ...forecastData];
   if (allData.length < 2) {
-    return (
-      <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">
-        Not enough data for chart
-      </p>
-    );
+    return <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">Not enough data</p>;
   }
 
-  // Determine chart bounds
+  // Calculate chart bounds
   const { minYear, maxYear, minValue, maxValue } = useMemo(() => {
     const years = allData.map((d) => d.year);
     const values = allData.map((d) => d.value);
@@ -60,27 +73,20 @@ const DeckGLChart = ({
     };
   }, [allData]);
 
+  // Normalize to pixel space
   const normalizeX = (year: number) =>
-    (year - minYear) / (maxYear - minYear);
+    ((year - minYear) / (maxYear - minYear)) * size.width;
   const normalizeY = (value: number) =>
-    1 - (value - minValue) / (maxValue - minValue); // Flip Y
+    size.height - ((value - minValue) / (maxValue - minValue)) * size.height;
 
-  const mapSegments = (data: { year: number; value: number }[]) =>
+  const segments = (data: { year: number; value: number }[]) =>
     data.length > 1
       ? data.slice(0, -1).map((p, i) => ({
           source: p,
           target: data[i + 1]
         }))
       : [];
-
-  const historicalSegments = useMemo(
-    () => mapSegments(historicalData),
-    [historicalData]
-  );
-  const forecastSegments = useMemo(
-    () => mapSegments(forecastData),
-    [forecastData]
-  );
+      
   const connectionSegment = useMemo(() => {
     if (historicalData.length && forecastData.length) {
       return [
@@ -95,8 +101,8 @@ const DeckGLChart = ({
 
   const layers = [
     new LineLayer({
-      id: 'historical-line',
-      data: historicalSegments,
+      id: 'historical',
+      data: segments(historicalData),
       getSourcePosition: (d: any) => [
         normalizeX(d.source.year),
         normalizeY(d.source.value)
@@ -110,8 +116,8 @@ const DeckGLChart = ({
       pickable: true
     }),
     new LineLayer({
-      id: 'forecast-line',
-      data: [...forecastSegments, ...connectionSegment],
+      id: 'forecast',
+      data: [...segments(forecastData), ...connectionSegment],
       getSourcePosition: (d: any) => [
         normalizeX(d.source.year),
         normalizeY(d.source.value)
@@ -122,31 +128,26 @@ const DeckGLChart = ({
       ],
       getColor: [0, 200, 255, 150],
       getWidth: 1.5,
-      pickable: true
+      pickable: true,
     })
   ];
 
-  const initialViewState = {
-    target: [0.5, 0.5, 0],
-    zoom: 0,
-    minZoom: -5,
-    maxZoom: 5
-  };
-
   return (
     <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(10, 20, 30, 0.1)'
-      }}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%' }}
+      className="relative bg-card rounded-lg overflow-hidden"
     >
       <DeckGL
+        width={size.width}
+        height={size.height}
         layers={layers}
-        initialViewState={initialViewState}
-        controller={true}
-        views={new OrthographicView({ id: 'ortho' })}
+        controller={false}
+        views={new OrthographicView()}
+        viewState={{
+          target: [size.width / 2, size.height / 2, 0],
+          zoom: 0
+        }}
         getTooltip={({ object }: any) =>
           object && object.source && {
             html: `<div style="background-color: #222; color: #fff; padding: 5px; border-radius: 3px; font-family: monospace; font-size: 12px;">
@@ -273,8 +274,8 @@ export default function IndiaMacroDisplay2() {
                 }
               }
               
-              const parsedHistorical = historical.slice(-5).map(d => ({ year: d.year, value: d.value }));
-              const parsedForecast = forecast.slice(0, 5).map(d => ({ year: d.year, value: d.value }));
+              const historicalSliced = historical.slice(-5);
+              const forecastSliced = forecast.slice(0, 5);
 
               return (
                 <div
@@ -290,7 +291,11 @@ export default function IndiaMacroDisplay2() {
                   </div>
 
                   <div className="mt-2 h-36">
-                    <DeckGLChart historicalData={parsedHistorical} forecastData={parsedForecast} />
+                    {historicalSliced.length > 0 || forecastSliced.length > 0 ? (
+                      <DeckGLChart historicalData={historicalSliced} forecastData={forecastSliced} />
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">No chart data</p>
+                    )}
                   </div>
                 </div>
               );
