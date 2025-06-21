@@ -37,6 +37,12 @@ const DeckGLChart = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 300, height: 200 });
+  const [hoverInfo, setHoverInfo] = useState<{
+    x: number;
+    y: number;
+    year: number;
+    value: number;
+  } | null>(null);
 
   // Resize observer to track canvas size
   useEffect(() => {
@@ -98,6 +104,14 @@ const DeckGLChart = ({
     }
     return [];
   }, [historicalData, forecastData]);
+  
+  const handleHover = ({ x, y, object }: any) => {
+    if (object && object.source) {
+      setHoverInfo({ x, y, year: object.source.year, value: object.source.value });
+    } else {
+      setHoverInfo(null);
+    }
+  };
 
   const layers = [
     new LineLayer({
@@ -113,7 +127,7 @@ const DeckGLChart = ({
       ],
       getColor: [0, 150, 255, 200],
       getWidth: 2,
-      pickable: true
+      pickable: true,
     }),
     new LineLayer({
       id: 'forecast',
@@ -135,8 +149,8 @@ const DeckGLChart = ({
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%' }}
-      className="relative bg-card rounded-lg overflow-hidden"
+      style={{ width: '100%', height: '100%', overflow: 'visible' }} // Make sure overflow is visible
+      className="relative bg-card rounded-lg"
     >
       <DeckGL
         width={size.width}
@@ -148,21 +162,22 @@ const DeckGLChart = ({
           target: [size.width / 2, size.height / 2, 0],
           zoom: 0
         }}
-        getTooltip={({ object }: any) =>
-          object && object.source && {
-            html: `<div style="background-color: #222; color: #fff; padding: 5px; border-radius: 3px; font-family: monospace; font-size: 12px;">
-                   <div><strong>Year:</strong> ${object.source.year}</div>
-                   <div><strong>Value:</strong> ${object.source.value.toLocaleString(undefined, {
-                     maximumFractionDigits: 2
-                   })}</div>
-                 </div>`,
-            style: {
-              backgroundColor: 'transparent',
-              border: 'none'
-            }
-          }
-        }
+        onHover={handleHover}
+        pickable={true}
       />
+      {hoverInfo && (
+        <div
+            className="absolute pointer-events-none text-xs px-2 py-1 rounded bg-black/80 text-white shadow-lg z-10"
+            style={{
+                left: hoverInfo.x,
+                top: hoverInfo.y,
+                transform: 'translate(10px, -20px)', // Position it slightly above and to the right of the cursor
+            }}
+        >
+            <div><strong>Year:</strong> {hoverInfo.year}</div>
+            <div><strong>Value:</strong> {hoverInfo.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+        </div>
+      )}
     </div>
   );
 };
