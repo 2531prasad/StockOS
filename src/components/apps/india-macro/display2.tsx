@@ -1,8 +1,7 @@
-
 // components/apps/india-macro/display2.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useIndiaMacroStore } from "./store";
 import {
   calculateGDP,
@@ -19,43 +18,112 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { Line as ChartJsLine } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip as ChartJsTooltipPlugin,
-  Legend,
-  Filler,
-} from 'chart.js';
-import annotationPlugin from 'chartjs-plugin-annotation';
+// Deck.gl imports
+import { DeckGL } from '@deck.gl/react';
+import { LineLayer } from '@deck.gl/layers';
+import { OrthographicView } from '@deck.gl/core';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  ChartJsTooltipPlugin,
-  Legend,
-  Filler,
-  annotationPlugin
-);
 
 const currentYear = new Date().getFullYear();
 
-// Static colors for Chart.js, approximating the theme for consistency
-// Dark theme considerations:
-const chartColors = {
-  primary: 'hsl(251, 70%, 75%)', // Approx. of oklch(0.7451 0.1356 251.08)
-  accent: 'hsl(152, 60%, 80%)',   // Approx. of oklch(0.7969 0.0784 151.96)
-  mutedForeground: 'hsla(0, 0%, 80%, 0.7)', // Lighter for dark theme ticks
-  gridBorder: 'hsla(0, 0%, 50%, 0.2)',    // Subtle grid
-  tooltipBg: 'hsla(0, 0%, 15%, 0.9)',      // Dark tooltip
-  tooltipText: 'hsl(0, 0%, 90%)',
+// A new component for the Deck.gl chart
+const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year: number; value: number }[]; forecastData: { year: number; value: number }[] }) => {
+  const allData = [...historicalData, ...forecastData];
+  
+  if (allData.length < 2) {
+    return <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">Not enough data for chart</p>;
+  }
+
+  const { minYear, maxYear, minValue, maxValue } = useMemo(() => {
+    const years = allData.map(d => d.year);
+    const values = allData.map(d => d.value);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const valueRange = maxVal - minVal;
+    
+    // Add padding to min/max values for better visualization
+    const valuePadding = valueRange === 0 ? 1 : valueRange * 0.1;
+
+    return {
+      minYear: Math.min(...years),
+      maxYear: Math.max(...years),
+      minValue: minVal - valuePadding,
+      maxValue: maxVal + valuePadding,
+    };
+  }, [allData]);
+
+  // Create segments for LineLayer
+  const historicalSegments = useMemo(() => 
+    historicalData.length > 1 ? historicalData.slice(0, -1).map((p, i) => ({
+      source: p,
+      target: historicalData[i + 1]
+    })) : [], [historicalData]);
+
+  const forecastSegments = useMemo(() => 
+    forecastData.length > 1 ? forecastData.slice(0, -1).map((p, i) => ({
+      source: p,
+      target: forecastData[i + 1]
+    })) : [], [forecastData]);
+  
+  // Connect historical to forecast if possible
+  const connectionSegment = useMemo(() => {
+    if (historicalData.length > 0 && forecastData.length > 0) {
+      return [{
+        source: historicalData[historicalData.length - 1],
+        target: forecastData[0]
+      }];
+    }
+    return [];
+  }, [historicalData, forecastData]);
+
+  const layers = [
+    new LineLayer({
+      id: 'historical-line',
+      data: historicalSegments,
+      getSourcePosition: (d: any) => [d.source.year, d.source.value],
+      getTargetPosition: (d: any) => [d.target.year, d.target.value],
+      getColor: [0, 150, 255, 200], // Blue
+      getWidth: 2,
+      pickable: true,
+    }),
+    new LineLayer({
+      id: 'forecast-line',
+      data: [...forecastSegments, ...connectionSegment],
+      getSourcePosition: (d: any) => [d.source.year, d.source.value],
+      getTargetPosition: (d: any) => [d.target.year, d.target.value],
+      getColor: [0, 200, 255, 150], // Lighter Blue
+      getWidth: 1.5,
+      pickable: true,
+    }),
+  ];
+
+  const initialViewState = {
+      target: [ (minYear + maxYear) / 2, (minValue + maxValue) / 2, 0 ],
+      zoom: -1,
+      minZoom: -10,
+      maxZoom: 10
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: 'rgba(10, 20, 30, 0.1)' }}>
+      <DeckGL
+        layers={layers}
+        initialViewState={initialViewState}
+        controller={true}
+        views={new OrthographicView({id: 'ortho'})}
+        getTooltip={({object}: any) => object && object.source && {
+          html: `<div style="background-color: #222; color: #fff; padding: 5px; border-radius: 3px; font-family: monospace; font-size: 12px;">
+                   <div><strong>Year:</strong> ${object.source.year}</div>
+                   <div><strong>Value:</strong> ${object.source.value.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                 </div>`,
+          style: {
+            backgroundColor: 'transparent',
+            border: 'none',
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 
@@ -64,7 +132,7 @@ export default function IndiaMacroDisplay2() {
     baseGDP, growthRate, startTime,
     basePopulation, populationGrowthRate, basePPP, pppGrowthRate,
     nominalGdpUpdateIntervalMs, pppGdpUpdateIntervalMs,
-    imfData, setIMFData, resetIMFData,
+    imfData, setIMFData,
     isFetchingIMF, setIsFetchingIMF
   } = useIndiaMacroStore();
 
@@ -113,7 +181,7 @@ export default function IndiaMacroDisplay2() {
     <ScrollArea className="w-full h-full">
     <div className={cn("p-4 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
       <div>
-        <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard (Chart.js)</p>
+        <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard (deck.gl)</p>
         <div className="text-center mt-1 mb-3">
           <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Nominal GDP</div>
           <div className={cn(systemAppTheme.typography.monospace, "text-4xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
@@ -149,7 +217,7 @@ export default function IndiaMacroDisplay2() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {Object.entries(imfData).map(([code, entry]) => {
             const { label, values } = entry;
-            const { historical, forecast, all } = splitHistoricalAndForecast(values, currentYear);
+            const { historical, forecast } = splitHistoricalAndForecast(values, currentYear);
             const latest = getLatestValue(values);
 
             let displayValue = "N/A";
@@ -164,101 +232,7 @@ export default function IndiaMacroDisplay2() {
                 displayValue = latest.value.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
               }
             }
-
-            const chartDataForDisplay = [...historical.slice(-5), ...forecast.slice(0, 5)].map((d) => ({
-              year: d.year.toString(),
-              value: d.value,
-              isFuture: d.year > currentYear,
-            }));
-
-            const labels = chartDataForDisplay.map(d => d.year);
-            const historicalValues = chartDataForDisplay.map(d => d.isFuture ? null : d.value);
-            const forecastValues = chartDataForDisplay.map(d => d.isFuture ? d.value : null);
             
-            const cleanLabel = label.split('(')[0].trim();
-
-            const chartJsConfig = {
-              labels,
-              datasets: [
-                {
-                  label: cleanLabel,
-                  data: historicalValues,
-                  borderColor: chartColors.primary,
-                  borderWidth: 1.5,
-                  pointRadius: 0,
-                  tension: 0.1,
-                  spanGaps: false, // Important for separate historical/forecast lines
-                },
-                {
-                  label: cleanLabel,
-                  data: forecastValues,
-                  borderColor: chartColors.primary,
-                  borderDash: [3, 3],
-                  borderWidth: 1.5,
-                  pointRadius: 0,
-                  tension: 0.1,
-                  spanGaps: false,
-                }
-              ]
-            };
-
-            const chartOptions = {
-              responsive: true,
-              maintainAspectRatio: false,
-              animation: false as const,
-              scales: {
-                x: {
-                  ticks: { font: { size: 8 }, color: chartColors.mutedForeground },
-                  grid: { display: false },
-                },
-                y: {
-                  ticks: { font: { size: 8 }, color: chartColors.mutedForeground },
-                  grid: {
-                    color: chartColors.gridBorder,
-                    borderDash: [3, 3],
-                    drawBorder: false,
-                  },
-                }
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  enabled: true,
-                  mode: 'index' as const,
-                  intersect: false,
-                  backgroundColor: chartColors.tooltipBg,
-                  titleColor: chartColors.tooltipText,
-                  bodyColor: chartColors.tooltipText,
-                  titleFont: { family: systemAppTheme.typography.monospace.split(' ')[0] }, // Use primary font from theme
-                  bodyFont: { family: systemAppTheme.typography.monospace.split(' ')[0] },
-                  padding: 8,
-                  callbacks: {
-                    title: (tooltipItems: any) => `Year: ${tooltipItems[0].label}`,
-                    label: (tooltipItem: any) => {
-                      const datasetLabel = tooltipItem.dataset.label || 'Value';
-                      const value = tooltipItem.parsed.y;
-                      if (value !== null) {
-                        return `${datasetLabel}: ${value.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 1 })}`;
-                      }
-                      return '';
-                    }
-                  }
-                },
-                annotation: {
-                  annotations: {
-                    currentYearLine: {
-                      type: 'line' as const,
-                      scaleID: 'x',
-                      value: currentYear.toString(),
-                      borderColor: chartColors.accent,
-                      borderWidth: 1,
-                      borderDash: [2, 2],
-                    }
-                  }
-                }
-              }
-            };
-
             return (
               <div
                 key={code}
@@ -273,11 +247,7 @@ export default function IndiaMacroDisplay2() {
                 </div>
 
                 <div className="mt-2 h-36">
-                  {chartDataForDisplay.length > 0 ? (
-                     <ChartJsLine options={chartOptions} data={chartJsConfig} />
-                  ) : (
-                    <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">No chart data</p>
-                  )}
+                   <DeckGLChart historicalData={historical.slice(-5)} forecastData={forecast.slice(0, 5)} />
                 </div>
               </div>
             );
