@@ -27,56 +27,68 @@ import { OrthographicView } from '@deck.gl/core';
 const currentYear = new Date().getFullYear();
 
 // A new component for the Deck.gl chart
-const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year: number; value: number }[]; forecastData: { year: number; value: number }[] }) => {
+const DeckGLChart = ({
+  historicalData,
+  forecastData
+}: {
+  historicalData: { year: number; value: number }[];
+  forecastData: { year: number; value: number }[];
+}) => {
   const allData = [...historicalData, ...forecastData];
-  
   if (allData.length < 2) {
-    return <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">Not enough data for chart</p>;
+    return (
+      <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">
+        Not enough data for chart
+      </p>
+    );
   }
 
-  const { minYear, maxYear, minValue, maxValue, yearSpan, valueSpan } = useMemo(() => {
-    const years = allData.map(d => d.year);
-    const values = allData.map(d => d.value);
+  // Determine chart bounds
+  const { minYear, maxYear, minValue, maxValue } = useMemo(() => {
+    const years = allData.map((d) => d.year);
+    const values = allData.map((d) => d.value);
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
-    const valueRange = maxVal - minVal;
-    
-    // Add padding to min/max values for better visualization
-    const valuePadding = valueRange === 0 ? 1 : valueRange * 0.1;
-
-    const finalMinYear = Math.min(...years);
-    const finalMaxYear = Math.max(...years);
+    const yearPadding = 0.5;
+    const valuePadding = (maxVal - minVal) * 0.1 || 1;
 
     return {
-      minYear: finalMinYear,
-      maxYear: finalMaxYear,
+      minYear: Math.min(...years) - yearPadding,
+      maxYear: Math.max(...years) + yearPadding,
       minValue: minVal - valuePadding,
-      maxValue: maxVal + valuePadding,
-      yearSpan: finalMaxYear - finalMinYear || 1, // Avoid division by zero
-      valueSpan: (maxVal + valuePadding) - (minVal - valuePadding) || 1, // Avoid division by zero
+      maxValue: maxVal + valuePadding
     };
   }, [allData]);
 
-  // Create segments for LineLayer
-  const historicalSegments = useMemo(() => 
-    historicalData.length > 1 ? historicalData.slice(0, -1).map((p, i) => ({
-      source: p,
-      target: historicalData[i + 1]
-    })) : [], [historicalData]);
+  const normalizeX = (year: number) =>
+    (year - minYear) / (maxYear - minYear);
+  const normalizeY = (value: number) =>
+    1 - (value - minValue) / (maxValue - minValue); // Flip Y
 
-  const forecastSegments = useMemo(() => 
-    forecastData.length > 1 ? forecastData.slice(0, -1).map((p, i) => ({
-      source: p,
-      target: forecastData[i + 1]
-    })) : [], [forecastData]);
-  
-  // Connect historical to forecast if possible
+  const mapSegments = (data: { year: number; value: number }[]) =>
+    data.length > 1
+      ? data.slice(0, -1).map((p, i) => ({
+          source: p,
+          target: data[i + 1]
+        }))
+      : [];
+
+  const historicalSegments = useMemo(
+    () => mapSegments(historicalData),
+    [historicalData]
+  );
+  const forecastSegments = useMemo(
+    () => mapSegments(forecastData),
+    [forecastData]
+  );
   const connectionSegment = useMemo(() => {
-    if (historicalData.length > 0 && forecastData.length > 0) {
-      return [{
-        source: historicalData[historicalData.length - 1],
-        target: forecastData[0]
-      }];
+    if (historicalData.length && forecastData.length) {
+      return [
+        {
+          source: historicalData[historicalData.length - 1],
+          target: forecastData[0]
+        }
+      ];
     }
     return [];
   }, [historicalData, forecastData]);
@@ -85,47 +97,70 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
     new LineLayer({
       id: 'historical-line',
       data: historicalSegments,
-      getSourcePosition: (d: any) => [(d.source.year - minYear) / yearSpan, (d.source.value - minValue) / valueSpan],
-      getTargetPosition: (d: any) => [(d.target.year - minYear) / yearSpan, (d.target.value - minValue) / valueSpan],
-      getColor: [0, 150, 255, 200], // Blue
+      getSourcePosition: (d: any) => [
+        normalizeX(d.source.year),
+        normalizeY(d.source.value)
+      ],
+      getTargetPosition: (d: any) => [
+        normalizeX(d.target.year),
+        normalizeY(d.target.value)
+      ],
+      getColor: [0, 150, 255, 200],
       getWidth: 2,
-      pickable: true,
+      pickable: true
     }),
     new LineLayer({
       id: 'forecast-line',
       data: [...forecastSegments, ...connectionSegment],
-      getSourcePosition: (d: any) => [(d.source.year - minYear) / yearSpan, (d.source.value - minValue) / valueSpan],
-      getTargetPosition: (d: any) => [(d.target.year - minYear) / yearSpan, (d.target.value - minValue) / valueSpan],
-      getColor: [0, 200, 255, 150], // Lighter Blue
+      getSourcePosition: (d: any) => [
+        normalizeX(d.source.year),
+        normalizeY(d.source.value)
+      ],
+      getTargetPosition: (d: any) => [
+        normalizeX(d.target.year),
+        normalizeY(d.target.value)
+      ],
+      getColor: [0, 200, 255, 150],
       getWidth: 1.5,
-      pickable: true,
-    }),
+      pickable: true
+    })
   ];
 
   const initialViewState = {
-      target: [0.5, 0.5, 0],
-      zoom: -0.5, // Zoom out slightly to see the 1x1 normalized space with padding
-      minZoom: -10,
-      maxZoom: 10
+    target: [0.5, 0.5, 0],
+    zoom: 0,
+    minZoom: -5,
+    maxZoom: 5
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: 'rgba(10, 20, 30, 0.1)' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(10, 20, 30, 0.1)'
+      }}
+    >
       <DeckGL
         layers={layers}
         initialViewState={initialViewState}
         controller={true}
-        views={new OrthographicView({id: 'ortho'})}
-        getTooltip={({object}: any) => object && object.source && {
-          html: `<div style="background-color: #222; color: #fff; padding: 5px; border-radius: 3px; font-family: monospace; font-size: 12px;">
+        views={new OrthographicView({ id: 'ortho' })}
+        getTooltip={({ object }: any) =>
+          object && object.source && {
+            html: `<div style="background-color: #222; color: #fff; padding: 5px; border-radius: 3px; font-family: monospace; font-size: 12px;">
                    <div><strong>Year:</strong> ${object.source.year}</div>
-                   <div><strong>Value:</strong> ${object.source.value.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                   <div><strong>Value:</strong> ${object.source.value.toLocaleString(undefined, {
+                     maximumFractionDigits: 2
+                   })}</div>
                  </div>`,
-          style: {
-            backgroundColor: 'transparent',
-            border: 'none',
+            style: {
+              backgroundColor: 'transparent',
+              border: 'none'
+            }
           }
-        }}
+        }
       />
     </div>
   );
@@ -238,8 +273,8 @@ export default function IndiaMacroDisplay2() {
                 }
               }
               
-              const parsedHistorical = historical.map(d => ({ year: d.year, value: d.value }));
-              const parsedForecast = forecast.map(d => ({ year: d.year, value: d.value }));
+              const parsedHistorical = historical.slice(-5).map(d => ({ year: d.year, value: d.value }));
+              const parsedForecast = forecast.slice(0, 5).map(d => ({ year: d.year, value: d.value }));
 
               return (
                 <div
