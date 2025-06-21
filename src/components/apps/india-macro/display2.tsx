@@ -34,7 +34,7 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
     return <p className="text-xs text-muted-foreground text-center flex items-center justify-center h-full">Not enough data for chart</p>;
   }
 
-  const { minYear, maxYear, minValue, maxValue } = useMemo(() => {
+  const { minYear, maxYear, minValue, maxValue, yearSpan, valueSpan } = useMemo(() => {
     const years = allData.map(d => d.year);
     const values = allData.map(d => d.value);
     const minVal = Math.min(...values);
@@ -44,11 +44,16 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
     // Add padding to min/max values for better visualization
     const valuePadding = valueRange === 0 ? 1 : valueRange * 0.1;
 
+    const finalMinYear = Math.min(...years);
+    const finalMaxYear = Math.max(...years);
+
     return {
-      minYear: Math.min(...years),
-      maxYear: Math.max(...years),
+      minYear: finalMinYear,
+      maxYear: finalMaxYear,
       minValue: minVal - valuePadding,
       maxValue: maxVal + valuePadding,
+      yearSpan: finalMaxYear - finalMinYear || 1, // Avoid division by zero
+      valueSpan: (maxVal + valuePadding) - (minVal - valuePadding) || 1, // Avoid division by zero
     };
   }, [allData]);
 
@@ -80,8 +85,8 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
     new LineLayer({
       id: 'historical-line',
       data: historicalSegments,
-      getSourcePosition: (d: any) => [d.source.year, d.source.value],
-      getTargetPosition: (d: any) => [d.target.year, d.target.value],
+      getSourcePosition: (d: any) => [(d.source.year - minYear) / yearSpan, (d.source.value - minValue) / valueSpan],
+      getTargetPosition: (d: any) => [(d.target.year - minYear) / yearSpan, (d.target.value - minValue) / valueSpan],
       getColor: [0, 150, 255, 200], // Blue
       getWidth: 2,
       pickable: true,
@@ -89,8 +94,8 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
     new LineLayer({
       id: 'forecast-line',
       data: [...forecastSegments, ...connectionSegment],
-      getSourcePosition: (d: any) => [d.source.year, d.source.value],
-      getTargetPosition: (d: any) => [d.target.year, d.target.value],
+      getSourcePosition: (d: any) => [(d.source.year - minYear) / yearSpan, (d.source.value - minValue) / valueSpan],
+      getTargetPosition: (d: any) => [(d.target.year - minYear) / yearSpan, (d.target.value - minValue) / valueSpan],
       getColor: [0, 200, 255, 150], // Lighter Blue
       getWidth: 1.5,
       pickable: true,
@@ -98,8 +103,8 @@ const DeckGLChart = ({ historicalData, forecastData }: { historicalData: { year:
   ];
 
   const initialViewState = {
-      target: [ (minYear + maxYear) / 2, (minValue + maxValue) / 2, 0 ],
-      zoom: -1,
+      target: [0.5, 0.5, 0],
+      zoom: -0.5, // Zoom out slightly to see the 1x1 normalized space with padding
       minZoom: -10,
       maxZoom: 10
   };
@@ -179,82 +184,85 @@ export default function IndiaMacroDisplay2() {
 
   return (
     <ScrollArea className="w-full h-full">
-    <div className={cn("p-4 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
-      <div>
-        <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard (deck.gl)</p>
-        <div className="text-center mt-1 mb-3">
-          <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Nominal GDP</div>
-          <div className={cn(systemAppTheme.typography.monospace, "text-4xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
-        </div>
-        <div className={cn("grid grid-cols-3 gap-x-3 gap-y-2", systemAppTheme.typography.monospace, "text-xs text-card-foreground")}>
-          <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP (PPP)</div>
-            <div className="text-sm font-semibold">{formatUSD(gdpPPPValueNow)}</div>
+      <div className={cn("p-4 w-full flex flex-col space-y-4", systemAppTheme.typography.baseText)}>
+        <div>
+          <p className={cn(systemAppTheme.typography.statLabel, "tracking-wider uppercase text-center")}>🇮🇳 India Macro Dashboard (deck.gl)</p>
+          <div className="text-center mt-1 mb-3">
+            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Nominal GDP</div>
+            <div className={cn(systemAppTheme.typography.monospace, "text-4xl font-semibold text-card-foreground")}>{formatUSD(gdpNow)}</div>
           </div>
-          <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Population</div>
-            <div className="text-sm font-semibold">{formatCompact(populationNow)}</div>
-          </div>
-          <div className="text-center">
-            <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP/Cap (PPP)</div>
-            <div className="text-sm font-semibold">{formatUSD(gdpPerCapitaPPP, 0)}</div>
+          <div className={cn("grid grid-cols-3 gap-x-3 gap-y-2", systemAppTheme.typography.monospace, "text-xs text-card-foreground")}>
+            <div className="text-center">
+              <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP (PPP)</div>
+              <div className="text-sm font-semibold">{formatUSD(gdpPPPValueNow)}</div>
+            </div>
+            <div className="text-center">
+              <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>Population</div>
+              <div className="text-sm font-semibold">{formatCompact(populationNow)}</div>
+            </div>
+            <div className="text-center">
+              <div className={cn(systemAppTheme.typography.statLabel, "mb-0.5 whitespace-nowrap")}>GDP/Cap (PPP)</div>
+              <div className="text-sm font-semibold">{formatUSD(gdpPerCapitaPPP, 0)}</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <hr className="border-border/60 my-2"/>
+        <hr className="border-border/60 my-2"/>
 
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <h3 className={cn(systemAppTheme.typography.heading, "text-sm")}>IMF Indicators</h3>
-          <Button onClick={handleFetchIMF} disabled={isFetchingIMF} size="sm" variant="outline">
-            {isFetchingIMF ? "Fetching..." : "Fetch IMF Data"}
-          </Button>
-        </div>
-        {Object.keys(imfData).length === 0 && !isFetchingIMF && (
-          <p className="text-xs text-muted-foreground text-center py-4">Click "Fetch IMF Data" to load indicators.</p>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {Object.entries(imfData).map(([code, entry]) => {
-            const { label, values } = entry;
-            const { historical, forecast } = splitHistoricalAndForecast(values, currentYear);
-            const latest = getLatestValue(values);
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className={cn(systemAppTheme.typography.heading, "text-sm")}>IMF Indicators</h3>
+            <Button onClick={handleFetchIMF} disabled={isFetchingIMF} size="sm" variant="outline">
+              {isFetchingIMF ? "Fetching..." : "Fetch IMF Data"}
+            </Button>
+          </div>
+          {Object.keys(imfData).length === 0 && !isFetchingIMF && (
+            <p className="text-xs text-muted-foreground text-center py-4">Click "Fetch IMF Data" to load indicators.</p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {Object.entries(imfData).map(([code, entry]) => {
+              const { label, values } = entry;
+              const { historical, forecast } = splitHistoricalAndForecast(values, currentYear);
+              const latest = getLatestValue(values);
 
-            let displayValue = "N/A";
-            if (latest?.value !== undefined && latest?.value !== null) {
-              if (code === 'NGDPD' || code === 'PPPGDP') {
-                const fullValue = latest.value * 1_000_000_000;
-                displayValue = formatCompact(fullValue);
-              } else if (code === 'LP') {
-                const fullValue = latest.value * 1_000_000;
-                displayValue = formatCompact(fullValue);
-              } else {
-                displayValue = latest.value.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+              let displayValue = "N/A";
+              if (latest?.value !== undefined && latest?.value !== null) {
+                if (code === 'NGDPD' || code === 'PPPGDP') {
+                  const fullValue = latest.value * 1_000_000_000;
+                  displayValue = formatCompact(fullValue);
+                } else if (code === 'LP') {
+                  const fullValue = latest.value * 1_000_000;
+                  displayValue = formatCompact(fullValue);
+                } else {
+                  displayValue = latest.value.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+                }
               }
-            }
-            
-            return (
-              <div
-                key={code}
-                className="bg-background/50 dark:bg-muted/20 rounded-lg p-2 border border-border/50 flex flex-col justify-between"
-              >
-                <div>
-                  <div className={cn(systemAppTheme.typography.statLabel, "font-medium truncate mb-0.5")}>{label}</div>
-                  <div className="text-card-foreground text-sm font-semibold leading-none">
-                    {displayValue}
-                    {latest?.year && <span className="ml-1 text-muted-foreground text-xs">({latest.year})</span>}
+              
+              const parsedHistorical = historical.map(d => ({ year: d.year, value: d.value }));
+              const parsedForecast = forecast.map(d => ({ year: d.year, value: d.value }));
+
+              return (
+                <div
+                  key={code}
+                  className="bg-background/50 dark:bg-muted/20 rounded-lg p-2 border border-border/50 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className={cn(systemAppTheme.typography.statLabel, "font-medium truncate mb-0.5")}>{label}</div>
+                    <div className="text-card-foreground text-sm font-semibold leading-none">
+                      {displayValue}
+                      {latest?.year && <span className="ml-1 text-muted-foreground text-xs">({latest.year})</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 h-36">
+                    <DeckGLChart historicalData={parsedHistorical} forecastData={parsedForecast} />
                   </div>
                 </div>
-
-                <div className="mt-2 h-36">
-                   <DeckGLChart historicalData={historical.slice(-5)} forecastData={forecast.slice(0, 5)} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
     </ScrollArea>
   );
 }
